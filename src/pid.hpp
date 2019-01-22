@@ -12,7 +12,7 @@ class Slew_t {
 };
 class Pid_t {
    public:
-    double unwind, DONE_ZONE, maxIntegral, iActiveZone, dInactiveZone, target, sensVal, prevSensVal, prevErr, errTot, kp, ki, kd, deriv, prop;
+    double unwind, DONE_ZONE, maxIntegral, iActiveZone, dInactiveZone, target, sensVal, prevSensVal, prevErr, errTot, kp, ki, kd, deriv, prop, derivativeUpdateInterval;
     int prevTime, doneTime, prevDUpdateTime;
     Pid_t();
     double update();

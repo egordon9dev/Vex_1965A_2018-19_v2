@@ -55,6 +55,12 @@ void opcontrol() {
     int nBalls = 0;
     int intakeT0 = BIL;
     bool clawFlipRequest = false;
+    int flywheelPower = 0;
+    while (1) {
+        pidFlywheel(0, 2.8);
+        printPidValues();
+        delay(100);
+    }
     if (0) {
         odometry.setA(PI / 2);
         odometry.setX(0);
@@ -137,14 +143,14 @@ void opcontrol() {
         setDR(joy[1] - joy[0]);
 
         // FLYWHEEL
-        /*if (curClicks[ctlrIdxDown]) {
-            pidFlywheel(0);
+
+        if (curClicks[ctlrIdxDown]) {
+            flywheelPower = 0;
         } else if (curClicks[ctlrIdxUp]) {
-            pidFlywheel(2.9);
+            flywheelPower = 10000;
         } else {
-            pidFlywheel();
-        }*/
-        pidFlywheel(12000, 2.5);
+            setFlywheel(flywheelPower);
+        }
 
         // drfb
         double drfbPos = getDrfb();

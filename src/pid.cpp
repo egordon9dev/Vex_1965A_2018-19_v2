@@ -6,7 +6,6 @@ Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid;
 Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
 Odometry_t odometry(6.982698);
 /*
- 
  ########  #### ########           #######  ########   #######
  ##     ##  ##  ##     ##         ##     ## ##     ## ##     ##
  ##     ##  ##  ##     ##         ##     ## ##     ## ##     ##
@@ -22,27 +21,6 @@ Odometry_t odometry(6.982698);
        ## ##       ##       ##  ##  ##
  ##    ## ##       ##       ##  ##  ##
   ######  ######## ########  ###  ###
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 */
 Slew_t::Slew_t() {
     slewRate = 100.0;
@@ -54,6 +32,7 @@ Pid_t::Pid_t() {
     DONE_ZONE = 10;
     maxIntegral = 9999999;
     dInactiveZone = iActiveZone = target = prevSensVal = sensVal = prevErr = errTot = unwind = deriv = prop = kp = ki = kd = 0.0;
+    derivativeUpdateInterval = 15;
     prevTime = prevDUpdateTime = 0;
 }
 Odometry_t::Odometry_t(double L) {
@@ -120,7 +99,7 @@ double Pid_t::update() {
     if (derivativeDt > 1000) {
         prevSensVal = sensVal;
         prevDUpdateTime = millis();
-    } else if (derivativeDt >= 15) {
+    } else if (derivativeDt >= derivativeUpdateInterval) {
         d = ((prevSensVal - sensVal) * kd) / derivativeDt;
         prevDUpdateTime = millis();
         deriv = d;  // save new derivative
@@ -130,11 +109,11 @@ double Pid_t::update() {
     // INTEGRAL
     errTot += err * dt;
     if (fabs(err) > iActiveZone) errTot = 0;
-    if (fabs((prevSensVal - sensVal) / derivativeDt) > 0.02) {
-        double maxErrTot = ki != 0.0 ? maxIntegral / ki : 999999999;
-        if (errTot > maxErrTot) errTot = maxErrTot;
-        if (errTot < -maxErrTot) errTot = -maxErrTot;
-    }
+    // if (fabs((prevSensVal - sensVal) / derivativeDt) > 0.02) {
+    double maxErrTot = ((ki != 0.0) ? (maxIntegral / ki) : 999999999);
+    if (errTot > maxErrTot) errTot = maxErrTot;
+    if (errTot < -maxErrTot) errTot = -maxErrTot;
+    //}
     if ((err > 0.0 && errTot < 0.0) || (err < 0.0 && errTot > 0.0) || abs(err) < 0.001) {
         if (fabs(err) - unwind > -0.001) {
             errTot = 0.0;
@@ -163,27 +142,6 @@ double Pid_t::update() {
 }
 
 /*
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  ########  ########  #### ##     ## ########    ##       #### ##    ## ########
  ##     ## ##     ##  ##  ##     ## ##          ##        ##  ###   ## ##
  ##     ## ##     ##  ##  ##     ## ##          ##        ##  ####  ## ##
@@ -191,27 +149,6 @@ double Pid_t::update() {
  ##     ## ##   ##    ##   ##   ##  ##          ##        ##  ##  #### ##
  ##     ## ##    ##   ##    ## ##   ##          ##        ##  ##   ### ##
  ########  ##     ## ####    ###    ########    ######## #### ##    ## ########
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 */
 
 namespace driveLineData {
@@ -288,27 +225,6 @@ bool pidDriveLine() {
     return doneT + wait < millis();
 }
 /*
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  ######## ##     ## ########  ##    ##
     ##    ##     ## ##     ## ###   ##
     ##    ##     ## ##     ## ####  ##
@@ -316,27 +232,6 @@ bool pidDriveLine() {
     ##    ##     ## ##   ##   ##  ####
     ##    ##     ## ##    ##  ##   ###
     ##     #######  ##     ## ##    ##
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 */
 int g_pidTurnLimit = 12000;
 namespace turnData {
@@ -383,27 +278,6 @@ bool pidTurnSweep(double tL, double tR, int wait) {
     return false;
 }
 /*
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     ###    ########   ######
    ## ##   ##     ## ##    ##
   ##   ##  ##     ## ##
@@ -411,27 +285,6 @@ bool pidTurnSweep(double tL, double tR, int wait) {
  ######### ##   ##   ##
  ##     ## ##    ##  ##    ##
  ##     ## ##     ##  ######
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 */
 namespace arcData {
 const int pwrLim1 = 7500, pwrLim2 = pwrLim1 + 1000;
