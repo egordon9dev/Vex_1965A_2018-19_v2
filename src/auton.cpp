@@ -472,79 +472,88 @@ void auton3(bool leftSide) {
         int j = 0;
         odometry.update();
         if (i == j++) {
+			printPidValues();
             t0 = millis();
             ptB = Point(0, 46);
-            pidDriveInit(ptB, driveT);
+            pidDriveLineInit(Point(0,0), ptB, driveT);
             enc0 = getDrfbEncoder();
-            flywheelPid.target = 3.0;
+            flywheelPid.target = 2.9;
             i++;
             k = 0;
         } else if (i == j++) {  // grab ball from under cap 1
+			printDrivePidValues();
             printf("drv twd cap 1");
-            // deploy claw
-            if (k == 0) {
-                setDrfb(12000);
-                drfbPidRunning = false;
-                if (getDrfbEncoder() - enc0 > 170) k++;
-            } else {  // lower lift
-                drfbPidRunning = true;
-                drfbPid.target = drfbPos0;
-            }
+			drfbPidRunning = true;
+			drfbPid.target = drfbPos0;
             clawPidRunning = true;
-            clawPid.target = clawPos1;
+            clawPid.target = 0;
             is = IntakeState::FRONT;
-            if (pidDrive()) {
-                drfbPidRunning = true;
-                drfbPid.target = drfbPos0;
-                ptA = Point(11 * sideSign, 10);
-                if (!leftSide) {
-                    ptA.y += 4;
-                    ptA.x -= 2;
-                }
-                pidDriveArcInit(ptB, ptA, 65, sideSign, driveT);
+            if (pidDriveLine()) {
+                ptA = Point(0, 1);
+                pidDriveLineInit(ptB, ptA, driveT);
                 i++;
             }
         } else if (i == j++) {  // drive back
-            if (pidDriveArc()) {
-                is = IntakeState::NONE;
-                targetAngle += sideSign * PI * 0.538;
+			printf("drive back");
+			printDrivePidValues();
+            if (pidDriveLine()) {
+				ptB = Point(-40 * sideSign, -1);
+				Point targetDir = ptB - odometry.getPos();
+				double curA = odometry.getA();
+				Point orientationVector(cos(curA), sin(curA));
+                targetAngle += (PI - acos(clamp((targetDir*orientationVector)/(targetDir.mag()*orientationVector.mag()),-1.0,1.0))) * sideSign;
                 pidTurnInit(targetAngle, driveT);
                 i++;
             }
         } else if (i == j++) {  // turn to face flags
+			printDrivePidValues();
             if (pidTurn()) {
-                t0 = millis();
-                i++;
-            }
-        } else if (i == j++) {  // shoot
-            setDL(0);
-            setDR(0);
-            is = IntakeState::BACK;
-            if (millis() - t0 > 500) {
-                pidDriveArcInit(ptA, Point(-20 * sideSign, -1), 40, -sideSign, driveT);
-                t0 = millis();
+				Point oldPtA = ptA;
+				ptA = ptA + 4 * ((ptB-ptA).unit());
+                pidDriveLineInit(oldPtA, ptA, driveT);
                 i++;
             }
         } else if (i == j++) {
             is = IntakeState::NONE;
-            if (pidDriveArc()) {
+			printDrivePidValues();
+            if (pidDriveLine()) {
                 i++;
                 t0 = millis();
             }
-        } else if (i == j++) {
+        } else if (i == j++) { // shoot 1
+			printf("shoot 1");
+			printDrivePidValues();
             is = IntakeState::BACK;
-            setDL(0);
-            setDR(0);
-            if (millis() - t0 > 1400) {
-                pidDriveInit(Point(-48 * sideSign, -3), driveT);
+            pidDriveLine();
+            if (millis() - t0 > 1000) {
+				Point oldPtA = ptA;
+				ptA = ptA + 8 * ((ptB-ptA).unit());
+                pidDriveLineInit(oldPtA, ptA, driveT);
+                i++;
+            }
+        } else if (i == j++) {
+            is = IntakeState::NONE;
+			printDrivePidValues();
+            if (pidDriveLine()) {
+                i++;
                 t0 = millis();
+            }
+        } else if (i == j++) { // shoot 2
+			printf("shoot 2");
+			printDrivePidValues();
+            is = IntakeState::BACK;
+            pidDriveLine();
+            if (millis() - t0 > 1000) {
+                pidDriveLineInit(ptA, ptB, driveT);
                 i++;
             }
         } else if (i == j++) {  // knock bottom flag
+			printDrivePidValues();
             is = IntakeState::FRONT;
             bool stall = millis() - t0 > 200 && !dlSaver.isFaster(0.1) && !drSaver.isFaster(0.1) && (dlSaver.isPwr(0.25) || drSaver.isPwr(0.25));
-            if (pidDrive() || stall) { i++; }
+            if (pidDriveLine() || stall) { i++; }
         } else if (i == j++) {
+			printDrivePidValues();
             setDL(12000);
             setDR(12000);
             if (millis() - t0 > 600) i++;

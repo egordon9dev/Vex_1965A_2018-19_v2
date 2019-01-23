@@ -56,12 +56,8 @@ void opcontrol() {
     int intakeT0 = BIL;
     bool clawFlipRequest = false;
     int flywheelPower = 0;
-    while (1) {
-        pidFlywheel(0, 2.8);
-        printPidValues();
-        delay(100);
-    }
-    if (0) {
+    if (1) {
+		auton3(false);
         odometry.setA(PI / 2);
         odometry.setX(0);
         odometry.setY(0);
@@ -108,6 +104,7 @@ void opcontrol() {
         }
     }
     setDrfbParams(false);
+	int prevFWT = 0;
     while (true) {
         dt = millis() - prevT;
         prevT = millis();
@@ -145,12 +142,14 @@ void opcontrol() {
         // FLYWHEEL
 
         if (curClicks[ctlrIdxDown]) {
-            flywheelPower = 0;
+            flywheelPid.target = 1.0;
         } else if (curClicks[ctlrIdxUp]) {
-            flywheelPower = 10000;
-        } else {
-            setFlywheel(flywheelPower);
+            flywheelPid.target = 2.9;
         }
+		if(millis() - prevFWT > 95) {
+			pidFlywheel();
+			prevFWT = millis();
+		}
 
         // drfb
         double drfbPos = getDrfb();

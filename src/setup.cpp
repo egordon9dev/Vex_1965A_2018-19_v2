@@ -197,7 +197,7 @@ void setFlywheel(int n) {
 double getFlywheel() { return -mtr6.get_position(); }
 int getFlywheelVoltage() { return flywheel_requested_voltage; }
 
-double FWSpeeds[][2] = {{2.5, 9500}, {2.8, 10600}};
+double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9500}, {2.8, 10600}};
 bool pidFlywheel(int pwr0, double speed) {
     static double prevSpeed = 0.0;
     static int prevT = 0, prevPosition = 0;
@@ -219,16 +219,7 @@ bool pidFlywheel(int pwr0, double speed) {
         flywheelPid.sensVal = (getFlywheel() - prevPosition) / dt;
         flywheelPid.target = speed;
         int n = clamp(bias + lround(flywheelPid.update()), 0, 12000);
-        // scale back errTot based on (acceleration / distance) to prevent overshoot
-        // int derivativeDt = (millis() - flywheelPid.prevDUpdateTime);
-        // if (derivativeDt == 0) derivativeDt = flywheelPid.derivativeUpdateInterval;
-        // double acceleration = (flywheelPid.sensVal - flywheelPid.prevSensVal) / derivativeDt;
-        // double distance = fabs(flywheelPid.prevErr);
-        // if (distance == 0) distance = 0.001;
-        // double correctionFactor = clamp(acceleration, -0.002, 0.002);  // a lot: 0.01
-        // flywheelPid.errTot -= 700 * acceleration;
         setFlywheel(n);
-        printf("%d ", n);
     }
     prevPosition = getFlywheel();
     return flywheelPid.doneTime < millis();

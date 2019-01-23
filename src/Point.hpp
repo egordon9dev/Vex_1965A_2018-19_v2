@@ -9,6 +9,7 @@ class Point {
     friend Point operator+(const Point& p1, const Point& p2);
     friend Point operator-(const Point& p1, const Point& p2);
     friend double operator*(const Point& p1, const Point& p2);
+	friend Point operator*(const double& d, const Point& p);
     friend bool operator>(const Point& p1, const Point& p2);
     friend bool operator<(const Point& p1, const Point& p2);
     double magCross(const Point& p);

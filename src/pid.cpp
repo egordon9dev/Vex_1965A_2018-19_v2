@@ -189,7 +189,7 @@ bool pidDriveLine() {
         setDL(drivePwr);
         setDR(drivePwr);
     } else {
-        double a = PI / 2 - atan(0.2 * (toTarget * delta) / toTarget.magCross(delta));
+        double a = PI / 2 - atan(0.2 * (toTarget * delta.unit()) / toTarget.magCross(delta.unit()));
         if (toTarget < delta) a *= -1;
         Point targetDir = polarToRect(1, a);
         double curA = odometry.getA();

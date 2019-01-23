@@ -12,6 +12,7 @@ void Point::set(double x, double y) {
 Point operator+(const Point& p1, const Point& p2) { return Point(p1.x + p2.x, p1.y + p2.y); }
 Point operator-(const Point& p1, const Point& p2) { return Point(p1.x - p2.x, p1.y - p2.y); }
 double operator*(const Point& p1, const Point& p2) { return p1.x * p2.x + p1.y * p2.y; }
+Point operator*(const double& d, const Point& p) { return Point(d * p.x, d * p.y); }
 bool operator<(const Point& p1, const Point& p2) {
     Point p1RotCCW = p1.rotate(1);
     if (p1RotCCW * p2 > 0.001) return true;
