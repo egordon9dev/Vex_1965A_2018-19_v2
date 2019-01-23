@@ -2,6 +2,9 @@
 #include "main.h"
 #include "setup.hpp"
 using std::cout;
+Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid;
+Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
+Odometry_t odometry(6.982698);
 /*
  ########  #### ########           #######  ########   #######
  ##     ##  ##  ##     ##         ##     ## ##     ## ##     ##
@@ -19,7 +22,6 @@ using std::cout;
  ##    ## ##       ##       ##  ##  ##
   ######  ######## ########  ###  ###
 */
-using pros::delay;
 Slew_t::Slew_t() {
     slewRate = 100.0;
     output = 0;
@@ -33,54 +35,26 @@ Pid_t::Pid_t() {
     derivativeUpdateInterval = 15;
     prevTime = prevDUpdateTime = 0;
 }
-pros::Mutex odoMutex;
 Odometry_t::Odometry_t(double L) {
     this->L = L;
     this->a = PI / 2;
     this->x = this->y = this->prevDL = this->prevDR = 0.0;
+    this->xAxisDir = this->rotationDir = 1;
 }
-double Odometry_t::getX() {
-    odoMutex.take(1000);
-    double temp = x;
-    odoMutex.give();
-    return temp;
-}
-double Odometry_t::getY() {
-    odoMutex.take(1000);
-    double temp = y;
-    odoMutex.give();
-    return temp;
-}
-double Odometry_t::getA() {
-    odoMutex.take(1000);
-    double temp = a;
-    odoMutex.give();
-    return temp;
-}
-void Odometry_t::setA(double a) {
-    odoMutex.take(1000);
-    this->a = a;
-    odoMutex.give();
-}
-void Odometry_t::setX(double x) {
-    odoMutex.take(1000);
-    this->x = x;
-    odoMutex.give();
-}
-void Odometry_t::setY(double y) {
-    odoMutex.take(1000);
-    this->y = y;
-    odoMutex.give();
-}
+double Odometry_t::getX() { return x; }
+double Odometry_t::getY() { return y; }
+double Odometry_t::getA() { return a; }
+void Odometry_t::setA(double a) { this->a = a; }
+void Odometry_t::setX(double x) { this->x = x; }
+void Odometry_t::setY(double y) { this->y = y; }
+void Odometry_t::setXAxisDir(int n) { xAxisDir = n < 0 ? -1 : 1; }
+void Odometry_t::setRotationDir(int n) { rotationDir = n < 0 ? -1 : 1; }
 Point Odometry_t::getPos() {
-    odoMutex.take(1000);
     Point p(x, y);
-    odoMutex.give();
     return p;
 }
 
 void Odometry_t::update() {
-    odoMutex.take(1000);
     double curDL = getDL(), curDR = getDR();
     double deltaDL = (curDL - this->prevDL) / ticksPerInch, deltaDR = (curDR - this->prevDR) / ticksPerInch;
     double deltaDC = (deltaDL + deltaDR) / 2.0;
@@ -90,8 +64,8 @@ void Odometry_t::update() {
     this->a += deltaA;
     prevDL = curDL;
     prevDR = curDR;
-    odoMutex.give();
 }
+
 /*
   in: input voltage
 */

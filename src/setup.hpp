@@ -62,10 +62,12 @@ int getClawVoltage();
 bool pidClaw(double a, int wait);
 void pidClaw();
 //--------- Flywheel functions --------
-extern double FWTaskTarget;
+void setFlywheel(int n);
 double getFlywheel();
-bool isFWDone(double speed, int wait);
 int getFlywheelVoltage();
+bool pidFlywheel();
+bool pidFlywheel(int pwr0, double speed);
+bool pidFlywheel(int pwr0, double speed, int wait);
 void setup();
 
 void testDriveMtrs();
