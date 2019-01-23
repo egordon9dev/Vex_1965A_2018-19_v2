@@ -20,18 +20,15 @@ class Pid_t {
 class Odometry_t {
    private:
     double x, y, a, L, prevDL, prevDR;
-    int xAxisDir, rotationDir;
 
    public:
-    Odometry_t(double L);
     void update();
+    Odometry_t(double L);
     double getX();
     double getY();
     double getA();
     void setA(double a);
     void setX(double x);
-    void setXAxisDir(int n);
-    void setRotationDir(int n);
     void setY(double y);
     Point getPos();
 };
@@ -49,7 +46,7 @@ bool pidDriveArc();
 void pidDriveArcBias(int b);
 void printArcData();
 
-extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid;
+extern Pid_t clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid;
 extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
 extern Odometry_t odometry;
 extern int g_pidTurnLimit;

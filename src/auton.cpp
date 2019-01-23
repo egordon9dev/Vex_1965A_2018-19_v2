@@ -55,9 +55,8 @@ using std::endl;
      bool drfbPidRunning = true;
      while (1) {
          int j = 0;
-         odometry.update();
          if (i == j++) {
-             flywheelPid.target = 2.9;
+             FWTaskTarget = 2.9;
              drfbPid.target = 1800;
              is = IntakeState::FRONT;
              if (pidDrive(targetPos, driveT)) {
@@ -112,7 +111,7 @@ using std::endl;
              if (millis() - t0 > 700) {
                  is = IntakeState::NONE;
                  targetPos.x -= 14 * sideSign;
-                 flywheelPid.doneTime = BIL;
+                 FWResetDoneT();
                  i++;
              }
          } else if (i == j++) {
@@ -136,12 +135,12 @@ using std::endl;
              if (millis() - t0 > 2000) {
                  is = IntakeState::NONE;
                  targetPos.x += 11 * sideSign;
-                 flywheelPid.target = 0;
+                 FWTaskTarget = 0;
                  arcRadius = (targetPos - odometry.getPos()).mag() + 5;
                  i++;
              }
          } else if (i == j++) {
-             flywheelPid.target = 0;
+             FWTaskTarget = 0;
              if (pidDrive(targetPos, driveT)) {
                  drivePid.doneTime = BIL;
                  turnPid.doneTime = BIL;
@@ -201,7 +200,6 @@ using std::endl;
              stopMotors();
          }
          pidClaw();
-         pidFlywheel();
          if (drfbPidRunning) pidDrfb();
          setIntake(is);
          if (i != prevI) {
@@ -254,7 +252,6 @@ void auton2(bool leftSide) {
         prevI = i;
         if (millis() - prevITime > timeBetweenI) break;
         int j = 0;
-        odometry.update();
         if (i == j++) {
             t0 = millis();
             pidDriveInit(Point(0, 44), driveT);
@@ -273,7 +270,7 @@ void auton2(bool leftSide) {
                 drfbPidRunning = true;
                 drfbPid.target = drfbPos0;
             }
-            flywheelPid.target = 2.9;
+            FWTaskTarget = 2.9;
             clawPidRunning = true;
             clawPid.target = clawPos1;
             is = IntakeState::FRONT;
@@ -405,7 +402,7 @@ void auton2(bool leftSide) {
             is = IntakeState::BACK;
             if (millis() - t0 > 500) {
                 t0 = millis();
-                flywheelPid.target = 3.0;
+                FWTaskTarget = 3.0;
                 i++;
             }
         } else if (i == j++) {
@@ -424,7 +421,6 @@ void auton2(bool leftSide) {
             stopMotors();
         }
         if (clawPidRunning) pidClaw();
-        pidFlywheel();
         if (drfbPidRunning) pidDrfb();
         setIntake(is);
         delay(10);
@@ -470,13 +466,12 @@ void auton3(bool leftSide) {
         prevI = i;
         if (millis() - prevITime > timeBetweenI) break;
         int j = 0;
-        odometry.update();
         if (i == j++) {
             t0 = millis();
             ptB = Point(0, 46);
             pidDriveInit(ptB, driveT);
             enc0 = getDrfbEncoder();
-            flywheelPid.target = 3.0;
+            FWTaskTarget = 3.0;
             i++;
             k = 0;
         } else if (i == j++) {  // grab ball from under cap 1
@@ -555,7 +550,6 @@ void auton3(bool leftSide) {
             stopMotors();
         }
         if (clawPidRunning) pidClaw();
-        pidFlywheel();
         if (drfbPidRunning) pidDrfb();
         setIntake(is);
         delay(10);

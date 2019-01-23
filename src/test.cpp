@@ -37,7 +37,6 @@ void codeTest() { testPoint(); }
 
 void doTests() {
     while (0) {
-        pidFlywheel(0, 2.5);
         printPidValues();
         delay(10);
     }
@@ -49,7 +48,6 @@ void doTests() {
     while (!ctlr.get_digital(DIGITAL_B)) {
         pros::lcd::print(0, "DL %f", getDL());
         pros::lcd::print(1, "DR %f", getDR());
-        odometry.update();
         // pidDrive(p1, 999999);
         // pidTurn(PI / 4, 999999);
         // pidDriveArc(p1, 100, 1, 999999);

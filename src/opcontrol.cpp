@@ -30,8 +30,14 @@ A, Y        flip  cap
 using pros::delay;
 using std::cout;
 using std::endl;
+
 void opcontrol() {
-    setup();
+    printf("BEGIN OPCONTROL\n");
+    while (1) {
+        delay(1000);
+        printf("test\n");
+    }
+    // setup();
     setDrfbParams(false);
     if (pros::battery::get_capacity() < 10.0) {
         for (int i = 0; i < 8; i++) {
@@ -55,19 +61,16 @@ void opcontrol() {
     int nBalls = 0;
     int intakeT0 = BIL;
     bool clawFlipRequest = false;
-    int flywheelPower = 0;
-    while (1) {
-        pidFlywheel(0, 2.8);
-        printPidValues();
-        delay(100);
-    }
     if (0) {
+        while (1) {
+            printPidValues();
+            delay(10);
+        }
         odometry.setA(PI / 2);
         odometry.setX(0);
         odometry.setY(0);
         pidDriveInit(Point(0, 25), 200);
         while (!ctlr.get_digital(DIGITAL_B)) {
-            odometry.update();
             printDrivePidValues();
             if (pidDrive()) break;
             delay(10);
@@ -83,7 +86,7 @@ void opcontrol() {
         auton2(true);
         while (1) delay(5000);
 
-        flywheelPid.target = 0;
+        FWTaskTarget = 0;
         clawPid.target = getClaw();
         drfbPid.target = getDrfb();
         int i = 0, t0, sideSign = 1, driveT = 100;
@@ -95,7 +98,6 @@ void opcontrol() {
 
         while (0) {
             for (int i = 0; i < 5; i++) {
-                odometry.update();
                 // pros::lcd::print(0, "x %f", odometry.getX());
                 // pros::lcd::print(1, "y %f", odometry.getY());
                 // pros::lcd::print(2, "a %f", odometry.getA());
@@ -116,7 +118,6 @@ void opcontrol() {
         // pros::lcd::print(2, "ballSens %d", getBallSens());
         // pros::lcd::print(3, "claw %d", getClaw());
         // pros::lcd::print(4, "flywheel %d", getFlywheel());
-        odometry.update();
 
         pros::lcd::print(0, "x %f", odometry.getX());
         pros::lcd::print(1, "y %f", odometry.getY());
@@ -145,11 +146,9 @@ void opcontrol() {
         // FLYWHEEL
 
         if (curClicks[ctlrIdxDown]) {
-            flywheelPower = 0;
+            FWTaskTarget = 1.0;
         } else if (curClicks[ctlrIdxUp]) {
-            flywheelPower = 10000;
-        } else {
-            setFlywheel(flywheelPower);
+            FWTaskTarget = 2.5;
         }
 
         // drfb

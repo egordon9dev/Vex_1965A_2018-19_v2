@@ -6,6 +6,10 @@
 #include "main.h"
 #include "pid.hpp"
 
+Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid;
+Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
+Odometry_t odometry(6.982698);
+
 // motors
 pros::Motor mtr1(20);  // DR top
 pros::Motor mtr2(8);   // DR bottom
@@ -27,6 +31,8 @@ MotorSaver flySaver(40);
 
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 using pros::delay;
+using pros::Mutex;
+using pros::Task;
 // sensors
 pros::ADIPotentiometer* drfbPot;
 pros::ADILineSensor* ballSensL;
@@ -36,7 +42,9 @@ pros::ADILineSensor* ballSensR;
 const int drfbMaxPos = 3300, drfbPos0 = 1055, drfbMinPos = 1035, drfbPos1 = 2278, drfbPos2 = 2809;
 const int drfbMinClaw0 = 1390, drfbMaxClaw0 = 1760, drfbMinClaw1 = 1740, drfb18Max = 1449;
 const int dblClickTime = 450, claw180 = 1390, clawPos0 = 590, clawPos1 = 3800;
-const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
+const double ticksPerInch = 52.746 /*very good*/
+    ,
+             ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
 
@@ -49,23 +57,43 @@ Point polarToRect(double mag, double angle) {
 }
 
 //----------- Drive -----------
-double getDL() { return (mtr4.get_position() - mtr5.get_position()) * 0.5; }
-double getDR() { return (-mtr1.get_position() + mtr2.get_position()) * 0.5; }
-int millis() { return pros::millis(); }
+Mutex DLMutex, DRMutex;
 int DL_requested_voltage = 0, DR_requested_voltage = 0;
+double getDL() {
+    DLMutex.take(1000);
+    double temp = (mtr4.get_position() - mtr5.get_position()) * 0.5;
+    DLMutex.give();
+    return temp;
+}
+double getDR() {
+    DRMutex.take(1000);
+    double temp = (-mtr1.get_position() + mtr2.get_position()) * 0.5;
+    DRMutex.give();
+    return temp;
+}
+Mutex millisMutex;
+int millis() {
+    millisMutex.take(1000);
+    int temp = pros::millis();
+    millisMutex.give();
+}
 void setDR(int n) {
+    DRMutex.take(1000);
     n = DRSlew.update(n);
     n = drSaver.getPwr(n, getDR());
     mtr1.move_voltage(-n);
     mtr2.move_voltage(n);
     DR_requested_voltage = n;
+    DRMutex.give();
 }
 void setDL(int n) {
+    DLMutex.take(1000);
     n = DLSlew.update(n);
     n = dlSaver.getPwr(n, getDL());
     mtr4.move_voltage(n);
     mtr5.move_voltage(-n);
     DL_requested_voltage = n;
+    DLMutex.give();
 }
 void testDriveMtrs() {
     while (true) {
@@ -96,9 +124,26 @@ void testDriveMtrs() {
         printf(".\n");
     }
 }
-int getDRVoltage() { return DR_requested_voltage; }
-int getDLVoltage() { return DL_requested_voltage; }
+int getDRVoltage() {
+    DRMutex.take(1000);
+    int temp = DR_requested_voltage;
+    DRMutex.give();
+    return temp;
+}
+int getDLVoltage() {
+    DLMutex.take(1000);
+    int temp = DL_requested_voltage;
+    DLMutex.give();
+    return temp;
+}
 
+void odoTaskFn(void* param) {
+    printf("Begin Odo Task\n");
+    while (1) {
+        odometry.update();
+        delay(5);
+    }
+}
 //------------ Intake ---------------
 namespace intake {
 int altT0;
@@ -187,21 +232,34 @@ bool pidClaw(double a, int wait) {
 void pidClaw() { pidClaw(clawPid.target, 999999); }
 //--------- Flywheel functions --------
 int flywheel_requested_voltage = 0;
+Mutex FWMutex;
+double FWTaskTarget = 0.0;
 void setFlywheel(int n) {
+    FWMutex.take(1000);
     n = clamp(n, 0, 12000);
     // n = flywheelSlew.update(n);
     // n = flySaver.getPwr(n, getFlywheel());
     mtr6.move_voltage(-n);
     flywheel_requested_voltage = n;
+    FWMutex.give();
 }
-double getFlywheel() { return -mtr6.get_position(); }
-int getFlywheelVoltage() { return flywheel_requested_voltage; }
+double getFlywheel() {
+    FWMutex.take(1000);
+    double temp = -mtr6.get_position();
+    FWMutex.give();
+    return temp;
+}
+int getFlywheelVoltage() {
+    FWMutex.take(1000);
+    double temp = flywheel_requested_voltage;
+    FWMutex.give();
+    return temp;
+}
 
-double FWSpeeds[][2] = {{2.5, 9500}, {2.8, 10600}};
-bool pidFlywheel(int pwr0, double speed) {
+double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9500}, {2.8, 10600}};
+bool pidFlywheel(double speed) {
     static double prevSpeed = 0.0;
     static int prevT = 0, prevPosition = 0;
-    if (fabs(speed - prevSpeed) > 0.001 && flywheelPid.ki != 0) flywheelPid.errTot = pwr0 / flywheelPid.ki;
     prevSpeed = speed;
     double dt = millis() - prevT;
     prevT = millis();
@@ -219,26 +277,34 @@ bool pidFlywheel(int pwr0, double speed) {
         flywheelPid.sensVal = (getFlywheel() - prevPosition) / dt;
         flywheelPid.target = speed;
         int n = clamp(bias + lround(flywheelPid.update()), 0, 12000);
-        // scale back errTot based on (acceleration / distance) to prevent overshoot
-        // int derivativeDt = (millis() - flywheelPid.prevDUpdateTime);
-        // if (derivativeDt == 0) derivativeDt = flywheelPid.derivativeUpdateInterval;
-        // double acceleration = (flywheelPid.sensVal - flywheelPid.prevSensVal) / derivativeDt;
-        // double distance = fabs(flywheelPid.prevErr);
-        // if (distance == 0) distance = 0.001;
-        // double correctionFactor = clamp(acceleration, -0.002, 0.002);  // a lot: 0.01
-        // flywheelPid.errTot -= 700 * acceleration;
         setFlywheel(n);
         printf("%d ", n);
     }
     prevPosition = getFlywheel();
     return flywheelPid.doneTime < millis();
 }
-bool pidFlywheel(int pwr0, double speed, int wait) {
-    pidFlywheel(pwr0, speed);
-    return flywheelPid.doneTime + wait < millis();
+bool isFWDone(double speed, int wait) {
+    FWMutex.take(1000);
+    bool temp = flywheelPid.doneTime + wait < millis();
+    FWMutex.give();
+    return temp;
 }
-bool pidFlywheel() { return pidFlywheel(0, flywheelPid.target); }
+void FWResetDoneT() {
+    FWMutex.take(1000);
+    flywheelPid.doneTime = BIL;
+    FWMutex.give();
+}
+void FWTaskFn(void* param) {
+    printf("Begin FW Task\n");
+    while (1) {
+        FWMutex.take(1000);
+        pidFlywheel(FWTaskTarget);
+        FWMutex.give();
+        delay(100);
+    }
+}
 //--------------------- Misc -----------------
+
 const int ctlrIdxLeft = 0, ctlrIdxUp = 1, ctlrIdxRight = 2, ctlrIdxDown = 3, ctlrIdxY = 4, ctlrIdxX = 5, ctlrIdxA = 6, ctlrIdxB = 7, ctlrIdxL1 = 8, ctlrIdxL2 = 9, ctlrIdxR1 = 10, ctlrIdxR2 = 11;
 const std::string clickIdxNames[] = {"Left", "Up", "Right", "Down", "Y", "X", "A", "B", "L1", "L2", "R1", "R2"};
 const pros::controller_digital_e_t clickIdxIds[] = {DIGITAL_LEFT, DIGITAL_UP, DIGITAL_RIGHT, DIGITAL_DOWN, DIGITAL_Y, DIGITAL_X, DIGITAL_A, DIGITAL_B, DIGITAL_L1, DIGITAL_L2, DIGITAL_R1, DIGITAL_R2};
@@ -323,6 +389,7 @@ void setup() {
     flywheelPid.kp = 5000;           // 3000.0;
     flywheelPid.ki = 2;
     flywheelPid.kd = 30000.0;
+
     flywheelPid.unwind = 9999;
     flywheelPid.maxIntegral = 12000;
     flywheelPid.iActiveZone = 0.5;
@@ -372,5 +439,9 @@ void setup() {
     // ballSensL->calibrate(); fix this: calibrate in a seperate thread
     // ballSensR->calibrate();
 
-    first = false;
+    first = false; /*
+     std::string text("ignore");
+     Task FWTask(FWTaskFn, &text);
+     std::string text2("ignore2");
+     Task odoTask(odoTaskFn, &text2);*/
 }
