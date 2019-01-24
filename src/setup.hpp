@@ -46,6 +46,7 @@ void setIntake(IntakeState is);
 int getBallSensL();
 int getBallSensR();
 bool isBallIn();
+IntakeState getISLoad();
 
 //----------- DRFB functions ---------
 void setDrfb(int n);

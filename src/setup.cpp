@@ -133,6 +133,13 @@ void setIntake(IntakeState is) {
     }
     prev = is;
 }
+IntakeState getISLoad() {
+	if (isBallIn()) {
+		return IntakeState::NONE;
+	} else {
+		return IntakeState::ALTERNATE;
+	}
+}
 int getBallSensL() { return ballSensL->get_value(); }
 int getBallSensR() { return ballSensR->get_value(); }
 bool isBallIn() { return getBallSensL() < 2000 || getBallSensR() < 2000; }

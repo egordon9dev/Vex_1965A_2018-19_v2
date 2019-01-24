@@ -188,8 +188,6 @@ bool pidDriveLine() {
         setDL(drivePwr);
         setDR(drivePwr);
     } else {
-        (toTarget.mag() / initToTarget.mag()) * delta.angleBetween(initToTarget);
-
         double parallelCmpt = toTarget.mag() * cos(toTarget.angleBetween(delta));
         if (parallelCmpt == 0.0) parallelCmpt = 0.000001;
         double perpindicularCmpt = toTarget.mag() * sin(toTarget.angleBetween(delta));

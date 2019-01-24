@@ -58,7 +58,7 @@ void opcontrol() {
     bool clawFlipRequest = false;
     int flywheelPower = 0;
     if (1) {
-        // auton3(false);
+        auton3(false);
         testAuton();
         odometry.setA(PI / 2);
         odometry.setX(0);
