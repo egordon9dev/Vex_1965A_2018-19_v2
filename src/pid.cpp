@@ -152,23 +152,22 @@ double Pid_t::update() {
 */
 
 namespace driveLineData {
-Point start, target, delta;
+Point start, target, delta, initToTarget;
 int wait;
 int doneT;
 void init(Point s, Point t, int w) {
     start = s;
     target = t;
-    delta = target - start;
+    delta = (target - start).noZeroes();
+    initToTarget = (target - odometry.getPos()).noZeroes();
     wait = w;
     doneT = BIL;
 }
 }  // namespace driveLineData
 void pidDriveLineInit(Point start, Point target, const int wait) {
     // prevent div by 0 errors
-    if (start.x == 0.0) start.x = 0.001;
-    if (start.y == 0.0) start.y = 0.001;
-    if (target.x == 0.0) target.x = 0.001;
-    if (target.y == 0.0) target.y = 0.001;
+    start.noZeroes();
+    target.noZeroes();
     drivePid.doneTime = BIL;
     curvePid.doneTime = BIL;
     driveLineData::init(start, target, wait);
@@ -182,19 +181,23 @@ bool pidDriveLine() {
     Point pos(odometry.getX(), odometry.getY());
     static Point prevPos(0, 0);
     Point toTarget = target - pos;
-    drivePid.sensVal = toTarget.mag();
+    drivePid.sensVal = toTarget * delta.unit();
     drivePid.target = 0.0;
     int drivePwr = (int)drivePid.update();
     if (toTarget.mag() == 0.0) {
         setDL(drivePwr);
         setDR(drivePwr);
     } else {
-        double a = PI / 2 - atan(0.2 * (toTarget * delta.unit()) / toTarget.magCross(delta.unit()));
-        if (toTarget < delta) a *= -1;
-        Point targetDir = polarToRect(1, a);
-        double curA = odometry.getA();
-        Point orientationDir(cos(curA), sin(curA));
-        double aErr = acos(clamp((orientationDir * targetDir) / (orientationDir.mag() * targetDir.mag()), -1.0, 1.0));
+        (toTarget.mag() / initToTarget.mag()) * delta.angleBetween(initToTarget);
+
+        double parallelCmpt = toTarget.mag() * cos(toTarget.angleBetween(delta));
+        if (parallelCmpt == 0.0) parallelCmpt = 0.000001;
+        double perpindicularCmpt = toTarget.mag() * sin(toTarget.angleBetween(delta));
+        double tentative_aErr = atan(perpindicularCmpt / (0.2 * parallelCmpt));
+        if (toTarget < delta) tentative_aErr *= -1;
+        Point targetVector = polarToRect(1, atan2(delta.y, delta.x) + tentative_aErr);
+        Point orientationVector = polarToRect(1, odometry.getA());
+        double aErr = targetVector.angleBetween(orientationVector);
         // error detection
         // allow for driving backwards
         int driveDir = 1;
@@ -202,17 +205,17 @@ bool pidDriveLine() {
             driveDir = -1;
             aErr = PI - aErr;
         }
-        if (orientationDir < toTarget) aErr *= -driveDir;
-        if (orientationDir > toTarget) aErr *= driveDir;
+        if (orientationVector < targetVector) aErr *= -driveDir;
+        if (orientationVector > targetVector) aErr *= driveDir;
 
         // error correction
         curvePid.sensVal = aErr;
         curvePid.target = 0.0;
-        int turnPwr = clamp((int)curvePid.update(), -12000, 12000);
-        int drivePwrLim = (8000 / (1 + 100 * pow(fabs(aErr), 1.5))) + 4000;
+        int turnPwr = clamp((int)curvePid.update(), -8000, 8000);
+        int drivePwrLim = 8000;
+        if (fabs(aErr) > 5.0 * (PI / 180.0)) drivePwrLim = 4000;
+        if (fabs(aErr) < 1.0 * (PI / 180.0)) drivePwrLim = 12000;
         drivePwr = clamp(drivePwr, -drivePwrLim, drivePwrLim);
-        // prevent turn saturation
-        // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);
         setDL(-drivePwr * driveDir - turnPwr);
         setDR(-drivePwr * driveDir + turnPwr);
     }

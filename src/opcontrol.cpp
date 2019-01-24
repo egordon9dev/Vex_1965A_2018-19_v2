@@ -30,6 +30,7 @@ A, Y        flip  cap
 using pros::delay;
 using std::cout;
 using std::endl;
+void testAuton();
 void opcontrol() {
     setup();
     setDrfbParams(false);
@@ -57,7 +58,8 @@ void opcontrol() {
     bool clawFlipRequest = false;
     int flywheelPower = 0;
     if (1) {
-		auton3(false);
+        // auton3(false);
+        testAuton();
         odometry.setA(PI / 2);
         odometry.setX(0);
         odometry.setY(0);
@@ -104,7 +106,7 @@ void opcontrol() {
         }
     }
     setDrfbParams(false);
-	int prevFWT = 0;
+    int prevFWT = 0;
     while (true) {
         dt = millis() - prevT;
         prevT = millis();
@@ -119,7 +121,7 @@ void opcontrol() {
         pros::lcd::print(1, "y %f", odometry.getY());
         pros::lcd::print(2, "a %f", odometry.getA()); /*
          pros::lcd::print(3, "drfb %d", getDrfb());*/
-        printPidValues();
+        // printPidValues();
         bool** allClicks = getAllClicks();
         bool prevClicks[12], curClicks[12], dblClicks[12];
         for (int i = 0; i < 12; i++) {
@@ -138,6 +140,7 @@ void opcontrol() {
         if (abs(joy[1]) < 10) joy[1] = 0;
         setDL(joy[1] + joy[0]);
         setDR(joy[1] - joy[0]);
+        // printf("%d %d\n", joy[0], joy[1]);
 
         // FLYWHEEL
 
@@ -146,10 +149,10 @@ void opcontrol() {
         } else if (curClicks[ctlrIdxUp]) {
             flywheelPid.target = 2.9;
         }
-		if(millis() - prevFWT > 95) {
-			pidFlywheel();
-			prevFWT = millis();
-		}
+        if (millis() - prevFWT > 95) {
+            pidFlywheel();
+            prevFWT = millis();
+        }
 
         // drfb
         double drfbPos = getDrfb();

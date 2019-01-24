@@ -1,5 +1,6 @@
 #include "Point.hpp"
 #include <cmath>
+#include "setup.hpp"
 Point::Point() { x = y = 0; }
 Point::Point(double x, double y) {
     this->x = x;
@@ -23,6 +24,11 @@ bool operator>(const Point& p1, const Point& p2) {
     if (p1RotCCW * p2 < -0.001) return true;
     return false;
 }
+Point Point::noZeroes() {
+    if (this->x == 0.0) this->x = 0.000001;
+    if (this->y == 0.0) this->y = 0.000001;
+    return (*this);
+}
 double Point::magCross(const Point& p) { return fabs(this->x * p.y - this->y * p.x); }
 double Point::mag() const { return sqrt(pow(x, 2.0) + pow(y, 2.0)); }
 Point Point::rotate(int dir) const {
@@ -39,4 +45,9 @@ Point Point::abs() {
 Point Point::unit() {
     double m = this->mag();
     return Point(this->x / m, this->y / m);
+}
+double Point::angleBetween(const Point& p) {
+    double divisor = (this->mag() * p.mag());
+    if (divisor == 0.0) divisor = 0.000001;
+    return acos(clamp(((*this) * p) / divisor, -1.0, 1.0));
 }
