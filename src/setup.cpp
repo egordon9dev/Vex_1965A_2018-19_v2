@@ -14,15 +14,15 @@ pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 pros::Motor mtr6(18);  // flywheel
 pros::Motor mtr7(15);  // drfb
-pros::Motor mtr8(2);   // claw
-// bad ports: 11, 12, 13, 14, 5, 1
+pros::Motor mtr8(6);   // claw
+// bad ports: 11, 12, 13, 14, 1, 2, 3, 4, 5
 
 // motor savers
 MotorSaver dlSaver(35);
 MotorSaver drSaver(35);
 MotorSaver drfbSaver(40);
 MotorSaver clawSaver(35);
-MotorSaver intakeSaver(40);
+MotorSaver intakeSaver(40);    
 MotorSaver flySaver(40);
 
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
@@ -33,9 +33,9 @@ pros::ADILineSensor* ballSensL;
 pros::ADILineSensor* ballSensR;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3300, drfbPos0 = 1055, drfbMinPos = 1035, drfbPos1 = 2278, drfbPos2 = 2809;
+const int drfbMaxPos = 3300, drfbPos0 = 1055, drfbMinPos = 1035, drfbPos1 = 2278, drfbPos2 = 2780/*2809*/;
 const int drfbMinClaw0 = 1390, drfbMaxClaw0 = 1760, drfbMinClaw1 = 1740, drfb18Max = 1449;
-const int dblClickTime = 450, claw180 = 1390, clawPos0 = 590, clawPos1 = 3800;
+const int dblClickTime = 450, claw180 = 1340/*1390*/, clawPos0 = 590, clawPos1 = 3800;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
@@ -104,6 +104,7 @@ namespace intake {
 int altT0;
 }
 void setIntake(int n) {  // +: front, -: back
+	if(mtr3.get_current_draw() > 1500) int n = 0;
     n = clamp(n, -12000, 12000);
     static int prevFly = getFlywheel();
     /*if (getFlywheel() - prevFly < 15 && n < 0) n = 0;*/  // fix this
@@ -172,6 +173,7 @@ double bias = 0.0;
 }
 int claw_requested_voltage = 0;
 void setClaw(int n) {
+	if(mtr8.get_current_draw() > 1500) int n = 0;
     if (getDrfb() < drfbMinClaw0 || (getDrfb() > drfbMaxClaw0 && getDrfb() < drfbMinClaw1)) n = 0;
     int maxPwr = 1200;
     if (getClaw() < 80 && n < -maxPwr) n = -maxPwr;
@@ -334,7 +336,7 @@ void setup() {
     clawPid.iActiveZone = 300;
     clawPid.unwind = 0;
     clawSlew.slewRate = 200;
-    clawSaver.setConstants(0.167, 0, 0.03, 0);
+    clawSaver.setConstants(0.5, .3, 0.3, .15);
 
     drfbSlew.slewRate = 99999;
     setDrfbParams(true);

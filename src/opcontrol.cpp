@@ -58,6 +58,10 @@ void opcontrol() {
     bool clawFlipRequest = false;
     int flywheelPower = 0;
     if (1) {
+		while(0) {
+			printf("%d\n", (int)getClaw());
+			delay(200);
+		}
         auton3(false);
         testAuton();
         odometry.setA(PI / 2);

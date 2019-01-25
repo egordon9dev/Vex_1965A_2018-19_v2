@@ -529,7 +529,7 @@ void auton3(bool leftSide) {
             if (millis() - t0 > 600) {
                 Point oldPtA = ptA;
                 ptA = ptA + 20 * ((ptB - ptA).unit());
-                pidDriveInit(ptA, driveT);
+                pidDriveInit(ptA, 700);
                 i++;
             }
         } else if (i == j++) {
