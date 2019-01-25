@@ -4,7 +4,7 @@
 using std::cout;
 Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid;
 Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
-Odometry_t odometry(6.982698);
+Odometry_t odometry(6.982698, 1.0);
 /*
  ########  #### ########           #######  ########   #######
  ##     ##  ##  ##     ##         ##     ## ##     ## ##     ##
@@ -35,11 +35,11 @@ Pid_t::Pid_t() {
     derivativeUpdateInterval = 15;
     prevTime = prevDUpdateTime = 0;
 }
-Odometry_t::Odometry_t(double L) {
+Odometry_t::Odometry_t(double L, double perpL) {
     this->L = L;
+    this->perpL = perpL;
     this->a = PI / 2;
-    this->x = this->y = this->prevDL = this->prevDR = 0.0;
-    this->xAxisDir = this->rotationDir = 1;
+    this->x = this->y = this->prevDL = this->prevDR = this->prevDS = 0.0;
 }
 double Odometry_t::getX() { return x; }
 double Odometry_t::getY() { return y; }
@@ -47,23 +47,57 @@ double Odometry_t::getA() { return a; }
 void Odometry_t::setA(double a) { this->a = a; }
 void Odometry_t::setX(double x) { this->x = x; }
 void Odometry_t::setY(double y) { this->y = y; }
-void Odometry_t::setXAxisDir(int n) { xAxisDir = n < 0 ? -1 : 1; }
-void Odometry_t::setRotationDir(int n) { rotationDir = n < 0 ? -1 : 1; }
 Point Odometry_t::getPos() {
     Point p(x, y);
     return p;
 }
 
 void Odometry_t::update() {
-    double curDL = getDL(), curDR = getDR();
-    double deltaDL = (curDL - this->prevDL) / ticksPerInch, deltaDR = (curDR - this->prevDR) / ticksPerInch;
-    double deltaDC = (deltaDL + deltaDR) / 2.0;
+    double curDL = getDL(), curDR = getDR(), curDS = getDS();
+    double deltaDL = (curDL - prevDL) / ticksPerInch, deltaDR = (curDR - prevDR) / ticksPerInch, deltaDS = (curDS - prevDS) / ticksPerInchADI;
     double deltaA = (deltaDR - deltaDL) / (2.0 * L);
-    this->x += deltaDC * cos(a + deltaA / 2);
-    this->y += deltaDC * sin(a + deltaA / 2);
-    this->a += deltaA;
+    if (deltaA == 0.0) deltaA = 0.000001;
+    double chordLen = 0.0;
+    double toChordRatio = 2 * sin(deltaA / 2);  //(sin(deltaA) / cos(deltaA / 2))
+    chordLen = (deltaDL + deltaDR) / 2.0;
+    /*
+    // arc
+    if ((deltaDL > 0 && deltaDR > 0) || (deltaDL < 0 && deltaDR < 0)) {
+        if (fabs(deltaDR) < fabs(deltaDL)) chordLen = (fabs(deltaDR / deltaA) + L) * (-toChordRatio);
+        if (fabs(deltaDL) < fabs(deltaDR)) chordLen = (fabs(deltaDL / deltaA) + L) * toChordRatio;
+        
+
+    }
+    // turn
+    else if ((deltaDL < 0 && deltaDR > 0) || (deltaDL > 0 && deltaDR < 0)) {
+        if (fabs(deltaDR) > fabs(deltaDL)) chordLen = (fabs(deltaDR / deltaA) - L) * toChordRatio;
+        if (fabs(deltaDL) > fabs(deltaDR)) chordLen = (fabs(deltaDL / deltaA) - L) * (-toChordRatio);
+    }
+    */
+    double perpindicularChordLen = 0.0;
+    // arc
+    /*if ((deltaDL > 0.001 && deltaDR > 0.001) || (deltaDL < -0.001 && deltaDR < -0.001)) {
+        if (deltaDL > 0.001 && deltaDR > 0.001) {
+            perpindicularChordLen = (fabs(deltaDS / deltaA) + perpL) * toChordRatio;
+        } else if (deltaDL < 0.001 && deltaDR < 0.001) {
+            perpindicularChordLen = (fabs(deltaDS / deltaA) - perpL) * (-toChordRatio);
+        }
+        x += perpindicularChordLen * cos(a + deltaA / 2 - PI / 2);
+        y += perpindicularChordLen * sin(a + deltaA / 2 - PI / 2);
+    } else if (fabs(deltaDL) < 0.001 && fabs(deltaDR) < 0.001) {
+        x += perpindicularChordLen * cos(a + deltaA / 2 + PI / 2);
+        y += perpindicularChordLen * sin(a + deltaA / 2 + PI / 2);
+    }*/
+    if (!((deltaDL < -0.01 && deltaDR > 0.01) || (deltaDL > 0.01 && deltaDR < -0.01))) {  // not turning
+        x += deltaDS * cos(a + deltaA / 2 - PI / 2);
+        y += deltaDS * sin(a + deltaA / 2 - PI / 2);
+    }
+    x += chordLen * cos(a + deltaA / 2);
+    y += chordLen * sin(a + deltaA / 2);
+    a += deltaA;
     prevDL = curDL;
     prevDR = curDR;
+    prevDS = curDS;
 }
 
 /*
@@ -486,11 +520,14 @@ bool pidDrive() {
     curvePid.target = 0;
     curvePid.sensVal = aErr;
     int turnPwr = clamp((int)curvePid.update(), -8000, 8000);
-    int drivePwr = clamp((int)drivePid.update(), -8000, 8000);
+    int drivePwr = clamp((int)drivePid.update(), -10000, 10000);
     // prevent turn saturation
     // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);
-    setDL(-drivePwr * driveDir - turnPwr);
-    setDR(-drivePwr * driveDir + turnPwr);
+    int dlOut = -drivePwr * driveDir - turnPwr;
+    int drOut = -drivePwr * driveDir + turnPwr;
+    setDL(dlOut);
+    setDR(drOut);
+    printf("%d %d ", dlOut, drOut);
 
     if (fabs(drivePid.sensVal) < 1 && (pos - prevPos).mag() < 0.01) {
         if (doneT > millis()) doneT = millis();

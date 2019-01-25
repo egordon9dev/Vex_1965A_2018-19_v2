@@ -1,17 +1,14 @@
 #include "main.h"
+#include "setup.hpp"
 
-void on_center_button()
-{
-  static bool pressed = false;
-  pressed = !pressed;
-  if (pressed)
-  {
-    pros::lcd::set_text(2, "center pressed");
-  }
-  else
-  {
-    pros::lcd::clear_line(2);
-  }
+void on_center_button() {
+    static bool pressed = false;
+    pressed = !pressed;
+    if (pressed) {
+        pros::lcd::set_text(2, "center pressed");
+    } else {
+        pros::lcd::clear_line(2);
+    }
 }
 
 /**
@@ -20,12 +17,16 @@ void on_center_button()
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
-void initialize()
-{
-  pros::lcd::initialize();
-  pros::lcd::set_text(1, "init");
+void initialize() {
+    pros::lcd::initialize();
+    pros::lcd::set_text(1, "init");
 
-  pros::lcd::register_btn1_cb(on_center_button);
+    pros::lcd::register_btn1_cb(on_center_button);
+
+    drfbPot = new pros::ADIPotentiometer(2);
+    ballSensL = new pros::ADILineSensor(6);
+    ballSensR = new pros::ADILineSensor(8);
+    perpindicularWheelEnc = new pros::ADIEncoder(3, 4, false);
 }
 
 /**

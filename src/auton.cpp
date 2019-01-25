@@ -494,7 +494,7 @@ void auton3(bool leftSide) {
                 i++;
             }
         } else if (i == j++) {  // drive back
-            printf("drive back");
+            printf("drive back ");
             printDrivePidValues();
             if (pidDrive()) {
                 ptB = Point(-46 * sideSign, 2);
@@ -506,8 +506,9 @@ void auton3(bool leftSide) {
                 i++;
             }
         } else if (i == j++) {  // turn to face flags
+            printf("turn to flag ");
             printDrivePidValues();
-			is = getISLoad();
+            is = getISLoad();
             if (pidTurn()) {
                 Point oldPtA = ptA;
                 ptA = ptA + 4 * ((ptB - ptA).unit());
@@ -515,7 +516,7 @@ void auton3(bool leftSide) {
                 i++;
             }
         } else if (i == j++) {
-			is = getISLoad();
+            is = getISLoad();
             printDrivePidValues();
             if (pidDrive()) {
                 i++;
@@ -534,7 +535,7 @@ void auton3(bool leftSide) {
             }
         } else if (i == j++) {
             printDrivePidValues();
-			is = getISLoad();
+            is = getISLoad();
             if (pidDrive()) {
                 i++;
                 t0 = millis();
@@ -549,10 +550,10 @@ void auton3(bool leftSide) {
                 i++;
             }
         } else if (i == j++) {  // knock bottom flag
-			printf("knock btm flag ");
+            printf("knock btm flag ");
             printDrivePidValues();
             is = IntakeState::FRONT;
-            //bool stall = millis() - t0 > 200 && !dlSaver.isFaster(0.1) && !drSaver.isFaster(0.1) && (dlSaver.isPwr(0.25) || drSaver.isPwr(0.25));
+            // bool stall = millis() - t0 > 200 && !dlSaver.isFaster(0.1) && !drSaver.isFaster(0.1) && (dlSaver.isPwr(0.25) || drSaver.isPwr(0.25));
             if (pidDrive()) { i++; }
         } else {
             printing = false;

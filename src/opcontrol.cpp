@@ -33,6 +33,8 @@ using std::endl;
 void testAuton();
 void opcontrol() {
     setup();
+    DLSlew.slewRate = 120;
+    DRSlew.slewRate = 120;
     setDrfbParams(false);
     if (pros::battery::get_capacity() < 10.0) {
         for (int i = 0; i < 8; i++) {
@@ -58,11 +60,16 @@ void opcontrol() {
     bool clawFlipRequest = false;
     int flywheelPower = 0;
     if (1) {
-		while(0) {
-			printf("%d\n", (int)getClaw());
-			delay(200);
-		}
-        auton3(false);
+        // testDriveMtrs();
+        odometry.setA(-PI / 2);
+        pidDriveInit(Point(0, 30), 9999);
+        while (1) {
+            odometry.update();
+            pidDrive();
+            printDrivePidValues();
+            delay(10);
+        }
+        auton3(true);
         testAuton();
         odometry.setA(PI / 2);
         odometry.setX(0);
@@ -123,7 +130,10 @@ void opcontrol() {
 
         pros::lcd::print(0, "x %f", odometry.getX());
         pros::lcd::print(1, "y %f", odometry.getY());
-        pros::lcd::print(2, "a %f", odometry.getA()); /*
+        pros::lcd::print(2, "a %f", odometry.getA());
+        pros::lcd::print(3, "L %f", getDL());
+        pros::lcd::print(4, "R %f", getDR());
+        pros::lcd::print(5, "S %f", getDS()); /*
          pros::lcd::print(3, "drfb %d", getDrfb());*/
         // printPidValues();
         bool** allClicks = getAllClicks();
@@ -240,4 +250,5 @@ void opcontrol() {
     delete drfbPot;
     delete ballSensL;
     delete ballSensR;
+    delete perpindicularWheelEnc;
 }

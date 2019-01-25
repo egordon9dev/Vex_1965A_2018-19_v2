@@ -22,7 +22,7 @@ MotorSaver dlSaver(35);
 MotorSaver drSaver(35);
 MotorSaver drfbSaver(40);
 MotorSaver clawSaver(35);
-MotorSaver intakeSaver(40);    
+MotorSaver intakeSaver(40);
 MotorSaver flySaver(40);
 
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
@@ -31,12 +31,13 @@ using pros::delay;
 pros::ADIPotentiometer* drfbPot;
 pros::ADILineSensor* ballSensL;
 pros::ADILineSensor* ballSensR;
+pros::ADIEncoder* perpindicularWheelEnc;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3300, drfbPos0 = 1055, drfbMinPos = 1035, drfbPos1 = 2278, drfbPos2 = 2780/*2809*/;
+const int drfbMaxPos = 3300, drfbPos0 = 1055, drfbMinPos = 1035, drfbPos1 = 2278, drfbPos2 = 2780 /*2809*/;
 const int drfbMinClaw0 = 1390, drfbMaxClaw0 = 1760, drfbMinClaw1 = 1740, drfb18Max = 1449;
-const int dblClickTime = 450, claw180 = 1340/*1390*/, clawPos0 = 590, clawPos1 = 3800;
-const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
+const int dblClickTime = 450, claw180 = 1340 /*1390*/, clawPos0 = 590, clawPos1 = 3800;
+const double ticksPerInch = 52.746 /*very good*/, ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
 
@@ -51,6 +52,7 @@ Point polarToRect(double mag, double angle) {
 //----------- Drive -----------
 double getDL() { return (mtr4.get_position() - mtr5.get_position()) * 0.5; }
 double getDR() { return (-mtr1.get_position() + mtr2.get_position()) * 0.5; }
+double getDS() { return perpindicularWheelEnc->get_value(); }
 int millis() { return pros::millis(); }
 int DL_requested_voltage = 0, DR_requested_voltage = 0;
 void setDR(int n) {
@@ -104,7 +106,7 @@ namespace intake {
 int altT0;
 }
 void setIntake(int n) {  // +: front, -: back
-	if(mtr3.get_current_draw() > 1500) int n = 0;
+    if (mtr3.get_current_draw() > 1500) int n = 0;
     n = clamp(n, -12000, 12000);
     static int prevFly = getFlywheel();
     /*if (getFlywheel() - prevFly < 15 && n < 0) n = 0;*/  // fix this
@@ -135,11 +137,11 @@ void setIntake(IntakeState is) {
     prev = is;
 }
 IntakeState getISLoad() {
-	if (isBallIn()) {
-		return IntakeState::NONE;
-	} else {
-		return IntakeState::ALTERNATE;
-	}
+    if (isBallIn()) {
+        return IntakeState::NONE;
+    } else {
+        return IntakeState::ALTERNATE;
+    }
 }
 int getBallSensL() { return ballSensL->get_value(); }
 int getBallSensR() { return ballSensR->get_value(); }
@@ -173,7 +175,7 @@ double bias = 0.0;
 }
 int claw_requested_voltage = 0;
 void setClaw(int n) {
-	if(mtr8.get_current_draw() > 1500) int n = 0;
+    if (mtr8.get_current_draw() > 1500) int n = 0;
     if (getDrfb() < drfbMinClaw0 || (getDrfb() > drfbMaxClaw0 && getDrfb() < drfbMinClaw1)) n = 0;
     int maxPwr = 1200;
     if (getClaw() < 80 && n < -maxPwr) n = -maxPwr;
@@ -349,8 +351,10 @@ void setup() {
     DLPid.kp = DRPid.kp = 900;
     DLPid.kd = DRPid.kd = 25000;
     DLPid.DONE_ZONE = DRPid.DONE_ZONE = 1.5;
+    dlSaver.setConstants(1, 1, 0, 0);
+    drSaver.setConstants(1, 1, 0, 0);
 
-    drivePid.kp = 900;
+    drivePid.kp = 1000;
     drivePid.kd = 25000;
     drivePid.DONE_ZONE = 3.0;
     turnPid.kp = 15000;
@@ -366,11 +370,9 @@ void setup() {
     clawPid.target = clawPos1;
     flywheelPid.target = 0;
 
-    drfbPot = new pros::ADIPotentiometer(2);
-    ballSensL = new pros::ADILineSensor(6);
-    ballSensR = new pros::ADILineSensor(8);
     // ballSensL->calibrate(); fix this: calibrate in a seperate thread
     // ballSensR->calibrate();
-
+    int t0 = millis();
+    while (millis() - t0 < 250) { int n = getDL() + getDR() + getDS(); }
     first = false;
 }

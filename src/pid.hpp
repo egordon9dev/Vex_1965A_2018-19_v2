@@ -19,19 +19,16 @@ class Pid_t {
 };
 class Odometry_t {
    private:
-    double x, y, a, L, prevDL, prevDR;
-    int xAxisDir, rotationDir;
+    double x, y, a, perpL, L, prevDL, prevDR, prevDS;
 
    public:
-    Odometry_t(double L);
+    Odometry_t(double L, double perpL);
     void update();
     double getX();
     double getY();
     double getA();
     void setA(double a);
     void setX(double x);
-    void setXAxisDir(int n);
-    void setRotationDir(int n);
     void setY(double y);
     Point getPos();
 };
