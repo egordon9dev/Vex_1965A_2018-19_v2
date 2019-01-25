@@ -441,6 +441,7 @@ void auton2(bool leftSide) {
 ##     ##  #######     ##     #######  ##    ##     #######
 */
 void auton3(bool leftSide) {
+    printf("\n\n\n--------------------   Auton 3 ---------------------\n\n\n");
     int sideSign = leftSide ? 1 : -1;
     int i = 0;
     int k = 0;
@@ -472,25 +473,26 @@ void auton3(bool leftSide) {
         int j = 0;
         odometry.update();
         if (i == j++) {
+            printf("initializing ");
             printPidValues();
             t0 = millis();
             ptB = Point(0, 47);
-            pidDriveInit(ptB, driveT);
+            pidDriveInit(ptB, 400);
             enc0 = getDrfbEncoder();
             flywheelPid.target = 2.9;
             i++;
             k = 0;
         } else if (i == j++) {  // grab ball from under cap 1
             printDrivePidValues();
-            printf("drv twd cap 1");
+            printf("drv twd cap 1 ");
             drfbPidRunning = true;
             drfbPid.target = drfbPos0;
             clawPidRunning = true;
             clawPid.target = 0;
             is = IntakeState::FRONT;
             if (pidDrive()) {
-                ptA = Point(0, 2);
-                pidDriveInit(ptA, 700);
+                ptA = Point(0, 4.5);
+                pidDriveInit(ptA, driveT);
                 i++;
             }
         } else if (i == j++) {  // drive back
@@ -511,11 +513,12 @@ void auton3(bool leftSide) {
             is = getISLoad();
             if (pidTurn()) {
                 Point oldPtA = ptA;
-                ptA = ptA + 4 * ((ptB - ptA).unit());
+                ptA = ptA + 8 * ((ptB - ptA).unit());
                 pidDriveInit(ptA, driveT);
                 i++;
             }
         } else if (i == j++) {
+            printf("drive to shoot pos 1 ");
             is = getISLoad();
             printDrivePidValues();
             if (pidDrive()) {

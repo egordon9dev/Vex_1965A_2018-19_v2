@@ -44,6 +44,7 @@ Point Point::abs() {
 }
 Point Point::unit() {
     double m = this->mag();
+    if (m == 0.0) m = 0.000001;
     return Point(this->x / m, this->y / m);
 }
 double Point::angleBetween(const Point& p) {

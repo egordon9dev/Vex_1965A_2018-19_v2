@@ -61,15 +61,15 @@ void opcontrol() {
     int flywheelPower = 0;
     if (1) {
         // testDriveMtrs();
-        odometry.setA(-PI / 2);
+        /*odometry.setA(-PI / 2);
         pidDriveInit(Point(0, 30), 9999);
-        while (1) {
+        while (0) {
             odometry.update();
             pidDrive();
             printDrivePidValues();
             delay(10);
-        }
-        auton3(true);
+        }*/
+        auton3(false);
         testAuton();
         odometry.setA(PI / 2);
         odometry.setX(0);

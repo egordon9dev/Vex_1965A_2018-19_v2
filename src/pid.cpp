@@ -56,45 +56,15 @@ void Odometry_t::update() {
     double curDL = getDL(), curDR = getDR(), curDS = getDS();
     double deltaDL = (curDL - prevDL) / ticksPerInch, deltaDR = (curDR - prevDR) / ticksPerInch, deltaDS = (curDS - prevDS) / ticksPerInchADI;
     double deltaA = (deltaDR - deltaDL) / (2.0 * L);
-    if (deltaA == 0.0) deltaA = 0.000001;
-    double chordLen = 0.0;
-    double toChordRatio = 2 * sin(deltaA / 2);  //(sin(deltaA) / cos(deltaA / 2))
-    chordLen = (deltaDL + deltaDR) / 2.0;
-    /*
-    // arc
-    if ((deltaDL > 0 && deltaDR > 0) || (deltaDL < 0 && deltaDR < 0)) {
-        if (fabs(deltaDR) < fabs(deltaDL)) chordLen = (fabs(deltaDR / deltaA) + L) * (-toChordRatio);
-        if (fabs(deltaDL) < fabs(deltaDR)) chordLen = (fabs(deltaDL / deltaA) + L) * toChordRatio;
-        
-
-    }
-    // turn
-    else if ((deltaDL < 0 && deltaDR > 0) || (deltaDL > 0 && deltaDR < 0)) {
-        if (fabs(deltaDR) > fabs(deltaDL)) chordLen = (fabs(deltaDR / deltaA) - L) * toChordRatio;
-        if (fabs(deltaDL) > fabs(deltaDR)) chordLen = (fabs(deltaDL / deltaA) - L) * (-toChordRatio);
-    }
-    */
-    double perpindicularChordLen = 0.0;
-    // arc
-    /*if ((deltaDL > 0.001 && deltaDR > 0.001) || (deltaDL < -0.001 && deltaDR < -0.001)) {
-        if (deltaDL > 0.001 && deltaDR > 0.001) {
-            perpindicularChordLen = (fabs(deltaDS / deltaA) + perpL) * toChordRatio;
-        } else if (deltaDL < 0.001 && deltaDR < 0.001) {
-            perpindicularChordLen = (fabs(deltaDS / deltaA) - perpL) * (-toChordRatio);
-        }
-        x += perpindicularChordLen * cos(a + deltaA / 2 - PI / 2);
-        y += perpindicularChordLen * sin(a + deltaA / 2 - PI / 2);
-    } else if (fabs(deltaDL) < 0.001 && fabs(deltaDR) < 0.001) {
-        x += perpindicularChordLen * cos(a + deltaA / 2 + PI / 2);
-        y += perpindicularChordLen * sin(a + deltaA / 2 + PI / 2);
-    }*/
+    double chordLen = (deltaDL + deltaDR) / 2.0;
     if (!((deltaDL < -0.01 && deltaDR > 0.01) || (deltaDL > 0.01 && deltaDR < -0.01))) {  // not turning
-        x += deltaDS * cos(a + deltaA / 2 - PI / 2);
-        y += deltaDS * sin(a + deltaA / 2 - PI / 2);
+        x += deltaDS * cos(a + deltaA / 2.0 - PI / 2.0);
+        y += deltaDS * sin(a + deltaA / 2.0 - PI / 2.0);
     }
-    x += chordLen * cos(a + deltaA / 2);
-    y += chordLen * sin(a + deltaA / 2);
+    x += chordLen * cos(a + deltaA / 2.0);
+    y += chordLen * sin(a + deltaA / 2.0);
     a += deltaA;
+    printf("(%.1f, %.1f, %.2f) [%d %d %d] ", x, y, a, (int)curDL, (int)curDR, (int)curDS);
     prevDL = curDL;
     prevDR = curDR;
     prevDS = curDS;
@@ -527,7 +497,7 @@ bool pidDrive() {
     int drOut = -drivePwr * driveDir + turnPwr;
     setDL(dlOut);
     setDR(drOut);
-    printf("%d %d ", dlOut, drOut);
+    // printf("%d %d ", dlOut, drOut);
 
     if (fabs(drivePid.sensVal) < 1 && (pos - prevPos).mag() < 0.01) {
         if (doneT > millis()) doneT = millis();
