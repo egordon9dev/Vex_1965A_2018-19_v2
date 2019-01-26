@@ -302,11 +302,8 @@ int wait;
 int bias;
 bool followArc;
 void init(Point start, Point target, double rMag, int rotationDirection) {
-    if (target.x == 0.0) target.x = 0.001;
-    if (target.y == 0.0) target.y = 0.001;
-    if (start.x == 0.0) start.x = 0.001;
-    if (start.y == 0.0) start.y = 0.001;
-
+    target.noZeroes();
+    start.noZeroes();
     doneT = BIL;
     _start = start;
     _target = target;
@@ -495,10 +492,8 @@ bool pidDrive() {
     setDR(drOut);
     // printf("%d %d ", dlOut, drOut);
 
-    if (fabs(drivePid.sensVal) < 1 && (pos - prevPos).mag() < 0.01) {
+    if (fabs(drivePid.sensVal) < 3 && (pos - prevPos).mag() < 0.01) {
         if (doneT > millis()) doneT = millis();
-    } else {
-        doneT = BIL;
     }
     prevPos = pos;
     return doneT + wait < millis();

@@ -475,6 +475,7 @@ void auton3(bool leftSide) {
         }
         int j = 0;
         odometry.update();
+        printf(" fly %f/%f ", flywheelPid.sensVal, flywheelPid.target);
         if (i == j++) {
             printf("initializing ");
             printPidValues();
@@ -484,7 +485,6 @@ void auton3(bool leftSide) {
             enc0 = getDrfbEncoder();
             flywheelPid.target = 2.9;
             i++;
-            k = 0;
             timeBetweenI = 4500;
         } else if (i == j++) {  // grab ball from under cap 1
             printDrivePidValues();
@@ -504,56 +504,73 @@ void auton3(bool leftSide) {
             printf("drive back ");
             printDrivePidValues();
             if (pidDrive()) {
-                targetAngle += 110.0 * (PI / 180) * sideSign;
+                targetAngle += sideSign * 95 * (PI / 180);
                 pidTurnInit(targetAngle, turnT);
                 timeBetweenI = 3500;
                 i++;
             }
-        } else if (i == j++) {  // turn to face flags
-            printf("turn to flag ");
+        } else if (i == j++) {  // turn to face pos 1
+            printf("turn to face pos 1 ");
             printDrivePidValues();
             is = getISLoad();
             if (pidTurn()) {
-                ptB = Point(-8 * sideSign, 0);
-                pidDriveArcInit(ptA, ptB, 25.0, -sideSign, driveT);
+                ptA = ptA + polarToRect(-4, targetAngle + PI);
+                pidDriveInit(ptA, driveT);
                 timeBetweenI = 3500;
                 i++;
             }
-        } else if (i == j++) {
+        } else if (i == j++) {  // drive to pos 1
             printf("drive to shoot pos 1 ");
             is = getISLoad();
             printDrivePidValues();
-            if (pidDriveArc()) {
+            if (pidDrive()) {
                 i++;
+                k = 0;
                 t0 = millis();
+                timeBetweenI = 3500;
             }
         } else if (i == j++) {  // shoot 1
             printf("shoot 1 ");
-            printDrivePidValues();
-            is = IntakeState::BACK;
-            pidDriveArc();
-            if (millis() - t0 > 600) {
-                ptB = Point(sideSign * -18, 0);
-                pidDriveInit(ptB, 200);
+            int o = 0;
+            if (k == o++) {
+                is = getISLoad();
+                t0 = millis();
+                if (is == IntakeState::NONE) k++;
+            } else if (k == o++) {
+                if (millis() - t0 > 1500) is = IntakeState::BACK;
+            }
+            setDL(0);
+            setDR(0);
+            if (millis() - t0 > 2200) {
+                ptA = ptA + polarToRect(27, targetAngle + PI);
+                pidDriveInit(ptA, driveT);
                 timeBetweenI = 3500;
                 i++;
             }
-        } else if (i == j++) {
+        } else if (i == j++) {  // drive to pos 2
             printf("drive to shoot pos 2 ");
             printDrivePidValues();
             is = getISLoad();
             if (pidDrive()) {
                 i++;
+                k = 0;
                 t0 = millis();
             }
         } else if (i == j++) {  // shoot 2
             printf("shoot 2 ");
-            printDrivePidValues();
-            is = IntakeState::BACK;
-            pidDrive();
-            if (millis() - t0 > 1500) {
+            int o = 0;
+            if (k == o++) {
+                is = getISLoad();
+                t0 = millis();
+                if (is == IntakeState::NONE) k++;
+            } else if (k == o++) {
+                is = IntakeState::BACK;
+            }
+            setDL(0);
+            setDR(0);
+            if (millis() - t0 > 800) {
                 timeBetweenI = 4500;
-                ptB = Point(-50, -1);
+                ptB = Point(-49.5 * sideSign, -1);
                 pidDriveInit(ptB, driveT);
                 i++;
             }

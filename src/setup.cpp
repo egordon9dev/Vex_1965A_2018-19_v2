@@ -355,16 +355,23 @@ void setup() {
     drSaver.setConstants(1, 1, 0, 0);
 
     drivePid.kp = 2000;
-    drivePid.ki = 0;
-    drivePid.iActiveZone = 6;
+    drivePid.ki = 30;
+    drivePid.iActiveZone = 2;
+    drivePid.maxIntegral = 5000;
     drivePid.kd = 110000;
     drivePid.DONE_ZONE = 3.0;
-    turnPid.kp = 15000;
+    turnPid.kp = 28000;
+    turnPid.ki = 200;
+    turnPid.kd = 2000000;
+    turnPid.iActiveZone = 0.1;
+    turnPid.unwind = 0;
+    turnPid.maxIntegral = 5000;
     turnPid.DONE_ZONE = PI / 20;
 
-    curvePid.kp = 100000;
-    curvePid.ki = 2000;
-    curvePid.kd = 400000;  // was 3000000
+    curvePid.kp = 28000;
+    curvePid.ki = 200;
+    curvePid.kd = 2000000;
+    curvePid.unwind = 0;
     curvePid.iActiveZone = PI / 18;
     curvePid.maxIntegral = 5000;
 

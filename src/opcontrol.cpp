@@ -60,6 +60,14 @@ void opcontrol() {
     bool clawFlipRequest = false;
     int flywheelPower = 0;
     if (1) {
+        // odometry.setA(-PI / 2);
+        // pidDriveInit(Point(0, -30), 9999);
+        // while (1) {
+        //     odometry.update();
+        //     pidDrive();
+        //     printDrivePidValues();
+        //     delay(10);
+        // }
         // testDriveMtrs();
         /*odometry.setA(-PI / 2);
         pidDriveInit(Point(0, 30), 9999);
@@ -69,7 +77,7 @@ void opcontrol() {
             printDrivePidValues();
             delay(10);
         }*/
-        auton3(false);
+        auton3(true);
         printf("\nterminated\n");
         while (1) delay(1000);
         testAuton();
