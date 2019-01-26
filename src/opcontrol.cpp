@@ -35,10 +35,10 @@ void opcontrol() {
     setup();
     if (1) {
         // odometry.setA(-PI / 2);
-        // pidDriveInit(Point(0, -30), 9999);
+        // pidTurnInit(-PI / 2 + 0.07, 9999);
         // while (1) {
         //     odometry.update();
-        //     pidDrive();
+        //     pidTurn();
         //     printDrivePidValues();
         //     delay(10);
         // }

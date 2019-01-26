@@ -646,7 +646,7 @@ void auton4(bool leftSide) {
             ptB = Point(0, 47);
             pidDriveInit(ptB, 400);
             enc0 = getDrfbEncoder();
-            flywheelPid.target = 0.0;
+            flywheelPid.target = 2.9;
             drfbPid.target = drfbPos0;
             i++;
             timeBetweenI = 4500;
@@ -654,8 +654,9 @@ void auton4(bool leftSide) {
             printf("drive fwd to cap ");
             printDrivePidValues();
             is = IntakeState::FRONT;
+            if (odometry.getY() > 30) driveLim = 7000;
             if (pidDrive()) {
-                ptB = Point(0, 30);
+                ptB = Point(0, 35);
                 pidDriveInit(ptB, driveT);
                 timeBetweenI = 4500;
                 i++;
@@ -666,20 +667,22 @@ void auton4(bool leftSide) {
             if (pidDrive()) {
                 is = IntakeState::NONE;
                 targetAngle += sideSign * PI;
-                pidTurnInit(targetAngle, turnT);
+                pidTurnInit(targetAngle, 200);
                 timeBetweenI = 4500;
                 i++;
             }
         } else if (i == j++) {  // turn
+            is = getISLoad();
             printf("turn 180 deg ");
             printDrivePidValues();
             if (pidTurn()) {
-                ptB = Point(0, 52);
+                ptB = Point(0, 49);
                 pidDriveInit(ptB, driveT);
                 timeBetweenI = 4500;
                 i++;
             }
         } else if (i == j++) {  // drive twd cap
+            is = getISLoad();
             printf("drive twd cap ");
             printDrivePidValues();
             drfbPidRunning = false;
@@ -697,17 +700,20 @@ void auton4(bool leftSide) {
         } else if (i == j++) {
             printf("pick up cap ");
             printPidValues();
+            is = getISLoad();
             setDL(0);
             setDR(0);
             if (millis() - t0 > 300) {
                 i++;
                 timeBetweenI = 4500;
-                ptB = Point(0, 22);
+                ptB = Point(0, 21);
                 pidDriveInit(ptB, driveT);
             }
         } else if (i == j++) {  // drive back
+            is = getISLoad();
             printf("drive back ");
             printDrivePidValues();
+            is = getISLoad();
             if (pidDrive()) {
                 targetAngle += sideSign * (-PI / 2);
                 pidTurnInit(targetAngle, turnT);
@@ -718,8 +724,9 @@ void auton4(bool leftSide) {
         } else if (i == j++) {  // turn
             printf("turn twd pipe ");
             printDrivePidValues();
+            is = getISLoad();
             if (pidTurn()) {
-                ptB = Point(sideSign * 14, 24);
+                ptB = ptB + Point(14 * sideSign, 0);
                 pidDriveInit(ptB, driveT);
                 timeBetweenI = 3000;
                 driveLim = 6000;
@@ -728,18 +735,29 @@ void auton4(bool leftSide) {
         } else if (i == j++) {  // drive twd pipe
             printf("drive twd pipe ");
             printDrivePidValues();
+            is = getISLoad();
             if (odometry.getX() > 6) drfbPid.target = drfbPos1 + 400;
             if (pidDrive() && getDrfb() > drfbPos1) {
                 timeBetweenI = 3000;
                 i++;
                 t0 = millis();
-                ptB = Point(sideSign * 30, 24);
+                ptB = ptB + Point(16 * sideSign, 0);
                 pidDriveInit(ptB, 0);
             }
         } else if (i == j++) {  // funnel against pipe
             printf("funnel against pipe ");
             printDrivePidValues();
-            if (pidDrive() || millis() - t0 > 2000) {
+            is = getISLoad();
+            if (pidDrive() || millis() - t0 > 1000) {
+                ptB.x = sideSign * 24;
+                pidDriveInit(ptB, driveT);
+                i++;
+            }
+        } else if (i == j++) {
+            printf("align cap with pipe ");
+            printDrivePidValues();
+            is = getISLoad();
+            if (pidDrive()) {
                 drfbPid.target = drfbPos1;
                 t0 = millis();
                 i++;
@@ -747,22 +765,75 @@ void auton4(bool leftSide) {
         } else if (i == j++) {  // set down cap
             printf("set down cap ");
             printDrivePidValues();
+            is = getISLoad();
+            setDL(-1000);
+            setDR(-1000);
             if (millis() - t0 > 800) {
                 i++;
                 t0 = millis();
-                ptB = Point(sideSign * 14, 24);
+                ptB = ptB - Point(16, 0);
                 pidDriveInit(ptB, driveT);
             }
         } else if (i == j++) {  // drive back
             printf("drive back from pipe ");
             printDrivePidValues();
+            is = getISLoad();
             if (pidDrive()) {
                 driveLim = 12000;
                 timeBetweenI = 4500;
-                drfbPid.target = drfbPos0;
+                drfbPidRunning = false;
+                targetAngle += sideSign * 0.07;
+                pidTurnInit(targetAngle, turnT);
                 i++;
             }
-        } else if (i == j++) {  // drive back
+        } else if (i == j++) {  // turn to face flag
+            printf("turn to face flag pos 1 ");
+            printDrivePidValues();
+            is = getISLoad();
+            if (getDrfb() < drfbPos0 + 200) {
+                drfbPidRunning = true;
+                drfbPid.target = drfbPos0;
+            } else {
+                setDrfb(-12000);
+            }
+            if (pidTurn()) {
+                i++;
+                t0 = millis();
+            }
+        } else if (i == j++) {  // shoot ball 1
+            printf("shoot ball 1 ");
+            setDL(0);
+            setDR(0);
+            is = IntakeState::BACK;
+            if (millis() - t0 > 700) {
+                is = IntakeState::NONE;
+                ptB = ptB - polarToRect(10, targetAngle);
+                pidDriveInit(ptB, driveT);
+                i++;
+            }
+        } else if (i == j++) {
+            printf("drive to pos 2 ");
+            if (pidDrive()) {
+                i++;
+                k = 0;
+            }
+        } else if (i == j++) {  // shoot ball 2
+            printf("shoot ball 2 ");
+            int o = 0;
+            if (k == o++) {
+                is = getISLoad();
+                t0 = millis();
+                if (is == IntakeState::NONE) k++;
+            } else if (k == o++) {
+                is = IntakeState::BACK;
+            }
+            setDL(0);
+            setDR(0);
+            if (millis() - t0 > 1000) {
+                is = IntakeState::NONE;
+                i++;
+            }
+        } else if (i == j++) {
             printing = false;
             if (i == 12345) printf("\n\nAUTON TIMEOUT\n");
             i = 99999;
