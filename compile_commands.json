@@ -518,11 +518,11 @@
             "-fdiagnostics-color",
             "--std=gnu++17",
             "-o",
-            "bin/opcontrol.cpp.o",
-            "src\\opcontrol.cpp"
+            "bin/auton.cpp.o",
+            "src\\auton.cpp"
         ],
         "directory": "c:\\Users\\Ethan\\6000",
-        "file": "src\\opcontrol.cpp"
+        "file": "src\\auton.cpp"
     },
     {
         "arguments": [
@@ -553,10 +553,10 @@
             "-fdiagnostics-color",
             "--std=gnu++17",
             "-o",
-            "bin/auton.cpp.o",
-            "src\\auton.cpp"
+            "bin/opcontrol.cpp.o",
+            "src\\opcontrol.cpp"
         ],
         "directory": "c:\\Users\\Ethan\\6000",
-        "file": "src\\auton.cpp"
+        "file": "src\\opcontrol.cpp"
     }
 ]

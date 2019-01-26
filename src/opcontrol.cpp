@@ -33,7 +33,7 @@ using std::endl;
 void testAuton();
 void opcontrol() {
     setup();
-    if (1) {
+    if (0) {
         // odometry.setA(-PI / 2);
         // pidTurnInit(-PI / 2 + 0.07, 9999);
         // while (1) {
@@ -51,7 +51,7 @@ void opcontrol() {
             printDrivePidValues();
             delay(10);
         }*/
-        auton4(true);
+        auton3(true);
         printf("\nterminated\n");
         while (1) delay(1000);
         testAuton();

@@ -447,7 +447,7 @@ void auton3(bool leftSide) {
     int k = 0;
     odometry.setA(-PI / 2);
     odometry.setX(0);
-    odometry.setY(0);
+    odometry.setY(-3);
     double targetAngle = -PI / 2;
     const int driveT = 200, turnT = 500;
     IntakeState is = IntakeState::NONE;
@@ -495,7 +495,7 @@ void auton3(bool leftSide) {
             clawPid.target = 0;
             is = IntakeState::FRONT;
             if (pidDrive()) {
-                ptA = Point(0, 6);
+                ptA = Point(0, 3.5);
                 pidDriveInit(ptA, driveT);
                 timeBetweenI = 4500;
                 i++;
@@ -504,7 +504,7 @@ void auton3(bool leftSide) {
             printf("drive back ");
             printDrivePidValues();
             if (pidDrive()) {
-                targetAngle += sideSign * 95 * (PI / 180);
+                targetAngle += sideSign * 87 * (PI / 180);
                 pidTurnInit(targetAngle, turnT);
                 timeBetweenI = 3500;
                 i++;
@@ -514,8 +514,8 @@ void auton3(bool leftSide) {
             printDrivePidValues();
             is = getISLoad();
             if (pidTurn()) {
-                ptA = ptA + polarToRect(-4, targetAngle + PI);
-                pidDriveInit(ptA, driveT);
+                ptA = ptA + polarToRect(-2.5, targetAngle + PI);
+                pidDriveInit(ptA + polarToRect(1, targetAngle + PI), driveT);
                 timeBetweenI = 3500;
                 i++;
             }
@@ -541,8 +541,9 @@ void auton3(bool leftSide) {
             }
             setDL(0);
             setDR(0);
-            if (millis() - t0 > 2200) {
-                ptA = ptA + polarToRect(27, targetAngle + PI);
+            if (millis() - t0 > 2100) {
+                is = IntakeState::NONE;
+                ptA = ptA + polarToRect(30, targetAngle + PI) + Point(0, -2.5);
                 pidDriveInit(ptA, driveT);
                 timeBetweenI = 3500;
                 i++;
@@ -564,13 +565,13 @@ void auton3(bool leftSide) {
                 t0 = millis();
                 if (is == IntakeState::NONE) k++;
             } else if (k == o++) {
-                is = IntakeState::BACK;
+                if (millis() - t0 > 1000) { is = IntakeState::BACK; }
             }
             setDL(0);
             setDR(0);
-            if (millis() - t0 > 800) {
+            if (millis() - t0 > 1800) {
                 timeBetweenI = 4500;
-                ptB = Point(-49.5 * sideSign, -1);
+                ptB = Point(-51 * sideSign, -2.5);
                 pidDriveInit(ptB, driveT);
                 i++;
             }
