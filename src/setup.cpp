@@ -34,7 +34,7 @@ pros::ADILineSensor* ballSensR;
 pros::ADIEncoder* perpindicularWheelEnc;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3300, drfbPos0 = 1055, drfbMinPos = 1035, drfbPos1 = 2278, drfbPos2 = 2780 /*2809*/;
+const int drfbMaxPos = 3300, drfbPos0 = 1035, drfbMinPos = 1030, drfbPos1 = 2278, drfbPos2 = 2780 /*2809*/;
 const int drfbMinClaw0 = 1390, drfbMaxClaw0 = 1760, drfbMinClaw1 = 1740, drfb18Max = 1449;
 const int dblClickTime = 450, claw180 = 1340 /*1390*/, clawPos0 = 590, clawPos1 = 3800;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
@@ -54,8 +54,9 @@ double getDL() { return (mtr4.get_position() - mtr5.get_position()) * 0.5; }
 double getDR() { return (-mtr1.get_position() + mtr2.get_position()) * 0.5; }
 double getDS() { return perpindicularWheelEnc->get_value(); }
 int millis() { return pros::millis(); }
-int DL_requested_voltage = 0, DR_requested_voltage = 0;
+int DL_requested_voltage = 0, DR_requested_voltage = 0, driveLim = 12000;
 void setDR(int n) {
+    n = clamp(n, -driveLim, driveLim);
     n = DRSlew.update(n);
     n = drSaver.getPwr(n, getDR());
     mtr1.move_voltage(-n);
@@ -63,6 +64,7 @@ void setDR(int n) {
     DR_requested_voltage = n;
 }
 void setDL(int n) {
+    n = clamp(n, -driveLim, driveLim);
     n = DLSlew.update(n);
     n = dlSaver.getPwr(n, getDL());
     mtr4.move_voltage(n);
@@ -160,6 +162,7 @@ void setDrfb(int n) {
 int getDrfb() { return 4095 - drfbPot->get_value(); }
 int getDrfbEncoder() { return mtr7.get_position(); }
 int getDrfbVoltage() { return drfb_requested_voltage; }
+int getDrfbCurrent() { return mtr7.get_current_draw(); }
 bool pidDrfb(double pos, int wait) {
     drfbPid.target = pos;
     drfbPid.sensVal = getDrfb();
@@ -288,6 +291,17 @@ void stopMotors() {
     setClaw(0);
     setFlywheel(0);
     setIntake(0);
+}
+void stopMotorsBlock() {
+    while (1) {
+        setDrfb(0);
+        setDL(0);
+        setDR(0);
+        setClaw(0);
+        setFlywheel(0);
+        setIntake(0);
+        delay(10);
+    }
 }
 void printPidValues() {
     printf("%.1f drfb%2d %4d/%4d fly%d %1.1f/%1.1f claw%2d %4d/%4d\n", millis() / 1000.0, (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target);

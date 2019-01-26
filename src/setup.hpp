@@ -18,6 +18,7 @@ extern const int dblClickTime;
 extern const double PI;
 extern const double ticksPerInch;
 extern const double ticksPerInchADI;
+extern int driveLim;
 enum class IntakeState { FRONT, BACK, ALTERNATE, NONE };
 int clamp(int n, int min, int max);
 double clamp(double n, double min, double max);
@@ -29,6 +30,7 @@ void printAllClicks(int line, bool** allClicks);
 void printPidValues();
 void printState();
 void stopMotors();
+void stopMotorsBlock();
 Point polarToRect(double mag, double angle);
 int millis();
 
@@ -56,6 +58,7 @@ void setDrfb(int n);
 void setDrfbParams(bool auton);
 int getDrfb();
 int getDrfbEncoder();
+int getDrfbCurrent();
 bool pidDrfb(double pos, int wait);
 void pidDrfb();
 //---------- Claw functions --------

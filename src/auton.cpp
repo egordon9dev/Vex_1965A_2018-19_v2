@@ -592,7 +592,189 @@ void auton3(bool leftSide) {
         setIntake(is);
         delay(10);
     }
-    stopMotors();
+    stopMotorsBlock();
+}
+/*
+    ###    ##     ## ########  #######  ##    ##    ##
+   ## ##   ##     ##    ##    ##     ## ###   ##    ##    ##
+  ##   ##  ##     ##    ##    ##     ## ####  ##    ##    ##
+ ##     ## ##     ##    ##    ##     ## ## ## ##    ##    ##
+ ######### ##     ##    ##    ##     ## ##  ####    #########
+ ##     ## ##     ##    ##    ##     ## ##   ###          ##
+ ##     ##  #######     ##     #######  ##    ##          ##
+*/
+void auton4(bool leftSide) {
+    printf("\n\n\n--------------------   Auton 4 ---------------------\n\n\n");
+    int sideSign = leftSide ? 1 : -1;
+    int i = 0;
+    int k = 0;
+    odometry.setA(-PI / 2);
+    odometry.setX(0);
+    odometry.setY(0);
+    double targetAngle = -PI / 2;
+    const int driveT = 200, turnT = 500;
+    IntakeState is = IntakeState::NONE;
+    double arcRadius;
+    int t0 = BIL;
+    int prevI = 0;
+    int lastT = 0;
+    bool drfbPidRunning = false, clawPidRunning = false;
+    int prevITime = millis();
+    int timeBetweenI = 4000;
+    drivePid.doneTime = BIL;
+    turnPid.doneTime = BIL;
+    const int autonT0 = millis();
+    bool printing = true;
+    Point ptA, ptB;
+    int enc0;
+    while (!ctlr.get_digital(DIGITAL_B)) {
+        if (i != prevI) printf("\n--------------------------------------------\n||||||||>     I has been incremented    <||||||||||\n--------------------------------------------\n\n");
+        if (millis() - autonT0 > 1500000 && i != 99999) i = 12345;
+        if (i != prevI) { prevITime = millis(); }
+        prevI = i;
+        if (millis() - prevITime > timeBetweenI) {
+            printf("\ntimeBetweenI exceeded breaking out of auton3....\n");
+            break;
+        }
+        int j = 0;
+        odometry.update();
+        printf(" fly %f/%f ", flywheelPid.sensVal, flywheelPid.target);
+        if (i == j++) {
+            printf("initializing ");
+            printPidValues();
+            t0 = millis();
+            ptB = Point(0, 47);
+            pidDriveInit(ptB, 400);
+            enc0 = getDrfbEncoder();
+            flywheelPid.target = 0.0;
+            drfbPid.target = drfbPos0;
+            i++;
+            timeBetweenI = 4500;
+        } else if (i == j++) {  // drive fwd, pick up ball under cap
+            printf("drive fwd to cap ");
+            printDrivePidValues();
+            is = IntakeState::FRONT;
+            if (pidDrive()) {
+                ptB = Point(0, 30);
+                pidDriveInit(ptB, driveT);
+                timeBetweenI = 4500;
+                i++;
+            }
+        } else if (i == j++) {  // drive back
+            printf("drive back from cap ");
+            printDrivePidValues();
+            if (pidDrive()) {
+                is = IntakeState::NONE;
+                targetAngle += sideSign * PI;
+                pidTurnInit(targetAngle, turnT);
+                timeBetweenI = 4500;
+                i++;
+            }
+        } else if (i == j++) {  // turn
+            printf("turn 180 deg ");
+            printDrivePidValues();
+            if (pidTurn()) {
+                ptB = Point(0, 52);
+                pidDriveInit(ptB, driveT);
+                timeBetweenI = 4500;
+                i++;
+            }
+        } else if (i == j++) {  // drive twd cap
+            printf("drive twd cap ");
+            printDrivePidValues();
+            drfbPidRunning = false;
+            if (getDrfbCurrent() < 1000) {
+                setDrfb(-2000);
+            } else {
+                setDrfb(0);
+            }
+            if (pidDrive()) {
+                drfbPidRunning = true;
+                drfbPid.target = drfb18Max - 50;
+                t0 = millis();
+                i++;
+            }
+        } else if (i == j++) {
+            printf("pick up cap ");
+            printPidValues();
+            setDL(0);
+            setDR(0);
+            if (millis() - t0 > 300) {
+                i++;
+                timeBetweenI = 4500;
+                ptB = Point(0, 22);
+                pidDriveInit(ptB, driveT);
+            }
+        } else if (i == j++) {  // drive back
+            printf("drive back ");
+            printDrivePidValues();
+            if (pidDrive()) {
+                targetAngle += sideSign * (-PI / 2);
+                pidTurnInit(targetAngle, turnT);
+                timeBetweenI = 4500;
+                driveLim = 8000;
+                i++;
+            }
+        } else if (i == j++) {  // turn
+            printf("turn twd pipe ");
+            printDrivePidValues();
+            if (pidTurn()) {
+                ptB = Point(sideSign * 14, 24);
+                pidDriveInit(ptB, driveT);
+                timeBetweenI = 3000;
+                driveLim = 6000;
+                i++;
+            }
+        } else if (i == j++) {  // drive twd pipe
+            printf("drive twd pipe ");
+            printDrivePidValues();
+            if (odometry.getX() > 6) drfbPid.target = drfbPos1 + 400;
+            if (pidDrive() && getDrfb() > drfbPos1) {
+                timeBetweenI = 3000;
+                i++;
+                t0 = millis();
+                ptB = Point(sideSign * 30, 24);
+                pidDriveInit(ptB, 0);
+            }
+        } else if (i == j++) {  // funnel against pipe
+            printf("funnel against pipe ");
+            printDrivePidValues();
+            if (pidDrive() || millis() - t0 > 2000) {
+                drfbPid.target = drfbPos1;
+                t0 = millis();
+                i++;
+            }
+        } else if (i == j++) {  // set down cap
+            printf("set down cap ");
+            printDrivePidValues();
+            if (millis() - t0 > 800) {
+                i++;
+                t0 = millis();
+                ptB = Point(sideSign * 14, 24);
+                pidDriveInit(ptB, driveT);
+            }
+        } else if (i == j++) {  // drive back
+            printf("drive back from pipe ");
+            printDrivePidValues();
+            if (pidDrive()) {
+                driveLim = 12000;
+                timeBetweenI = 4500;
+                drfbPid.target = drfbPos0;
+                i++;
+            }
+        } else if (i == j++) {  // drive back
+            printing = false;
+            if (i == 12345) printf("\n\nAUTON TIMEOUT\n");
+            i = 99999;
+            stopMotors();
+        }
+        if (clawPidRunning) pidClaw();
+        pidFlywheel();
+        if (drfbPidRunning) pidDrfb();
+        setIntake(is);
+        delay(10);
+    }
+    stopMotorsBlock();
 }
 
 void testAuton() {

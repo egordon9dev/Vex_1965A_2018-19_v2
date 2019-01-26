@@ -33,32 +33,6 @@ using std::endl;
 void testAuton();
 void opcontrol() {
     setup();
-    DLSlew.slewRate = 120;
-    DRSlew.slewRate = 120;
-    setDrfbParams(false);
-    if (pros::battery::get_capacity() < 10.0) {
-        for (int i = 0; i < 8; i++) {
-            pros::lcd::print(1, "LOW BATTERY");
-            std::cout << "LOW BATTERY" << std::endl;
-        }
-        // return;
-    }
-    const int opcontrolT0 = millis();
-    double drv[] = {0, 0};
-    int prevT = 0;
-    int dt = 0;
-    double prevFlywheel = 0, dFlywheel = 0;
-    bool prevDY = false, prevDA = false, prevR1 = false, prevR2 = false, prevL1 = false, prevL2 = false, prevX = false, prevB = false;
-    int prevL2T = -9999999;
-    int tDrfbOff = 0;
-    bool drfbPidRunning = false;
-    bool clawFlipped = false, clawInit = false;
-    IntakeState intakeState = IntakeState::NONE;
-    int driveDir = 1;
-    int nBalls = 0;
-    int intakeT0 = BIL;
-    bool clawFlipRequest = false;
-    int flywheelPower = 0;
     if (1) {
         // odometry.setA(-PI / 2);
         // pidDriveInit(Point(0, -30), 9999);
@@ -77,7 +51,7 @@ void opcontrol() {
             printDrivePidValues();
             delay(10);
         }*/
-        auton3(true);
+        auton4(true);
         printf("\nterminated\n");
         while (1) delay(1000);
         testAuton();
@@ -126,7 +100,34 @@ void opcontrol() {
             printArcData();
         }
     }
+    DLSlew.slewRate = 120;
+    DRSlew.slewRate = 120;
     setDrfbParams(false);
+    if (pros::battery::get_capacity() < 10.0) {
+        for (int i = 0; i < 8; i++) {
+            pros::lcd::print(1, "LOW BATTERY");
+            std::cout << "LOW BATTERY" << std::endl;
+        }
+        // return;
+    }
+    const int opcontrolT0 = millis();
+    double drv[] = {0, 0};
+    int prevT = 0;
+    int dt = 0;
+    double prevFlywheel = 0, dFlywheel = 0;
+    bool prevDY = false, prevDA = false, prevR1 = false, prevR2 = false, prevL1 = false, prevL2 = false, prevX = false, prevB = false;
+    int prevL2T = -9999999;
+    int tDrfbOff = 0;
+    bool drfbPidRunning = false;
+    bool clawFlipped = false, clawInit = false;
+    IntakeState intakeState = IntakeState::NONE;
+    int driveDir = 1;
+    int nBalls = 0;
+    int intakeT0 = BIL;
+    bool clawFlipRequest = false;
+    int flywheelPower = 0;
+    setDrfbParams(false);
+    driveLim = 12000;
     int prevFWT = 0;
     while (true) {
         dt = millis() - prevT;
