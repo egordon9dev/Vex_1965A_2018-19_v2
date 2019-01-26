@@ -13,9 +13,9 @@ pros::Motor mtr3(19);  // intake
 pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 pros::Motor mtr6(18);  // flywheel
-pros::Motor mtr7(15);  // drfb
-pros::Motor mtr8(6);   // claw
-// bad ports: 11, 12, 13, 14, 1, 2, 3, 4, 5
+pros::Motor mtr7(16);  // drfb
+pros::Motor mtr8(15);  // claw
+// bad ports: 11, 12, 13, 14, 1, 2, 3, 4, 5, 6, 7
 
 // motor savers
 MotorSaver dlSaver(35);
@@ -34,8 +34,8 @@ pros::ADILineSensor* ballSensR;
 pros::ADIEncoder* perpindicularWheelEnc;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3300, drfbPos0 = 1035, drfbMinPos = 1030, drfbPos1 = 2278, drfbPos2 = 2780 /*2809*/;
-const int drfbMinClaw0 = 1390, drfbMaxClaw0 = 1760, drfbMinClaw1 = 1740, drfb18Max = 1449;
+const int drfbMaxPos = 3300, drfbPos0 = 1035, drfbMinPos = 1030, drfbPos1 = 2260, drfbPos2 = 2780 /*2809*/;
+const int drfbMinClaw0 = 1390, drfbMaxClaw0 = 1720, drfbMinClaw1 = 2080, drfb18Max = 1449;
 const int dblClickTime = 450, claw180 = 1340 /*1390*/, clawPos0 = 590, clawPos1 = 3800;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;

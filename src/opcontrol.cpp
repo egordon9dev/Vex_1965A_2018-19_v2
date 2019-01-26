@@ -33,6 +33,13 @@ using std::endl;
 void testAuton();
 void opcontrol() {
     setup();
+    if (pros::battery::get_capacity() < 15.0) {
+        for (int i = 1; i < 8; i++) {
+            pros::lcd::print(i, "LOW BATTERY");
+            std::cout << "LOW BATTERY" << std::endl;
+        }
+        return;
+    }
     if (0) {
         // odometry.setA(-PI / 2);
         // pidTurnInit(-PI / 2 + 0.07, 9999);
@@ -51,7 +58,7 @@ void opcontrol() {
             printDrivePidValues();
             delay(10);
         }*/
-        auton3(true);
+        auton4(false);
         printf("\nterminated\n");
         while (1) delay(1000);
         testAuton();
@@ -103,13 +110,6 @@ void opcontrol() {
     DLSlew.slewRate = 120;
     DRSlew.slewRate = 120;
     setDrfbParams(false);
-    if (pros::battery::get_capacity() < 10.0) {
-        for (int i = 0; i < 8; i++) {
-            pros::lcd::print(1, "LOW BATTERY");
-            std::cout << "LOW BATTERY" << std::endl;
-        }
-        // return;
-    }
     const int opcontrolT0 = millis();
     double drv[] = {0, 0};
     int prevT = 0;
@@ -129,6 +129,7 @@ void opcontrol() {
     setDrfbParams(false);
     driveLim = 12000;
     int prevFWT = 0;
+    double clawDisabled = false;
     while (true) {
         dt = millis() - prevT;
         prevT = millis();
@@ -144,7 +145,11 @@ void opcontrol() {
         pros::lcd::print(2, "a %f", odometry.getA());
         pros::lcd::print(3, "L %f", getDL());
         pros::lcd::print(4, "R %f", getDR());
-        pros::lcd::print(5, "S %f", getDS()); /*
+        pros::lcd::print(5, "S %f", getDS());
+        pros::lcd::print(6, "bat: %f", pros::battery::get_capacity());
+        pros::lcd::print(7, "drfb: %d", getDrfb());
+
+        /*
          pros::lcd::print(3, "drfb %d", getDrfb());*/
         // printPidValues();
         bool** allClicks = getAllClicks();
@@ -185,15 +190,19 @@ void opcontrol() {
             drfbPidRunning = false;
             tDrfbOff = millis();
             setDrfb(12000);
+            clawDisabled = false;
         } else if (curClicks[ctlrIdxR2]) {
             drfbPidRunning = false;
             tDrfbOff = millis();
-            setDrfb(-10000);
+            setDrfb(-12000);
+            clawDisabled = false;
         } else if (curClicks[ctlrIdxY]) {
+            clawDisabled = true;
             drfbPidRunning = true;
             drfbPid.target = drfbPos1;
             setDrfbParams(true);
         } else if (curClicks[ctlrIdxA]) {
+            clawDisabled = true;
             drfbPidRunning = true;
             drfbPid.target = drfbPos2;
             setDrfbParams(true);
@@ -209,23 +218,31 @@ void opcontrol() {
         if (drfbPidRunning) pidDrfb();
 
         // CLAW
-        if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX]) { clawFlipRequest = true; }
+        if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && !clawDisabled) { clawFlipRequest = true; }
         if (clawFlipRequest && millis() - opcontrolT0 > 300) {
+            // move the drfb to within an acceptable range
             if (getDrfb() < drfbMinClaw0) {
                 drfbPidRunning = true;
+                setDrfbParams(true);
                 drfbPid.target = drfb18Max;
             } else if (getDrfb() > drfbMaxClaw0 && getDrfb() < drfbMinClaw1) {
-                drfbPidRunning = false;
-                tDrfbOff = millis();
-                setDrfb(12000);
-            } else {
+                drfbPidRunning = true;
+                setDrfbParams(true);
+                drfbPid.target = drfbMinClaw1 + 50;
+            }
+            // fullfill the request if the drfb is within an acceptable range
+            if ((getDrfb() > drfbMinClaw0 && getDrfb() < drfbMaxClaw0) || getDrfb() > drfbMinClaw1) {
                 clawFlipped = !clawFlipped;
                 clawFlipRequest = false;
             }
         }
         clawPid.target = clawFlipped ? claw180 : 0;
         clawPid.sensVal = getClaw();
-        setClaw(clamp(clawPid.update(), -12000.0, 12000.0));
+        if (clawDisabled) {
+            setClaw(0);
+        } else {
+            setClaw(clamp(clawPid.update(), -12000.0, 12000.0));
+        }
 
         // INTAKE
         /*
