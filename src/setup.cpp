@@ -354,8 +354,10 @@ void setup() {
     dlSaver.setConstants(1, 1, 0, 0);
     drSaver.setConstants(1, 1, 0, 0);
 
-    drivePid.kp = 1000;
-    drivePid.kd = 25000;
+    drivePid.kp = 2000;
+    drivePid.ki = 0;
+    drivePid.iActiveZone = 6;
+    drivePid.kd = 110000;
     drivePid.DONE_ZONE = 3.0;
     turnPid.kp = 15000;
     turnPid.DONE_ZONE = PI / 20;

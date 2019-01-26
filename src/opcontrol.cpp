@@ -70,6 +70,8 @@ void opcontrol() {
             delay(10);
         }*/
         auton3(false);
+        printf("\nterminated\n");
+        while (1) delay(1000);
         testAuton();
         odometry.setA(PI / 2);
         odometry.setX(0);

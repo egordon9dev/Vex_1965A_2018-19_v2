@@ -469,7 +469,10 @@ void auton3(bool leftSide) {
         if (millis() - autonT0 > 1500000 && i != 99999) i = 12345;
         if (i != prevI) { prevITime = millis(); }
         prevI = i;
-        if (millis() - prevITime > timeBetweenI) break;
+        if (millis() - prevITime > timeBetweenI) {
+            printf("\ntimeBetweenI exceeded breaking out of auton3....\n");
+            break;
+        }
         int j = 0;
         odometry.update();
         if (i == j++) {
@@ -482,6 +485,7 @@ void auton3(bool leftSide) {
             flywheelPid.target = 2.9;
             i++;
             k = 0;
+            timeBetweenI = 4500;
         } else if (i == j++) {  // grab ball from under cap 1
             printDrivePidValues();
             printf("drv twd cap 1 ");
@@ -491,20 +495,18 @@ void auton3(bool leftSide) {
             clawPid.target = 0;
             is = IntakeState::FRONT;
             if (pidDrive()) {
-                ptA = Point(0, 4.5);
+                ptA = Point(0, 6);
                 pidDriveInit(ptA, driveT);
+                timeBetweenI = 4500;
                 i++;
             }
         } else if (i == j++) {  // drive back
             printf("drive back ");
             printDrivePidValues();
             if (pidDrive()) {
-                ptB = Point(-46 * sideSign, 2);
-                Point targetDir = ptB - odometry.getPos();
-                double curA = odometry.getA();
-                Point orientationVector(cos(curA), sin(curA));
-                targetAngle += (PI - acos(clamp((targetDir * orientationVector) / (targetDir.mag() * orientationVector.mag()), -1.0, 1.0))) * sideSign;
+                targetAngle += 110.0 * (PI / 180) * sideSign;
                 pidTurnInit(targetAngle, turnT);
+                timeBetweenI = 3500;
                 i++;
             }
         } else if (i == j++) {  // turn to face flags
@@ -512,16 +514,16 @@ void auton3(bool leftSide) {
             printDrivePidValues();
             is = getISLoad();
             if (pidTurn()) {
-                Point oldPtA = ptA;
-                ptA = ptA + 8 * ((ptB - ptA).unit());
-                pidDriveInit(ptA, driveT);
+                ptB = Point(-8 * sideSign, 0);
+                pidDriveArcInit(ptA, ptB, 25.0, -sideSign, driveT);
+                timeBetweenI = 3500;
                 i++;
             }
         } else if (i == j++) {
             printf("drive to shoot pos 1 ");
             is = getISLoad();
             printDrivePidValues();
-            if (pidDrive()) {
+            if (pidDriveArc()) {
                 i++;
                 t0 = millis();
             }
@@ -529,14 +531,15 @@ void auton3(bool leftSide) {
             printf("shoot 1 ");
             printDrivePidValues();
             is = IntakeState::BACK;
-            pidDrive();
+            pidDriveArc();
             if (millis() - t0 > 600) {
-                Point oldPtA = ptA;
-                ptA = ptA + 20 * ((ptB - ptA).unit());
-                pidDriveInit(ptA, 700);
+                ptB = Point(sideSign * -18, 0);
+                pidDriveInit(ptB, 200);
+                timeBetweenI = 3500;
                 i++;
             }
         } else if (i == j++) {
+            printf("drive to shoot pos 2 ");
             printDrivePidValues();
             is = getISLoad();
             if (pidDrive()) {
@@ -549,6 +552,8 @@ void auton3(bool leftSide) {
             is = IntakeState::BACK;
             pidDrive();
             if (millis() - t0 > 1500) {
+                timeBetweenI = 4500;
+                ptB = Point(-50, -1);
                 pidDriveInit(ptB, driveT);
                 i++;
             }
@@ -574,14 +579,14 @@ void auton3(bool leftSide) {
 }
 
 void testAuton() {
-    odometry.setA(PI / 2);
+    odometry.setA(-PI / 2);
     odometry.setX(0);
     odometry.setY(0);
     int t0 = millis();
-    pidDriveLineInit(Point(0, 0), Point(0, 15), 99);
+    pidDriveInit(Point(0, -20), 99);
     while (!ctlr.get_digital(DIGITAL_B)) {
         odometry.update();
-        pidDriveLine();
+        pidDrive();
         printDrivePidValues();
         delay(10);
     }
