@@ -439,6 +439,8 @@ void auton2(bool leftSide) {
 ######### ##     ##    ##    ##     ## ##  ####           ##
 ##     ## ##     ##    ##    ##     ## ##   ###    ##     ##
 ##     ##  #######     ##     #######  ##    ##     #######
+align fwd/bwd: to tile edge (ignore tabs)
+align left/right: 1 finger(3 segments tip to 3rd joint/wrinkle) far from the platform
 */
 void auton3(bool leftSide) {
     printf("\n\n\n--------------------   Auton 3 ---------------------\n\n\n");
@@ -603,6 +605,8 @@ void auton3(bool leftSide) {
  ######### ##     ##    ##    ##     ## ##  ####    #########
  ##     ## ##     ##    ##    ##     ## ##   ###          ##
  ##     ##  #######     ##     #######  ##    ##          ##
+align fwd/bwd: to tile edge (ignore tabs)
+align left/right: 1 finger(3 segments tip to 3rd joint/wrinkle) far from the platform
 */
 void auton4(bool leftSide) {
     printf("\n\n\n--------------------   Auton 4 ---------------------\n\n\n");
@@ -877,6 +881,6 @@ void testAuton() {
 }
 void autonomous() {
     setup();
-    auton3(false);
+    auton3(true);
     stopMotorsBlock();
 }

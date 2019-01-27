@@ -58,7 +58,7 @@ void opcontrol() {
             printDrivePidValues();
             delay(10);
         }*/
-        auton4(false);
+        auton3(true);
         printf("\nterminated\n");
         while (1) delay(1000);
         testAuton();

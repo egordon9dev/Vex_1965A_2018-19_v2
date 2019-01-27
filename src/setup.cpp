@@ -13,9 +13,9 @@ pros::Motor mtr3(19);  // intake
 pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 pros::Motor mtr6(18);  // flywheel
-pros::Motor mtr7(16);  // drfb
-pros::Motor mtr8(15);  // claw
-// bad ports: 11, 12, 13, 14, 1, 2, 3, 4, 5, 6, 7
+pros::Motor mtr7(17);  // drfb
+pros::Motor mtr8(16);  // claw
+// bad ports: 11, 12, 13, 14, 15, 1, 2, 3, 4, 5, 6, 7
 
 // motor savers
 MotorSaver dlSaver(35);
@@ -396,6 +396,6 @@ void setup() {
     // ballSensL->calibrate(); fix this: calibrate in a seperate thread
     // ballSensR->calibrate();
     int t0 = millis();
-    while (millis() - t0 < 250) { int n = getDL() + getDR() + getDS(); }
+    while (millis() - t0 < 800) { int n = getDL() + getDR() + getDS(); }
     first = false;
 }
