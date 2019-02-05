@@ -14,8 +14,8 @@ pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 pros::Motor mtr6(18);  // flywheel
 pros::Motor mtr7(17);  // drfb
-pros::Motor mtr8(16);  // claw
-// bad ports: 11, 12, 13, 14, 15, 1, 2, 3, 4, 5, 6, 7
+pros::Motor mtr8(16);  //
+// bad ports: 11, 12, 14, 15, 1, 2, 3, 4, 5, 6, 7
 
 // motor savers
 MotorSaver dlSaver(35);
@@ -31,12 +31,18 @@ using pros::delay;
 pros::ADIPotentiometer* drfbPot;
 pros::ADILineSensor* ballSensL;
 pros::ADILineSensor* ballSensR;
+pros::ADILineSensor* lineSens1;
 pros::ADIEncoder* perpindicularWheelEnc;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3300, drfbPos0 = 1035, drfbMinPos = 1030, drfbPos1 = 2260, drfbPos2 = 2780 /*2809*/;
-const int drfbMinClaw0 = 1390, drfbMaxClaw0 = 1720, drfbMinClaw1 = 2080, drfb18Max = 1449;
-const int dblClickTime = 450, claw180 = 1340 /*1390*/, clawPos0 = 590, clawPos1 = 3800;
+// pot
+const int drfbPotMaxPos = 3300, drfbPotPos0 = 1058, drfbPotMinPos = 1055, drfbPotPos1 = 2260, drfbPotPos1Plus = 2530, drfbPotPos2 = 2805, drfbPotPos2Plus = 3150;
+const int drfbPotMinClaw0 = 1390, drfbPotMaxClaw0 = 1720, drfbPotMinClaw1 = 2080, drfbPot18Max = 1449;
+// ime
+const int drfbMaxPos = 2390, drfbPos0 = 5, drfbMinPos = 0, drfbPos1 = 1237, drfbPos1Plus = 1550, drfbPos2 = 1813, drfbPos2Plus = 2280;
+const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350;
+
+const int dblClickTime = 450, claw180 = 1340, clawPos0 = 590, clawPos1 = 3800;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
@@ -148,27 +154,35 @@ IntakeState getISLoad() {
 int getBallSensL() { return ballSensL->get_value(); }
 int getBallSensR() { return ballSensR->get_value(); }
 bool isBallIn() { return getBallSensL() < 2000 || getBallSensR() < 2000; }
+bool isLineDetected() { return lineSens1->get_value() < 500; }
 
 //----------- DRFB functions ---------
 int drfb_requested_voltage = 0;
+int drfbPowerLimit = 3500;
+int drfbFullRangePowerLimit = 12000;
 void setDrfb(int n) {
-    if (getDrfb() < drfbMinPos + 150 && n < -3500) n = -3500;
-    if (getDrfb() > drfbMaxPos - 150 && n > 3500) n = 3500;
+    n = clamp(n, -drfbFullRangePowerLimit, drfbFullRangePowerLimit);
+    if (getDrfb() < drfbMinPos + 150 && n < -drfbPowerLimit) n = -drfbPowerLimit;
+    if (getDrfb() > drfbMaxPos - 150 && n > drfbPowerLimit) n = drfbPowerLimit;
     n = drfbSlew.update(n);
     n = drfbSaver.getPwr(n, getDrfb());
     mtr7.move_voltage(n);
     drfb_requested_voltage = n;
 }
-int getDrfb() { return 4095 - drfbPot->get_value(); }
+int getDrfbPot() { return 4095 - drfbPot->get_value(); }
+double drfbIMEBias = 0;
+double getDrfb() { return drfbIMEBias + mtr7.get_position(); }
+void printDrfbSensors() { pros::lcd::print(3, "ime %f pot %d", getDrfb(), getDrfbPot()); }
+
 int getDrfbEncoder() { return mtr7.get_position(); }
 int getDrfbVoltage() { return drfb_requested_voltage; }
 int getDrfbCurrent() { return mtr7.get_current_draw(); }
+int drfbPidBias = 0;
 bool pidDrfb(double pos, int wait) {
-    drfbPid.target = pos;
+    drfbPid.target = clamp(pos, (double)drfbMinPos, (double)drfbMaxPos);
     drfbPid.sensVal = getDrfb();
-    drfbPid.sensVal = clamp((int)drfbPid.sensVal, drfbMinPos, drfbMaxPos);
     int out = drfbPid.update();
-    setDrfb(out);
+    setDrfb(drfbPidBias + out);
     if (drfbPid.doneTime + wait < millis()) return true;
 }
 void pidDrfb() { pidDrfb(drfbPid.target, 9999999); }
@@ -177,7 +191,9 @@ namespace clawOpctl {
 double bias = 0.0;
 }
 int claw_requested_voltage = 0;
+int clawPowerLimit = 12000;
 void setClaw(int n) {
+    n = clamp(n, -clawPowerLimit, clawPowerLimit);
     if (mtr8.get_current_draw() > 1500) int n = 0;
     if (getDrfb() < drfbMinClaw0 || (getDrfb() > drfbMaxClaw0 && getDrfb() < drfbMinClaw1)) n = 0;
     int maxPwr = 1200;
@@ -356,7 +372,7 @@ void setup() {
 
     drfbSlew.slewRate = 99999;
     setDrfbParams(true);
-    drfbSaver.setConstants(0.0, 0.5, 0.0, 0.01);
+    drfbSaver.setConstants(1, 0.5, 0, 0.01);
     drfbPid.DONE_ZONE = 100;
     drfbPid.target = drfbPos0;
 
@@ -397,5 +413,36 @@ void setup() {
     // ballSensR->calibrate();
     int t0 = millis();
     while (millis() - t0 < 800) { int n = getDL() + getDR() + getDS(); }
+    first = false;
+}
+
+void morningRoutine() {
+    static bool first = true;
+    if (first) {
+        printf("good morning.\n");
+    } else {
+        printf("its not the morning any more...\n");
+        return;
+    }
+    while (!ctlr.get_digital(DIGITAL_R1) && !ctlr.get_digital(DIGITAL_R2)) {
+        pros::lcd::print(1, "put drfb down then press R");
+        delay(10);
+    }
+    int t0 = millis();
+    int oldDrfbPwrLim = drfbPowerLimit;
+    drfbPowerLimit = 6000;
+    while (millis() - t0 < 600) setDrfb(-6000);
+    drfbPowerLimit = oldDrfbPwrLim;
+    drfbIMEBias = -getDrfb() - 65;
+    setDrfb(0);
+    while (!ctlr.get_digital(DIGITAL_R1) && !ctlr.get_digital(DIGITAL_R2)) {
+        pros::lcd::print(1, "Allign the claw. Then press R");
+        setDrfb(0);
+        delay(10);
+    }
+    clawOpctl::bias = -getClaw();
+    pros::lcd::print(1, "calibration complete");
+    pros::lcd::print(2, "claw: %f", getClaw());
+    pros::lcd::print(3, "drfb: %f", getDrfb());
     first = false;
 }

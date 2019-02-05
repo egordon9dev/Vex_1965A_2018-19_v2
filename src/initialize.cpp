@@ -1,16 +1,6 @@
 #include "main.h"
 #include "setup.hpp"
 
-void on_center_button() {
-    static bool pressed = false;
-    pressed = !pressed;
-    if (pressed) {
-        pros::lcd::set_text(2, "center pressed");
-    } else {
-        pros::lcd::clear_line(2);
-    }
-}
-
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -21,12 +11,12 @@ void initialize() {
     pros::lcd::initialize();
     pros::lcd::set_text(1, "init");
 
-    pros::lcd::register_btn1_cb(on_center_button);
-
     drfbPot = new pros::ADIPotentiometer(2);
     ballSensL = new pros::ADILineSensor(6);
+    lineSens1 = new pros::ADILineSensor(7);
     ballSensR = new pros::ADILineSensor(8);
     perpindicularWheelEnc = new pros::ADIEncoder(3, 4, false);
+    setup();
 }
 
 /**

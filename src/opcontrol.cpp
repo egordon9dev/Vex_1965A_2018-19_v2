@@ -32,7 +32,8 @@ using std::cout;
 using std::endl;
 void testAuton();
 void opcontrol() {
-    setup();
+    morningRoutine();
+    ctlr.clear_line(2);
     if (pros::battery::get_capacity() < 15.0) {
         for (int i = 1; i < 8; i++) {
             pros::lcd::print(i, "LOW BATTERY");
@@ -41,6 +42,15 @@ void opcontrol() {
         return;
     }
     if (0) {
+        int ctr = 0;
+        while (0) {
+            for (int ii = 0; ii < 10; ii++) {
+                ctr++;
+                ctlr.print(2, 0, "text text %d", ctr);
+                delay(300);
+            }
+            ctlr.rumble(" ..");
+        }
         // odometry.setA(-PI / 2);
         // pidTurnInit(-PI / 2 + 0.07, 9999);
         // while (1) {
@@ -129,7 +139,14 @@ void opcontrol() {
     setDrfbParams(false);
     driveLim = 12000;
     int prevFWT = 0;
-    double clawDisabled = false;
+    double atDrfbSetp = false;
+    int autoFlipI = -1;
+    int autoFlipH;
+    double autoFlipDrfbTarget;
+    int prevCtlrUpdateT = 0;
+    bool prevIsBallIn = false;
+
+    flywheelPid.target = 1.0;
     while (true) {
         dt = millis() - prevT;
         prevT = millis();
@@ -168,6 +185,7 @@ void opcontrol() {
         prevFlywheel = getFlywheel();
         if (abs(joy[0]) < 10) joy[0] = 0;
         if (abs(joy[1]) < 10) joy[1] = 0;
+        driveLim = (getDrfb() > drfbPos2 - 100) ? 7000 : 12000;
         setDL(joy[1] + joy[0]);
         setDR(joy[1] - joy[0]);
         // printf("%d %d\n", joy[0], joy[1]);
@@ -185,27 +203,92 @@ void opcontrol() {
         }
 
         // drfb
+        if (curClicks[ctlrIdxLeft]) {}
+
+        if (autoFlipI == -1) {
+            clawPowerLimit = 12000;
+            drfbFullRangePowerLimit = 12000;
+        }
         double drfbPos = getDrfb();
-        if (curClicks[ctlrIdxR1]) {
+        if (curClicks[ctlrIdxR1] && (curClicks[ctlrIdxY] || curClicks[ctlrIdxA])) {
+            if (!prevClicks[ctlrIdxR1]) drfbIMEBias -= 10;
+        } else if (curClicks[ctlrIdxR2] && (curClicks[ctlrIdxY] || curClicks[ctlrIdxA])) {
+            if (!prevClicks[ctlrIdxR2]) drfbIMEBias += 10;
+        } else if (curClicks[ctlrIdxR1]) {
             drfbPidRunning = false;
             tDrfbOff = millis();
             setDrfb(12000);
-            clawDisabled = false;
+            autoFlipI = -1;
+            atDrfbSetp = false;
         } else if (curClicks[ctlrIdxR2]) {
             drfbPidRunning = false;
             tDrfbOff = millis();
             setDrfb(-12000);
-            clawDisabled = false;
+            autoFlipI = -1;
+            atDrfbSetp = false;
         } else if (curClicks[ctlrIdxY]) {
-            clawDisabled = true;
+            atDrfbSetp = true;
             drfbPidRunning = true;
             drfbPid.target = drfbPos1;
             setDrfbParams(true);
         } else if (curClicks[ctlrIdxA]) {
-            clawDisabled = true;
+            atDrfbSetp = true;
             drfbPidRunning = true;
             drfbPid.target = drfbPos2;
             setDrfbParams(true);
+        } else if (autoFlipI > -1) {  // fix this : add ability to autoflip on the floor
+            if (autoFlipI == 0) {
+                atDrfbSetp = false;
+                if (getDrfb() < drfbMinClaw0) {
+                    autoFlipH = 0;
+                    drfbPidRunning = true;
+                    setDrfbParams(true);
+                    autoFlipI++;
+                } else if (fabs(getDrfb() - drfbPos1) < 100) {
+                    autoFlipH = 1;
+                    drfbPidRunning = true;
+                    setDrfbParams(true);
+                    autoFlipI++;
+                } else if (fabs(getDrfb() - drfbPos2) < 100) {
+                    autoFlipH = 2;
+                    drfbPidRunning = true;
+                    setDrfbParams(true);
+                    autoFlipI++;
+                } else {
+                    clawPowerLimit = 12000;
+                    drfbFullRangePowerLimit = 12000;
+                    autoFlipI = -1;
+                }
+            } else if (autoFlipI == 1) {
+                drfbPidBias = 3000;
+                drfbPid.target = drfbMinClaw0 + 100;
+                if (autoFlipH == 1) {
+                    drfbPid.target = drfbPos1Plus + 100;
+                } else if (autoFlipH == 2) {
+                    drfbPidBias = 4000;
+                    drfbPid.target = drfbMaxPos;
+                }
+                if (getDrfb() > drfbPid.target - 150) {
+                    clawFlipRequest = true;
+                    autoFlipI++;
+                }
+            } else if (autoFlipI == 2) {
+                if (!clawFlipRequest && fabs(getClaw() - clawPid.target) < claw180 * (autoFlipH == 2 ? 0.3 : 0.4)) {
+                    drfbPidBias = 0;
+                    drfbPid.target = drfbPos0;
+                    if (autoFlipH == 1) {
+                        drfbPid.target = drfbPos1;
+                        atDrfbSetp = true;
+                    } else if (autoFlipH == 2) {
+                        drfbPid.target = drfbPos2;
+                        drfbFullRangePowerLimit = 6000;
+                        atDrfbSetp = true;
+                    }
+                    autoFlipI++;
+                }
+            } else if (autoFlipI == 3) {
+                if (fabs(getDrfb() - drfbPid.target) < 100) autoFlipI = -1;
+            }
         } else if (millis() - tDrfbOff > 130 && millis() - opcontrolT0 > 300) {
             if (!drfbPidRunning) {
                 drfbPidRunning = true;
@@ -218,7 +301,13 @@ void opcontrol() {
         if (drfbPidRunning) pidDrfb();
 
         // CLAW
-        if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && !clawDisabled) { clawFlipRequest = true; }
+        if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX]) {
+            if (atDrfbSetp && (fabs(getDrfb() - drfbPos1) < 100 || fabs(getDrfb() - drfbPos2) < 100)) {  // request an auto-flip
+                if (autoFlipI == -1) autoFlipI = 0;
+            } else if (autoFlipI == -1) {
+                clawFlipRequest = true;
+            }
+        }
         if (clawFlipRequest && millis() - opcontrolT0 > 300) {
             // move the drfb to within an acceptable range
             if (getDrfb() < drfbMinClaw0) {
@@ -238,11 +327,7 @@ void opcontrol() {
         }
         clawPid.target = clawFlipped ? claw180 : 0;
         clawPid.sensVal = getClaw();
-        if (clawDisabled) {
-            setClaw(0);
-        } else {
-            setClaw(clamp(clawPid.update(), -12000.0, 12000.0));
-        }
+        setClaw(clamp(clawPid.update(), -12000.0, 12000.0));
 
         // INTAKE
         /*
@@ -268,7 +353,20 @@ void opcontrol() {
             }
         }
         setIntake(intakeState);
-
+        if (millis() - prevCtlrUpdateT > 150) {
+            bool curIsBallIn = isBallIn();
+            if (curIsBallIn) {
+                if (prevIsBallIn) {
+                    ctlr.print(2, 0, "--- Ball In ---");
+                } else {
+                    ctlr.rumble(" -.-");
+                }
+            } else {
+                ctlr.print(2, 0, "                ");
+            }
+            prevIsBallIn = curIsBallIn;
+            prevCtlrUpdateT = millis();
+        }
         delete[] allClicks[0];
         delete[] allClicks[1];
         delete[] allClicks[2];
@@ -279,4 +377,5 @@ void opcontrol() {
     delete ballSensL;
     delete ballSensR;
     delete perpindicularWheelEnc;
+    delete lineSens1;
 }

@@ -466,6 +466,7 @@ void auton3(bool leftSide) {
     bool printing = true;
     Point ptA, ptB;
     int enc0;
+    int skip = 0;
     while (!ctlr.get_digital(DIGITAL_B)) {
         if (i != prevI) printf("\n--------------------------------------------\n||||||||>     I has been incremented    <||||||||||\n--------------------------------------------\n\n");
         if (millis() - autonT0 > 1500000 && i != 99999) i = 12345;
@@ -481,13 +482,14 @@ void auton3(bool leftSide) {
         if (i == j++) {
             printf("initializing ");
             printPidValues();
-            t0 = millis();
-            ptB = Point(0, 46.5);
+            t0 = BIL;
+            ptB = Point(0, /*46.5*/ 60);
             pidDriveInit(ptB, 400);
             enc0 = getDrfbEncoder();
             flywheelPid.target = 2.9;
             i++;
             timeBetweenI = 4500;
+            skip = 0;
         } else if (i == j++) {  // grab ball from under cap 1
             printDrivePidValues();
             printf("drv twd cap 1 ");
@@ -496,7 +498,8 @@ void auton3(bool leftSide) {
             clawPidRunning = true;
             clawPid.target = 0;
             is = IntakeState::FRONT;
-            if (pidDrive()) {
+            if (odometry.getY() > 30 && isLineDetected()) skip++;
+            if (pidDrive() || skip > 0) {
                 ptA = Point(0, 3.5);
                 pidDriveInit(ptA, driveT);
                 timeBetweenI = 4500;
