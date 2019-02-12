@@ -103,6 +103,7 @@ double Pid_t::update() {
     if (derivativeDt > 1000) {
         prevSensVal = sensVal;
         prevDUpdateTime = millis();
+        d = 0;
     } else if (derivativeDt >= derivativeUpdateInterval) {
         d = ((prevSensVal - sensVal) * kd) / derivativeDt;
         prevDUpdateTime = millis();

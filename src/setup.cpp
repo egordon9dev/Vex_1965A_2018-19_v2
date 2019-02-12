@@ -243,14 +243,28 @@ void setFlywheel(int n) {
     flywheel_requested_voltage = n;
 }
 double getFlywheel() { return -mtr6.get_position(); }
+double getFlywheelFromMotor() { return -3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel_requested_voltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9000 /*9850*/}, {2.7, 10600}, {2.8, 10600}, {2.9, 11480}};
+double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9850}, {2.7, 10600}, {2.8, 10600}, {2.9, 11480}};
 bool pidFlywheel(double speed) {
     static double prevSpeed = 0.0;
     static int prevT = 0, prevPosition = 0;
     static double output = 0.0;
-    if (fabs(speed - prevSpeed) > 0.1) output = 0.0;
+    static bool crossedTarget = false;
+    static int dir = 1;
+    static int prevUpdateT = -9999;
+    static double sumVel = 0.0;
+    static int numVel = 0;
+    if (fabs(speed - prevSpeed) > 0.1) {
+        output = 0.0;
+        crossedTarget = false;
+        if (speed > prevSpeed) {
+            dir = 1;
+        } else {
+            dir = -1;
+        }
+    }
     prevSpeed = speed;
     double dt = millis() - prevT;
     prevT = millis();
@@ -264,24 +278,39 @@ bool pidFlywheel(double speed) {
             smallestDist = dist;
         }
     }
-    if (dt < 500 && dt > 0) {
-        flywheelPid.sensVal = (getFlywheel() - prevPosition) / dt;
-        flywheelPid.target = speed;
-        double err = flywheelPid.sensVal - flywheelPid.target;
-        int n = 12000;
-        double k = 0.2;
-        if (err > k) {
-            n = 0;
-        } else if (err < -k) {
-            n = 12000;
-        } else {
-            output += flywheelPid.update();
-            output = clamp(output, -4000.0, 4000.0);
-            n = clamp(bias + lround(output), 0, 12000);
+    if (dt < 1000 && dt > 0) {
+        sumVel += getFlywheelFromMotor();
+        numVel++;
+        if (millis() - prevUpdateT > 50) {  // 95
+
+            flywheelPid.sensVal = sumVel / numVel;  //(getFlywheel() - prevPosition) / (millis() - prevUpdateT);
+            sumVel = 0.0;
+            numVel = 0;
+            prevUpdateT = millis();
+            prevPosition = getFlywheel();
+            flywheelPid.target = speed;
+            if (!crossedTarget) {
+                if (flywheelPid.sensVal > flywheelPid.target - 0.1 * dir) {
+                    if (dir == 1) {
+                        crossedTarget = true;
+                    } else {
+                        setFlywheel(0);
+                    }
+                } else if (flywheelPid.sensVal < flywheelPid.target - 0.1 * dir) {
+                    if (dir == -1) {
+                        crossedTarget = true;
+                    } else {
+                        setFlywheel(12000);
+                    }
+                }
+            }
+            if (crossedTarget) {
+                output += flywheelPid.update();
+                output = clamp(output, -6000.0, 6000.0);
+                setFlywheel(bias + lround(output));
+            }
         }
-        setFlywheel(n);
     }
-    prevPosition = getFlywheel();
     return flywheelPid.doneTime < millis();
 }
 bool pidFlywheel(double speed, int wait) {
@@ -387,8 +416,9 @@ void setup() {
         printf("setting up...\n");
     }
     flywheelSlew.slewRate = 999999;  // 60;
-    flywheelPid.kp = 3000.0;
-    flywheelPid.kd = 1000000.0;
+    flywheelPid.kp = 1000.0;         // 3500
+    flywheelPid.kd = 250000.0;       // 300000
+    flywheelPid.dInactiveZone = 0.0;
     flywheelPid.DONE_ZONE = 0.1;
     flywheelPid.derivativeUpdateInterval = 1;
     flySaver.setConstants(1, 1, 0, 0);

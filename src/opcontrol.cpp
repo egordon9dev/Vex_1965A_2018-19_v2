@@ -144,7 +144,6 @@ void opcontrol() {
     int flywheelPower = 0;
     setDrfbParams(false);
     driveLim = 12000;
-    int prevFWT = 0;
     double atDrfbSetp = false;
     int autoFlipI = -1, dShotI = -1;
     int dShotT0;
@@ -245,7 +244,8 @@ void opcontrol() {
         } else if (dShotI == 2) {  // shoot ball 1
             printf("dShot shoot ball 1 ");
             intakeState = IntakeState::BACK;
-            if (millis() - dShotT0 > 300) {
+            if (millis() - dShotT0 > 200) {
+                intakeState = IntakeState::FRONT;
                 dShotT0 = BIL;
                 dShotI++;
             }
@@ -263,12 +263,7 @@ void opcontrol() {
             printf("dShot shoot ball 2 ");
             intakeState = IntakeState::BACK;
         }
-
-        if (millis() - prevFWT > 95) {
-            pidFlywheel();
-            prevFWT = millis();
-        }
-
+        pidFlywheel();
         // printf("{req %d actl %d}", getFlywheelVoltage(), mtr6.get_voltage());
         // drfb
         if (autoFlipI == -1) {
@@ -410,19 +405,16 @@ void opcontrol() {
         if (dblClicks[ctlrIdxL2]) {
             if (dShotI == 4) dShotI = -1;
             intakeState = IntakeState::NONE;
+        } else if (curClicks[ctlrIdxL1] && curClicks[ctlrIdxL2]) {
+            if (dShotI == 4) dShotI = -1;
+            intakeState = getISLoad();
         } else if (curClicks[ctlrIdxL2]) {
             if (dShotI == 4) dShotI = -1;
             intakeState = IntakeState::FRONT;
         } else if (curClicks[ctlrIdxL1]) {
             intakeState = IntakeState::BACK;
         } else if (dShotI == -1) {
-            if (intakeState == IntakeState::BACK) {
-                if (isBallIn()) {
-                    intakeState = IntakeState::NONE;
-                } else {
-                    intakeState = IntakeState::ALTERNATE;
-                }
-            }
+            if (intakeState == IntakeState::BACK) { intakeState = getISLoad(); }
         }
         setIntake(intakeState);
         if (millis() - prevCtlrUpdateT > 150) {
