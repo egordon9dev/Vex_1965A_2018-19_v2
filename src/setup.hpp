@@ -4,9 +4,9 @@
 #include "main.h"
 #include "pid.hpp"
 #define TICKS_TO_DEG 0.4
-extern pros::Motor mtr5, mtr6, mtr7, mtr8, mtr9, mtr10, mtr13, mtr12;
+extern pros::Motor mtr1, mtr2, mtr3, mtr4, mtr5, mtr6, mtr7, mtr8;
 extern MotorSaver dlSaver, drSaver, drfbSaver, clawSaver, flySaver, intakeSaver;
-extern pros::Controller ctlr;
+extern pros::Controller ctlr, ctlr2;
 extern pros::ADIPotentiometer* drfbPot;
 extern pros::ADILineSensor* ballSensL;
 extern pros::ADILineSensor* ballSensR;
@@ -16,6 +16,7 @@ extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1P
 extern double drfbIMEBias;
 extern const int drfbPotMinPos, drfbPotMaxPos, drfbPotPos0, drfbPotPos1, drfbPotPos2, drfbPotPos1Plus, drfbPotPos2Plus, drfbPotMinClaw0, drfbPotMaxClaw0, drfbPotMinClaw1, drfbPot18Max;
 extern const int claw180, clawPos0, clawPos1;
+extern const double dShotSpeed1, dShotSpeed2;
 extern const int ctlrIdxLeft, ctlrIdxUp, ctlrIdxRight, ctlrIdxDown, ctlrIdxY, ctlrIdxX, ctlrIdxA, ctlrIdxB, ctlrIdxL1, ctlrIdxL2, ctlrIdxR1, ctlrIdxR2;
 extern int drfbPidBias;
 extern const int BIL, MIL;
@@ -56,6 +57,7 @@ void printDrivePidValues();
 void printDriveEncoders();
 void runMotorTest();
 bool isLineDetected();
+void setDriveSlew(bool auton);
 
 //----------- Intake ------
 void setIntake(IntakeState is);
@@ -67,6 +69,7 @@ IntakeState getISLoad();
 //----------- DRFB functions ---------
 void trimDrfb(int trim);
 void setDrfb(int n);
+void setDrfbDumb(int n);
 void setDrfbParams(bool auton);
 int getDrfbPot();
 double getDrfb();

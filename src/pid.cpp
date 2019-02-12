@@ -3,7 +3,7 @@
 #include "setup.hpp"
 using std::cout;
 Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid;
-Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
+Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
 Odometry_t odometry(6.982698, 1.0);
 /*
  ########  #### ########           #######  ########   #######

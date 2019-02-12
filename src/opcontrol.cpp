@@ -32,6 +32,7 @@ using std::cout;
 using std::endl;
 void testAuton();
 void opcontrol() {
+    // testDriveMtrs();
     morningRoutine();
     ctlr.clear_line(2);
     if (pros::battery::get_capacity() < 15.0) {
@@ -42,6 +43,12 @@ void opcontrol() {
         return;
     }
     if (0) {
+        auton3(true);
+        while (1) {
+            printPidValues();
+            pidClaw(claw180, 9999);
+            delay(10);
+        }
         int ctr = 0;
         while (0) {
             for (int ii = 0; ii < 10; ii++) {
@@ -117,8 +124,7 @@ void opcontrol() {
             printArcData();
         }
     }
-    DLSlew.slewRate = 120;
-    DRSlew.slewRate = 120;
+    setDriveSlew(false);
     setDrfbParams(false);
     const int opcontrolT0 = millis();
     double drv[] = {0, 0};
@@ -140,7 +146,8 @@ void opcontrol() {
     driveLim = 12000;
     int prevFWT = 0;
     double atDrfbSetp = false;
-    int autoFlipI = -1;
+    int autoFlipI = -1, dShotI = -1;
+    int dShotT0;
     int autoFlipH;
     double autoFlipDrfbTarget;
     int prevCtlrUpdateT = 0;
@@ -165,10 +172,16 @@ void opcontrol() {
         pros::lcd::print(5, "S %f", getDS());
         pros::lcd::print(6, "bat: %f", pros::battery::get_capacity());
         pros::lcd::print(7, "drfb: %d", getDrfb());
+        int driveLimFromPartner = 12000;
+        if (ctlr2.get_digital(DIGITAL_R1)) {
+            driveLimFromPartner = 4000;
+        } else if (ctlr2.get_digital(DIGITAL_R2)) {
+            driveLimFromPartner = 8000;
+        }
 
         /*
          pros::lcd::print(3, "drfb %d", getDrfb());*/
-        // printPidValues();
+        printPidValues();
         bool** allClicks = getAllClicks();
         bool prevClicks[12], curClicks[12], dblClicks[12];
         for (int i = 0; i < 12; i++) {
@@ -185,36 +198,90 @@ void opcontrol() {
         prevFlywheel = getFlywheel();
         if (abs(joy[0]) < 10) joy[0] = 0;
         if (abs(joy[1]) < 10) joy[1] = 0;
-        driveLim = (getDrfb() > drfbPos2 - 100) ? 7000 : 12000;
+        driveLim = clamp((getDrfb() > 0.5 * (drfb18Max + drfbPos1)) ? 10000 : 12000, 0, driveLimFromPartner);
         setDL(joy[1] + joy[0]);
         setDR(joy[1] - joy[0]);
         // printf("%d %d\n", joy[0], joy[1]);
 
         // FLYWHEEL
-
-        if (curClicks[ctlrIdxDown]) {
+        // ----------- Single Shot ------------
+        if (dblClicks[ctlrIdxUp] && !prevClicks[ctlrIdxUp]) {  // request a double shot
+            dShotI = 0;
+        } else if (dblClicks[ctlrIdxDown]) {
+            flywheelPid.target = 0.0;
+            dShotI = -1;
+        } else if (curClicks[ctlrIdxDown]) {
             flywheelPid.target = 1.0;
-        } else if (curClicks[ctlrIdxUp]) {
+            dShotI = -1;
+        } else if (curClicks[ctlrIdxLeft]) {
+            flywheelPid.target = dShotSpeed1;
+            dShotI = -1;
+        } else if (curClicks[ctlrIdxRight]) {
+            flywheelPid.target = dShotSpeed2;
+            dShotI = -1;
+        } else if (curClicks[ctlrIdxUp] && !prevClicks[ctlrIdxUp]) {
             flywheelPid.target = 2.9;
+            dShotI = -1;
         }
+        // ---------- Double Shot -------------
+        if (dShotI == 0) {
+            dShotT0 = BIL;
+            dShotI++;
+        }
+        if (dShotI == 1) {
+            // load ball 1, wait for flywheel
+            printf("dShot prep ball 1 ");
+            flywheelPid.target = dShotSpeed2;
+            if (isBallIn()) {
+                intakeState = IntakeState::NONE;
+            } else {
+                intakeState = IntakeState::ALTERNATE;
+            }
+            if (fabs(flywheelPid.sensVal - flywheelPid.target) < 0.05 && isBallIn() && dShotT0 > millis()) { dShotT0 = millis(); }
+            if (millis() - dShotT0 > 300) {
+                dShotT0 = millis();
+                dShotI++;
+            }
+        } else if (dShotI == 2) {  // shoot ball 1
+            printf("dShot shoot ball 1 ");
+            intakeState = IntakeState::BACK;
+            if (millis() - dShotT0 > 300) {
+                dShotT0 = BIL;
+                dShotI++;
+            }
+        } else if (dShotI == 3) {  // load ball 2, wait for flywheel
+            printf("dShot prep ball 2 ");
+            flywheelPid.target = dShotSpeed1;
+            if (isBallIn()) {
+                intakeState = IntakeState::NONE;
+            } else {
+                intakeState = IntakeState::ALTERNATE;
+            }
+            if (fabs(flywheelPid.sensVal - flywheelPid.target) < 0.05 && isBallIn() && dShotT0 > millis()) { dShotT0 = millis(); }
+            if (millis() - dShotT0 > 300) { dShotI++; }
+        } else if (dShotI == 4) {  // shoot ball 2
+            printf("dShot shoot ball 2 ");
+            intakeState = IntakeState::BACK;
+        }
+
         if (millis() - prevFWT > 95) {
             pidFlywheel();
             prevFWT = millis();
         }
 
+        // printf("{req %d actl %d}", getFlywheelVoltage(), mtr6.get_voltage());
         // drfb
-        if (curClicks[ctlrIdxLeft]) {}
-
         if (autoFlipI == -1) {
             clawPowerLimit = 12000;
             drfbFullRangePowerLimit = 12000;
         }
         double drfbPos = getDrfb();
-        if (curClicks[ctlrIdxR1] && (curClicks[ctlrIdxY] || curClicks[ctlrIdxA])) {
+        /*if (curClicks[ctlrIdxR1] && (curClicks[ctlrIdxY] || curClicks[ctlrIdxA])) {
             if (!prevClicks[ctlrIdxR1]) drfbIMEBias -= 10;
         } else if (curClicks[ctlrIdxR2] && (curClicks[ctlrIdxY] || curClicks[ctlrIdxA])) {
             if (!prevClicks[ctlrIdxR2]) drfbIMEBias += 10;
-        } else if (curClicks[ctlrIdxR1]) {
+        } else */
+        if (curClicks[ctlrIdxR1]) {
             drfbPidRunning = false;
             tDrfbOff = millis();
             setDrfb(12000);
@@ -255,15 +322,15 @@ void opcontrol() {
                     setDrfbParams(true);
                     autoFlipI++;
                 } else {
-                    clawPowerLimit = 12000;
                     drfbFullRangePowerLimit = 12000;
                     autoFlipI = -1;
                 }
             } else if (autoFlipI == 1) {
-                drfbPidBias = 3000;
-                drfbPid.target = drfbMinClaw0 + 100;
-                if (autoFlipH == 1) {
-                    drfbPid.target = drfbPos1Plus + 100;
+                if (autoFlipH == 0) {
+                    drfbPid.target = drfbMinClaw0 + 100;
+                } else if (autoFlipH == 1) {
+                    drfbPidBias = 4000;
+                    drfbPid.target = drfbPos1Plus;
                 } else if (autoFlipH == 2) {
                     drfbPidBias = 4000;
                     drfbPid.target = drfbMaxPos;
@@ -273,7 +340,7 @@ void opcontrol() {
                     autoFlipI++;
                 }
             } else if (autoFlipI == 2) {
-                if (!clawFlipRequest && fabs(getClaw() - clawPid.target) < claw180 * (autoFlipH == 2 ? 0.3 : 0.4)) {
+                if (!clawFlipRequest && fabs(getClaw() - clawPid.target) < claw180 * (autoFlipH == 2 ? 0.3 : 0.45)) {
                     drfbPidBias = 0;
                     drfbPid.target = drfbPos0;
                     if (autoFlipH == 1) {
@@ -281,13 +348,16 @@ void opcontrol() {
                         atDrfbSetp = true;
                     } else if (autoFlipH == 2) {
                         drfbPid.target = drfbPos2;
-                        drfbFullRangePowerLimit = 6000;
+                        drfbFullRangePowerLimit = 3000;
                         atDrfbSetp = true;
                     }
                     autoFlipI++;
                 }
             } else if (autoFlipI == 3) {
-                if (fabs(getDrfb() - drfbPid.target) < 100) autoFlipI = -1;
+                if (fabs(getDrfb() - drfbPid.target) < 100) {
+                    autoFlipI = -1;
+                    drfbFullRangePowerLimit = 12000;
+                }
             }
         } else if (millis() - tDrfbOff > 130 && millis() - opcontrolT0 > 300) {
             if (!drfbPidRunning) {
@@ -338,12 +408,14 @@ void opcontrol() {
         intake BACK:    fire second ball
         */
         if (dblClicks[ctlrIdxL2]) {
+            if (dShotI == 4) dShotI = -1;
             intakeState = IntakeState::NONE;
         } else if (curClicks[ctlrIdxL2]) {
+            if (dShotI == 4) dShotI = -1;
             intakeState = IntakeState::FRONT;
         } else if (curClicks[ctlrIdxL1]) {
             intakeState = IntakeState::BACK;
-        } else {
+        } else if (dShotI == -1) {
             if (intakeState == IntakeState::BACK) {
                 if (isBallIn()) {
                     intakeState = IntakeState::NONE;
@@ -359,7 +431,7 @@ void opcontrol() {
                 if (prevIsBallIn) {
                     ctlr.print(2, 0, "--- Ball In ---");
                 } else {
-                    ctlr.rumble(" -.-");
+                    ctlr.rumble(" .");
                 }
             } else {
                 ctlr.print(2, 0, "                ");

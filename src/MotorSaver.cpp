@@ -20,6 +20,8 @@ MotorSaver::~MotorSaver() {
     delete[] pwrs;
 }
 int MotorSaver::getPwr(int inputPwr, int encoderValue) {
+    static bool prevLim1 = false, prevLim2 = false;
+    static int prevDir = 0;
     // record array of speeds
     static bool first = true;
     if (first) {
@@ -40,8 +42,9 @@ int MotorSaver::getPwr(int inputPwr, int encoderValue) {
         sumSpeed += speeds[i];
         sumPwr += pwrs[i];
     }
-    if (sumSpeed < maxSpeed * spd1 && sumPwr > maxPwr * pwr1) { inputPwr = clamp(inputPwr, -2000, 2000); }
-    if (sumSpeed < maxSpeed * spd2 && sumPwr > maxPwr * pwr2) { inputPwr = 0; }
+    int pLim1 = maxPwr * pwr1, pLim2 = maxPwr * pwr2;
+    if (sumSpeed < maxSpeed * spd1 && sumPwr > pLim1) { inputPwr = clamp(inputPwr, -pLim1, pLim1); }
+    if (sumSpeed < maxSpeed * spd2 && sumPwr > pLim2) { inputPwr = clamp(inputPwr, -pLim2, pLim2); }
     return clamp(inputPwr, -12000, 12000);
 }
 void MotorSaver::reset() {

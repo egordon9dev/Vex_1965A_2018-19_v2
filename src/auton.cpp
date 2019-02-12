@@ -275,7 +275,7 @@ void auton2(bool leftSide) {
             }
             flywheelPid.target = 2.9;
             clawPidRunning = true;
-            clawPid.target = clawPos1;
+            clawPid.target = claw180;
             is = IntakeState::FRONT;
             if (pidDrive()) i++;
         } else if (i == j++) {
@@ -317,7 +317,7 @@ void auton2(bool leftSide) {
             setDR(-2000);
             drfbPidRunning = false;
             setDrfb(12000);
-            if (getDrfb() > clawPos0 + 100) {
+            if (getDrfb() > 100) {
                 drfbPidRunning = true;
                 drfbPid.target = drfbPos1 + 250;
                 ptB = Point(4 * sideSign, leftSide ? 36 : 24);
@@ -328,7 +328,7 @@ void auton2(bool leftSide) {
             }
         } else if (i == j++) {
             printf("arc twd pipe ");
-            clawPid.target = clawPos0;
+            clawPid.target = 0;
             if (pidDriveArc()) {  // arc twd pipe
                 DLSlew.slewRate = 120;
                 DRSlew.slewRate = 120;
@@ -439,6 +439,8 @@ void auton2(bool leftSide) {
 ######### ##     ##    ##    ##     ## ##  ####           ##
 ##     ## ##     ##    ##    ##     ## ##   ###    ##     ##
 ##     ##  #######     ##     #######  ##    ##     #######
+3 flag auton
+
 align fwd/bwd: to tile edge (ignore tabs)
 align left/right: 1 finger(3 segments tip to 3rd joint/wrinkle) far from the platform
 */
@@ -449,7 +451,7 @@ void auton3(bool leftSide) {
     int k = 0;
     odometry.setA(-PI / 2);
     odometry.setX(0);
-    odometry.setY(-3);
+    odometry.setY(4);
     double targetAngle = -PI / 2;
     const int driveT = 200, turnT = 500;
     IntakeState is = IntakeState::NONE;

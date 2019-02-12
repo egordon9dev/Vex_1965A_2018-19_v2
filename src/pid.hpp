@@ -47,7 +47,7 @@ void pidDriveArcBias(int b);
 void printArcData();
 
 extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid;
-extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
+extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
 extern Odometry_t odometry;
 extern int g_pidTurnLimit;
 

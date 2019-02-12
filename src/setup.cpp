@@ -12,20 +12,28 @@ pros::Motor mtr2(8);   // DR bottom
 pros::Motor mtr3(19);  // intake
 pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
-pros::Motor mtr6(18);  // flywheel
-pros::Motor mtr7(17);  // drfb
-pros::Motor mtr8(16);  //
+pros::Motor mtr6(17);  // flywheel
+pros::Motor mtr7(14);  // drfb
+pros::Motor mtr8(12);  // claw
+/* bad ports:
+5,
+15(claw),
+18(flywheel: during practice),
+13(claw: during practice),
+12 (claw: first time turning on the robot in the morning)
+*/
 // bad ports: 11, 12, 14, 15, 1, 2, 3, 4, 5, 6, 7
 
 // motor savers
 MotorSaver dlSaver(35);
 MotorSaver drSaver(35);
-MotorSaver drfbSaver(40);
+MotorSaver drfbSaver(25);
 MotorSaver clawSaver(35);
 MotorSaver intakeSaver(40);
 MotorSaver flySaver(40);
 
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
+pros::Controller ctlr2(pros::E_CONTROLLER_PARTNER);
 using pros::delay;
 // sensors
 pros::ADIPotentiometer* drfbPot;
@@ -39,10 +47,12 @@ pros::ADIEncoder* perpindicularWheelEnc;
 const int drfbPotMaxPos = 3300, drfbPotPos0 = 1058, drfbPotMinPos = 1055, drfbPotPos1 = 2260, drfbPotPos1Plus = 2530, drfbPotPos2 = 2805, drfbPotPos2Plus = 3150;
 const int drfbPotMinClaw0 = 1390, drfbPotMaxClaw0 = 1720, drfbPotMinClaw1 = 2080, drfbPot18Max = 1449;
 // ime
-const int drfbMaxPos = 2390, drfbPos0 = 5, drfbMinPos = 0, drfbPos1 = 1237, drfbPos1Plus = 1550, drfbPos2 = 1813, drfbPos2Plus = 2280;
+const int drfbMaxPos = 2390, drfbPos0 = -30, drfbMinPos = -50, drfbPos1 = 1190, drfbPos1Plus = 1493, drfbPos2 = 1793, drfbPos2Plus = 2280;
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350;
 
-const int dblClickTime = 450, claw180 = 1340, clawPos0 = 590, clawPos1 = 3800;
+const double dShotSpeed1 = 2.55, dShotSpeed2 = 2.7;
+
+const int dblClickTime = 450, claw180 = 1350, clawPos0 = 0, /*590*/ clawPos1 = claw180 /*3800*/;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
@@ -118,6 +128,7 @@ void setIntake(int n) {  // +: front, -: back
     n = clamp(n, -12000, 12000);
     static int prevFly = getFlywheel();
     /*if (getFlywheel() - prevFly < 15 && n < 0) n = 0;*/  // fix this
+    n = intakeSlew.update(n);
     n = intakeSaver.getPwr(n, mtr3.get_position());
     mtr3.move_voltage(n);
     prevFly = getFlywheel();
@@ -135,7 +146,7 @@ void setIntake(IntakeState is) {
             setIntake(0);
         } else {
             if (prev != IntakeState::ALTERNATE) intake::altT0 = millis();
-            if (((millis() - intake::altT0) / 300) % 3 < 2) {
+            if (((millis() - intake::altT0) / 250) % 3 < 2) {
                 setIntake(-12000);
             } else {
                 setIntake(12000);
@@ -169,6 +180,10 @@ void setDrfb(int n) {
     mtr7.move_voltage(n);
     drfb_requested_voltage = n;
 }
+void setDrfbDumb(int n) {
+    mtr7.move_voltage(n);
+    drfb_requested_voltage = n;
+}
 int getDrfbPot() { return 4095 - drfbPot->get_value(); }
 double drfbIMEBias = 0;
 double getDrfb() { return drfbIMEBias + mtr7.get_position(); }
@@ -179,7 +194,6 @@ int getDrfbVoltage() { return drfb_requested_voltage; }
 int getDrfbCurrent() { return mtr7.get_current_draw(); }
 int drfbPidBias = 0;
 bool pidDrfb(double pos, int wait) {
-    drfbPid.target = clamp(pos, (double)drfbMinPos, (double)drfbMaxPos);
     drfbPid.sensVal = getDrfb();
     int out = drfbPid.update();
     setDrfb(drfbPidBias + out);
@@ -194,13 +208,17 @@ int claw_requested_voltage = 0;
 int clawPowerLimit = 12000;
 void setClaw(int n) {
     n = clamp(n, -clawPowerLimit, clawPowerLimit);
-    if (mtr8.get_current_draw() > 1500) int n = 0;
+    if (mtr8.get_current_draw() > 2500) int n = 0;
     if (getDrfb() < drfbMinClaw0 || (getDrfb() > drfbMaxClaw0 && getDrfb() < drfbMinClaw1)) n = 0;
     int maxPwr = 1200;
     if (getClaw() < 80 && n < -maxPwr) n = -maxPwr;
     if (getClaw() > claw180 - 80 && n > maxPwr) n = maxPwr;
     n = clawSaver.getPwr(n, mtr8.get_position());
     n = clawSlew.update(n);
+    mtr8.move_voltage(n);
+    claw_requested_voltage = n;
+}
+void setClawDumb(int n) {
     mtr8.move_voltage(n);
     claw_requested_voltage = n;
 }
@@ -227,11 +245,12 @@ void setFlywheel(int n) {
 double getFlywheel() { return -mtr6.get_position(); }
 int getFlywheelVoltage() { return flywheel_requested_voltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9500}, {2.8, 10600}};
-bool pidFlywheel(int pwr0, double speed) {
+double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9000 /*9850*/}, {2.7, 10600}, {2.8, 10600}, {2.9, 11480}};
+bool pidFlywheel(double speed) {
     static double prevSpeed = 0.0;
     static int prevT = 0, prevPosition = 0;
-    if (fabs(speed - prevSpeed) > 0.001 && flywheelPid.ki != 0) flywheelPid.errTot = pwr0 / flywheelPid.ki;
+    static double output = 0.0;
+    if (fabs(speed - prevSpeed) > 0.1) output = 0.0;
     prevSpeed = speed;
     double dt = millis() - prevT;
     prevT = millis();
@@ -248,17 +267,28 @@ bool pidFlywheel(int pwr0, double speed) {
     if (dt < 500 && dt > 0) {
         flywheelPid.sensVal = (getFlywheel() - prevPosition) / dt;
         flywheelPid.target = speed;
-        int n = clamp(bias + lround(flywheelPid.update()), 0, 12000);
+        double err = flywheelPid.sensVal - flywheelPid.target;
+        int n = 12000;
+        double k = 0.2;
+        if (err > k) {
+            n = 0;
+        } else if (err < -k) {
+            n = 12000;
+        } else {
+            output += flywheelPid.update();
+            output = clamp(output, -4000.0, 4000.0);
+            n = clamp(bias + lround(output), 0, 12000);
+        }
         setFlywheel(n);
     }
     prevPosition = getFlywheel();
     return flywheelPid.doneTime < millis();
 }
-bool pidFlywheel(int pwr0, double speed, int wait) {
-    pidFlywheel(pwr0, speed);
+bool pidFlywheel(double speed, int wait) {
+    pidFlywheel(speed);
     return flywheelPid.doneTime + wait < millis();
 }
-bool pidFlywheel() { return pidFlywheel(0, flywheelPid.target); }
+bool pidFlywheel() { return pidFlywheel(flywheelPid.target); }
 //--------------------- Misc -----------------
 const int ctlrIdxLeft = 0, ctlrIdxUp = 1, ctlrIdxRight = 2, ctlrIdxDown = 3, ctlrIdxY = 4, ctlrIdxX = 5, ctlrIdxA = 6, ctlrIdxB = 7, ctlrIdxL1 = 8, ctlrIdxL2 = 9, ctlrIdxR1 = 10, ctlrIdxR2 = 11;
 const std::string clickIdxNames[] = {"Left", "Up", "Right", "Down", "Y", "X", "A", "B", "L1", "L2", "R1", "R2"};
@@ -320,7 +350,7 @@ void stopMotorsBlock() {
     }
 }
 void printPidValues() {
-    printf("%.1f drfb%2d %4d/%4d fly%d %1.1f/%1.1f claw%2d %4d/%4d\n", millis() / 1000.0, (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target);
+    printf("%.1f drfb%2d %4d/%4d fly%d %1.3f/%1.3f claw%2d %4d/%4d\n", millis() / 1000.0, (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target);
     std::cout << std::endl;
 }
 extern Point g_target;
@@ -332,16 +362,21 @@ void printState() { printf("drfb %d claw %d ball %d %d DL %d DR %d encs %d %d %d
 
 void setDrfbParams(bool auton) {
     if (auton) {
-        drfbPid.kp = 20.0;
-        drfbPid.ki = 0.1;
+        drfbPid.kp = 45.0;
+        drfbPid.ki = 0.5;
+        drfbPid.unwind = 20;
         drfbPid.iActiveZone = 150;
         drfbPid.maxIntegral = 3000;
-        drfbPid.kd = 75;
+        drfbPid.kd = 4500;
     } else {
         drfbPid.kp = 7.0;
         drfbPid.ki = 0.0;
         drfbPid.kd = 0.0;
     }
+}
+void setDriveSlew(bool auton) {
+    DLSlew.slewRate = 70;  // 120
+    DRSlew.slewRate = 70;  // 120
 }
 void setup() {
     static bool first = true;
@@ -352,32 +387,31 @@ void setup() {
         printf("setting up...\n");
     }
     flywheelSlew.slewRate = 999999;  // 60;
-    flywheelPid.kp = 5000;           // 3000.0;
-    flywheelPid.ki = 2;
-    flywheelPid.kd = 30000.0;
-    flywheelPid.unwind = 9999;
-    flywheelPid.maxIntegral = 12000;
-    flywheelPid.iActiveZone = 0.5;
-    flywheelPid.DONE_ZONE = 0.2;
+    flywheelPid.kp = 3000.0;
+    flywheelPid.kd = 1000000.0;
+    flywheelPid.DONE_ZONE = 0.1;
     flywheelPid.derivativeUpdateInterval = 1;
     flySaver.setConstants(1, 1, 0, 0);
 
-    clawPid.kp = 80.0;
-    clawPid.ki = 0.0;
-    clawPid.kd = 0.0;
+    intakeSlew.slewRate = 200;
+    intakeSaver.setConstants(.15, 0.3, 0.05, 0.2);
+
+    clawPid.kp = 90.0;
+    clawPid.ki = 0.03;
+    clawPid.kd = 2500.0;
     clawPid.iActiveZone = 300;
+    clawPid.maxIntegral = 4000;
     clawPid.unwind = 0;
     clawSlew.slewRate = 200;
     clawSaver.setConstants(0.5, .3, 0.3, .15);
 
     drfbSlew.slewRate = 99999;
     setDrfbParams(true);
-    drfbSaver.setConstants(1, 0.5, 0, 0.01);
+    drfbSaver.setConstants(0.15, 0.6, 0.01, 0.1);
     drfbPid.DONE_ZONE = 100;
     drfbPid.target = drfbPos0;
 
-    DLSlew.slewRate = 120;
-    DRSlew.slewRate = 120;
+    setDriveSlew(false);
     DLPid.kp = DRPid.kp = 900;
     DLPid.kd = DRPid.kd = 25000;
     DLPid.DONE_ZONE = DRPid.DONE_ZONE = 1.5;
@@ -406,7 +440,7 @@ void setup() {
     curvePid.maxIntegral = 5000;
 
     drfbPid.target = drfbPos0;
-    clawPid.target = clawPos1;
+    clawPid.target = 0;
     flywheelPid.target = 0;
 
     // ballSensL->calibrate(); fix this: calibrate in a seperate thread
@@ -425,22 +459,18 @@ void morningRoutine() {
         return;
     }
     while (!ctlr.get_digital(DIGITAL_R1) && !ctlr.get_digital(DIGITAL_R2)) {
-        pros::lcd::print(1, "put drfb down then press R");
+        pros::lcd::print(1, "drfb, claw down. then press R");
         delay(10);
     }
     int t0 = millis();
-    int oldDrfbPwrLim = drfbPowerLimit;
-    drfbPowerLimit = 6000;
-    while (millis() - t0 < 600) setDrfb(-6000);
-    drfbPowerLimit = oldDrfbPwrLim;
-    drfbIMEBias = -getDrfb() - 65;
-    setDrfb(0);
-    while (!ctlr.get_digital(DIGITAL_R1) && !ctlr.get_digital(DIGITAL_R2)) {
-        pros::lcd::print(1, "Allign the claw. Then press R");
-        setDrfb(0);
-        delay(10);
+    while (millis() - t0 < 600) {
+        setDrfbDumb(-6000);
+        setClawDumb(-2500);
     }
-    clawOpctl::bias = -getClaw();
+    drfbIMEBias = -getDrfb() - 65;
+    clawOpctl::bias = -getClaw() - 70;
+    setDrfb(0);
+    setClaw(0);
     pros::lcd::print(1, "calibration complete");
     pros::lcd::print(2, "claw: %f", getClaw());
     pros::lcd::print(3, "drfb: %f", getDrfb());
