@@ -105,7 +105,6 @@ void opcontrol() {
         drfbPid.target = getDrfb();
         int i = 0, t0, sideSign = 1, driveT = 100;
         bool drfbPidRunning = true, clawPidRunning = true;
-        IntakeState is = IntakeState::NONE;
         int lastT, autonT0 = millis();
         bool printing = false;
         Point ptA = Point(-5.3, 0), ptB;
@@ -204,7 +203,7 @@ void opcontrol() {
 
         // FLYWHEEL
         // ----------- Single Shot ------------
-        if (dblClicks[ctlrIdxUp] && !prevClicks[ctlrIdxUp]) {  // request a double shot
+        if (dblClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight]) {  // request a double shot
             dShotI = 0;
         } else if (dblClicks[ctlrIdxDown]) {
             flywheelPid.target = 0.0;
@@ -215,10 +214,10 @@ void opcontrol() {
         } else if (curClicks[ctlrIdxLeft]) {
             flywheelPid.target = dShotSpeed1;
             dShotI = -1;
-        } else if (curClicks[ctlrIdxRight]) {
+        } else if (curClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight]) {
             flywheelPid.target = dShotSpeed2;
             dShotI = -1;
-        } else if (curClicks[ctlrIdxUp] && !prevClicks[ctlrIdxUp]) {
+        } else if (curClicks[ctlrIdxUp]) {
             flywheelPid.target = 2.9;
             dShotI = -1;
         }
@@ -232,19 +231,19 @@ void opcontrol() {
             printf("dShot prep ball 1 ");
             flywheelPid.target = dShotSpeed2;
             if (isBallIn()) {
-                intakeState = IntakeState::NONE;
+                intakeState = IntakeState::FRONT_SLOW;
             } else {
                 intakeState = IntakeState::ALTERNATE;
             }
             if (fabs(flywheelPid.sensVal - flywheelPid.target) < 0.05 && isBallIn() && dShotT0 > millis()) { dShotT0 = millis(); }
-            if (millis() - dShotT0 > 300) {
+            if (millis() - dShotT0 > 700) {
                 dShotT0 = millis();
                 dShotI++;
             }
         } else if (dShotI == 2) {  // shoot ball 1
             printf("dShot shoot ball 1 ");
-            intakeState = IntakeState::BACK;
-            if (millis() - dShotT0 > 200) {
+            intakeState = IntakeState::BACK_SLOW;
+            if (millis() - dShotT0 > 400) {
                 intakeState = IntakeState::FRONT;
                 dShotT0 = BIL;
                 dShotI++;
@@ -253,15 +252,15 @@ void opcontrol() {
             printf("dShot prep ball 2 ");
             flywheelPid.target = dShotSpeed1;
             if (isBallIn()) {
-                intakeState = IntakeState::NONE;
+                intakeState = IntakeState::FRONT_SLOW;
             } else {
                 intakeState = IntakeState::ALTERNATE;
             }
             if (fabs(flywheelPid.sensVal - flywheelPid.target) < 0.05 && isBallIn() && dShotT0 > millis()) { dShotT0 = millis(); }
-            if (millis() - dShotT0 > 300) { dShotI++; }
+            if (millis() - dShotT0 > 1000) { dShotI++; }
         } else if (dShotI == 4) {  // shoot ball 2
             printf("dShot shoot ball 2 ");
-            intakeState = IntakeState::BACK;
+            intakeState = IntakeState::BACK_SLOW;
         }
         pidFlywheel();
         // printf("{req %d actl %d}", getFlywheelVoltage(), mtr6.get_voltage());
@@ -405,16 +404,15 @@ void opcontrol() {
         if (dblClicks[ctlrIdxL2]) {
             if (dShotI == 4) dShotI = -1;
             intakeState = IntakeState::NONE;
-        } else if (curClicks[ctlrIdxL1] && curClicks[ctlrIdxL2]) {
-            if (dShotI == 4) dShotI = -1;
-            intakeState = getISLoad();
         } else if (curClicks[ctlrIdxL2]) {
             if (dShotI == 4) dShotI = -1;
             intakeState = IntakeState::FRONT;
         } else if (curClicks[ctlrIdxL1]) {
-            intakeState = IntakeState::BACK;
+            intakeState = IntakeState::BACK_SLOW;
         } else if (dShotI == -1) {
-            if (intakeState == IntakeState::BACK) { intakeState = getISLoad(); }
+            if (intakeState == IntakeState::BACK_SLOW) { intakeState = IntakeState::ALTERNATE; }
+            // prevent stall
+            /*if (intakeState == IntakeState::FRONT && intakeSaver.isPwr(0.7) && !intakeSaver.isFaster(0.2)) { intakeState = IntakeState::ALTERNATE; }*/
         }
         setIntake(intakeState);
         if (millis() - prevCtlrUpdateT > 150) {

@@ -50,7 +50,7 @@ const int drfbPotMinClaw0 = 1390, drfbPotMaxClaw0 = 1720, drfbPotMinClaw1 = 2080
 const int drfbMaxPos = 2390, drfbPos0 = -30, drfbMinPos = -50, drfbPos1 = 1190, drfbPos1Plus = 1493, drfbPos2 = 1793, drfbPos2Plus = 2280;
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350;
 
-const double dShotSpeed1 = 2.55, dShotSpeed2 = 2.7;
+const double dShotSpeed1 = 2.62, dShotSpeed2 = 2.83;
 
 const int dblClickTime = 450, claw180 = 1350, clawPos0 = 0, /*590*/ clawPos1 = claw180 /*3800*/;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
@@ -139,14 +139,18 @@ void setIntake(IntakeState is) {
         setIntake(0);
     } else if (is == IntakeState::FRONT) {
         setIntake(12000);
+    } else if (is == IntakeState::FRONT_SLOW) {
+        setIntake(3000);
     } else if (is == IntakeState::BACK) {
         setIntake(-12000);
+    } else if (is == IntakeState::BACK_SLOW) {
+        setIntake(-7000);
     } else if (is == IntakeState::ALTERNATE) {
         if (isBallIn()) {
-            setIntake(0);
+            setIntake(6000);
         } else {
             if (prev != IntakeState::ALTERNATE) intake::altT0 = millis();
-            if (((millis() - intake::altT0) / 250) % 3 < 2) {
+            if (((millis() - intake::altT0) / 400) % 3 < 2) {
                 setIntake(-12000);
             } else {
                 setIntake(12000);
@@ -246,7 +250,7 @@ double getFlywheel() { return -mtr6.get_position(); }
 double getFlywheelFromMotor() { return -3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel_requested_voltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9850}, {2.7, 10600}, {2.8, 10600}, {2.9, 11480}};
+double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9850}, {2.6, 9520}, {2.65, 9730}, {2.7, 10600}, {2.8, 10600}, {2.9, 11480}};
 bool pidFlywheel(double speed) {
     static double prevSpeed = 0.0;
     static int prevT = 0, prevPosition = 0;
@@ -423,7 +427,7 @@ void setup() {
     flywheelPid.derivativeUpdateInterval = 1;
     flySaver.setConstants(1, 1, 0, 0);
 
-    intakeSlew.slewRate = 200;
+    intakeSlew.slewRate = 9999999;
     intakeSaver.setConstants(.15, 0.3, 0.05, 0.2);
 
     clawPid.kp = 90.0;

@@ -27,7 +27,7 @@ extern const double ticksPerInchADI;
 extern int driveLim;
 extern int clawPowerLimit;
 extern int drfbFullRangePowerLimit;
-enum class IntakeState { FRONT, BACK, ALTERNATE, NONE };
+enum class IntakeState { FRONT, FRONT_SLOW, BACK, BACK_SLOW, ALTERNATE, NONE };
 int clamp(int n, int min, int max);
 double clamp(double n, double min, double max);
 
