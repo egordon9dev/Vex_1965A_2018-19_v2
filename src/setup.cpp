@@ -14,7 +14,7 @@ pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 pros::Motor mtr6(17);  // flywheel
 pros::Motor mtr7(14);  // drfb
-pros::Motor mtr8(12);  // claw
+pros::Motor mtr8(11);  // claw
 /* bad ports:
 5,
 15(claw),
@@ -140,14 +140,14 @@ void setIntake(IntakeState is) {
     } else if (is == IntakeState::FRONT) {
         setIntake(12000);
     } else if (is == IntakeState::FRONT_SLOW) {
-        setIntake(3000);
+        setIntake(1000);
     } else if (is == IntakeState::BACK) {
         setIntake(-12000);
     } else if (is == IntakeState::BACK_SLOW) {
         setIntake(-7000);
     } else if (is == IntakeState::ALTERNATE) {
         if (isBallIn()) {
-            setIntake(6000);
+            setIntake(1000);
         } else {
             if (prev != IntakeState::ALTERNATE) intake::altT0 = millis();
             if (((millis() - intake::altT0) / 400) % 3 < 2) {
@@ -210,10 +210,12 @@ double bias = 0.0;
 }
 int claw_requested_voltage = 0;
 int clawPowerLimit = 12000;
-void setClaw(int n) {
+void setClaw(int n, bool limit) {
     n = clamp(n, -clawPowerLimit, clawPowerLimit);
     if (mtr8.get_current_draw() > 2500) int n = 0;
-    if (getDrfb() < drfbMinClaw0 || (getDrfb() > drfbMaxClaw0 && getDrfb() < drfbMinClaw1)) n = 0;
+    if (limit) {
+        if (getDrfb() < drfbMinClaw0 || (getDrfb() > drfbMaxClaw0 && getDrfb() < drfbMinClaw1)) n = 0;
+    }
     int maxPwr = 1200;
     if (getClaw() < 80 && n < -maxPwr) n = -maxPwr;
     if (getClaw() > claw180 - 80 && n > maxPwr) n = maxPwr;
@@ -222,6 +224,7 @@ void setClaw(int n) {
     mtr8.move_voltage(n);
     claw_requested_voltage = n;
 }
+void setClaw(int n) { setClaw(n, false); }
 void setClawDumb(int n) {
     mtr8.move_voltage(n);
     claw_requested_voltage = n;
@@ -383,12 +386,12 @@ void stopMotorsBlock() {
     }
 }
 void printPidValues() {
-    printf("%.1f drfb%2d %4d/%4d fly%d %1.3f/%1.3f claw%2d %4d/%4d\n", millis() / 1000.0, (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target);
+    printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f claw%2d %4d/%4d\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target);
     std::cout << std::endl;
 }
 extern Point g_target;
 void printDrivePidValues() {
-    printf("%.1f DL%d DR%d drive %3.2f/%3.2f turn %2.2f/%2.2f curve %2.2f/%2.2f x %3.2f/%3.2f y %3.2f/%3.2f a %.2f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
+    printf("DL%d DR%d drive %3.2f/%3.2f turn %2.2f/%2.2f curve %2.2f/%2.2f x %3.2f/%3.2f y %3.2f/%3.2f a %.2f\n", (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
     std::cout << std::endl;
 }
 void printState() { printf("drfb %d claw %d ball %d %d DL %d DR %d encs %d %d %d %d\n", (int)getDrfb(), (int)getClaw(), getBallSensL(), getBallSensR(), (int)getDL(), (int)getDR(), (int)mtr1.get_position(), (int)mtr2.get_position(), (int)mtr4.get_position(), (int)mtr5.get_position()); }
@@ -408,8 +411,11 @@ void setDrfbParams(bool auton) {
     }
 }
 void setDriveSlew(bool auton) {
-    DLSlew.slewRate = 70;  // 120
-    DRSlew.slewRate = 70;  // 120
+    if (auton) {
+        DLSlew.slewRate = DRSlew.slewRate = 120;
+    } else {
+        DLSlew.slewRate = DRSlew.slewRate = 70;
+    }
 }
 void setup() {
     static bool first = true;
@@ -458,11 +464,11 @@ void setup() {
     drivePid.maxIntegral = 5000;
     drivePid.kd = 110000;
     drivePid.DONE_ZONE = 3.0;
-    turnPid.kp = 28000;
-    turnPid.ki = 200;
+    turnPid.kp = 26000;
+    turnPid.ki = 250;
     turnPid.kd = 2000000;
     turnPid.iActiveZone = 0.1;
-    turnPid.unwind = 0;
+    turnPid.unwind = 0.005;
     turnPid.maxIntegral = 5000;
     turnPid.DONE_ZONE = PI / 20;
 
@@ -480,7 +486,7 @@ void setup() {
     // ballSensL->calibrate(); fix this: calibrate in a seperate thread
     // ballSensR->calibrate();
     int t0 = millis();
-    while (millis() - t0 < 800) { int n = getDL() + getDR() + getDS(); }
+    // while (millis() - t0 < 800) { int n = getDL() + getDR() + getDS(); }
     first = false;
 }
 

@@ -119,7 +119,7 @@ double Pid_t::update() {
     if (errTot > maxErrTot) errTot = maxErrTot;
     if (errTot < -maxErrTot) errTot = -maxErrTot;
     //}
-    if ((err > 0.0 && errTot < 0.0) || (err < 0.0 && errTot > 0.0) || abs(err) < 0.001) {
+    if (err > 0.0 && errTot < 0.0 || err < 0.0 && errTot > 0.0 || fabs(err) < 0.001) {
         if (fabs(err) - unwind > -0.001) {
             errTot = 0.0;
             // printf("UNWIND\n");
@@ -272,6 +272,30 @@ bool pidTurn() {
     }
     prevA = turnPid.sensVal;
     return doneT + wait < millis();
+}
+double getFaceA(const Point& p, bool flip) {
+    Point delta = p - odometry.getPos();
+    double curA = odometry.getA();
+    if (delta.mag() == 0.0) return curA;
+    Point oVector = polarToRect(1, curA);
+    double aErr = delta.angleBetween(oVector);
+    if (flip) aErr = PI - aErr;
+    if (!flip && oVector < delta) aErr *= -1;
+    if (flip && oVector > delta) aErr *= -1;
+    return curA - aErr;
+}
+void pidFaceInit(const Point& p, bool flip, const int wait) { pidTurnInit(getFaceA(p, flip), wait); }
+bool pidFace() { return pidTurn(); }
+bool bangTurn(double a) {
+    static double prevA = -BIL;
+    static int dir = 1;
+    double err = odometry.getA() - a;
+    if (fabs(a - prevA) > 0.001) dir = (err > 0 ? -1 : 1);
+    prevA = a;
+    int output = err > 0 ? -12000 : 12000;
+    setDL(-output);
+    setDR(output);
+    return err * dir > 0;
 }
 bool pidTurnSweep(double tL, double tR, int wait) {
     DLPid.sensVal = getDL();
@@ -497,5 +521,7 @@ bool pidDrive() {
         if (doneT > millis()) doneT = millis();
     }
     prevPos = pos;
-    return doneT + wait < millis();
+    bool ret = doneT + wait < millis();
+    if (ret) printf("* DONE * ");
+    return ret;
 }

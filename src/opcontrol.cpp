@@ -42,39 +42,27 @@ void opcontrol() {
         }
         return;
     }
-    if (0) {
-        auton3(true);
+    if (1) {
+        setDriveSlew(true);
+        odometry.setA(0);
+        pidTurnInit(0.2, 9999);
         while (1) {
-            printPidValues();
-            pidClaw(claw180, 9999);
+            odometry.update();
+            printf("i: %lf ", turnPid.errTot);
+            pidTurn();
+            printDrivePidValues();
             delay(10);
         }
-        int ctr = 0;
-        while (0) {
-            for (int ii = 0; ii < 10; ii++) {
-                ctr++;
-                ctlr.print(2, 0, "text text %d", ctr);
-                delay(300);
-            }
-            ctlr.rumble(" ..");
-        }
+        // testDriveMtrs();
         // odometry.setA(-PI / 2);
-        // pidTurnInit(-PI / 2 + 0.07, 9999);
-        // while (1) {
+        // setDriveSlew(true);
+        // pidDriveInit(Point(0, 10), 9999);
+        // while (0) {
         //     odometry.update();
-        //     pidTurn();
+        //     pidDrive();
         //     printDrivePidValues();
         //     delay(10);
         // }
-        // testDriveMtrs();
-        /*odometry.setA(-PI / 2);
-        pidDriveInit(Point(0, 30), 9999);
-        while (0) {
-            odometry.update();
-            pidDrive();
-            printDrivePidValues();
-            delay(10);
-        }*/
         auton3(true);
         printf("\nterminated\n");
         while (1) delay(1000);
@@ -299,6 +287,7 @@ void opcontrol() {
             setDrfbParams(true);
         } else if (autoFlipI > -1) {  // fix this : add ability to autoflip on the floor
             if (autoFlipI == 0) {
+                printf("auto flip step 0 ");
                 atDrfbSetp = false;
                 if (getDrfb() < drfbMinClaw0) {
                     autoFlipH = 0;
@@ -320,8 +309,10 @@ void opcontrol() {
                     autoFlipI = -1;
                 }
             } else if (autoFlipI == 1) {
+                printf("auto flip step 1 ");
                 if (autoFlipH == 0) {
-                    drfbPid.target = drfbMinClaw0 + 100;
+                    drfbPidBias = 4000;
+                    drfbPid.target = drfb18Max;
                 } else if (autoFlipH == 1) {
                     drfbPidBias = 4000;
                     drfbPid.target = drfbPos1Plus;
@@ -334,6 +325,7 @@ void opcontrol() {
                     autoFlipI++;
                 }
             } else if (autoFlipI == 2) {
+                printf("auto flip step 2 ");
                 if (!clawFlipRequest && fabs(getClaw() - clawPid.target) < claw180 * (autoFlipH == 2 ? 0.3 : 0.45)) {
                     drfbPidBias = 0;
                     drfbPid.target = drfbPos0;
@@ -348,6 +340,7 @@ void opcontrol() {
                     autoFlipI++;
                 }
             } else if (autoFlipI == 3) {
+                printf("auto flip step 3 ");
                 if (fabs(getDrfb() - drfbPid.target) < 100) {
                     autoFlipI = -1;
                     drfbFullRangePowerLimit = 12000;
@@ -366,7 +359,8 @@ void opcontrol() {
 
         // CLAW
         if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX]) {
-            if (atDrfbSetp && (fabs(getDrfb() - drfbPos1) < 100 || fabs(getDrfb() - drfbPos2) < 100)) {  // request an auto-flip
+            if (atDrfbSetp && (fabs(getDrfb() - drfbPos1) < 100 || fabs(getDrfb() - drfbPos2) < 100) || getDrfb() < drfbMinClaw0) {
+                // request an auto-flip
                 if (autoFlipI == -1) autoFlipI = 0;
             } else if (autoFlipI == -1) {
                 clawFlipRequest = true;

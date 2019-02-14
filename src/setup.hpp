@@ -80,6 +80,7 @@ void pidDrfb();
 //---------- Claw functions --------
 void setClawPosition(double pos);
 void setClaw(int n);
+void setClaw(int n, bool limit);
 double getClaw();
 int getClawVoltage();
 bool pidClaw(double a, int wait);
