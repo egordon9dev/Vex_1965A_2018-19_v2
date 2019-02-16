@@ -218,20 +218,29 @@ bool bangTurn(double a) {
     setDR(output);
     return err * dir > 0;
 }
+/*
+  ######  ##      ## ######## ######## ########
+ ##    ## ##  ##  ## ##       ##       ##     ##
+ ##       ##  ##  ## ##       ##       ##     ##
+  ######  ##  ##  ## ######   ######   ########
+       ## ##  ##  ## ##       ##       ##
+ ##    ## ##  ##  ## ##       ##       ##
+  ######   ###  ###  ######## ######## ##
+*/
 namespace sweep {
 int dl0, dr0;
 double tL, tR;
 int wait;
 void init(double tL, double tR, int wait) {
-    this->tL = tL;
-    this->tR = tR;
-    this->wait = wait;
+    sweep::tL = tL;
+    sweep::tR = tR;
+    sweep::wait = wait;
     DLPid.doneTime = DRPid.doneTime = BIL;
     dl0 = getDL();
     dr0 = getDR();
 }
 }  // namespace sweep
-bool pidSweepInit(double tL, double tR, int wait) { sweep::init(tL, tR, wait); }
+void pidSweepInit(double tL, double tR, int wait) { sweep::init(tL, tR, wait); }
 bool pidSweep() {
     using sweep::tL;
     using sweep::tR;
@@ -244,11 +253,11 @@ bool pidSweep() {
     if (DRPid.target == 0.0) DRPid.target = 0.000001;
     double powerL = clamp(DLPid.update(), -12000.0, 12000.0);
     double powerR = clamp(DRPid.update(), -12000.0, 12000.0);
-    int curve = 0;
+    double curve = 0;
     curvePid.sensVal = DRPid.sensVal - DLPid.sensVal * ((double)tR / (double)tL);
     curvePid.target = 0.0;
     // curve is scaled down as the motion progresses
-    curve = curvePid.update() * 0.5 * (fabs((DL_pid.target - DL_pid.sensVal) / DL_pid.target) + fabs((DR_pid.target - DR_pid.sensVal) / DR_pid.target));
+    curve = curvePid.update() * 0.5 * (fabs((DLPid.target - DLPid.sensVal) / DLPid.target) + fabs((DRPid.target - DRPid.sensVal) / DRPid.target));
     double curveInfluence = 0.75;
     if (fabs(powerR) > fabs(powerL)) {
         curve = clamp(curve, -fabs(powerL) * curveInfluence, fabs(powerL) * curveInfluence);
@@ -399,15 +408,14 @@ bool pidDriveArc() {
     prevPos = pos;
     return doneT + wait < millis();
 }
-
 /*
- ########  #### ########     ########  ########  #### ##     ## ########
- ##     ##  ##  ##     ##    ##     ## ##     ##  ##  ##     ## ##
- ##     ##  ##  ##     ##    ##     ## ##     ##  ##  ##     ## ##
- ########   ##  ##     ##    ##     ## ########   ##  ##     ## ######
- ##         ##  ##     ##    ##     ## ##   ##    ##   ##   ##  ##
- ##         ##  ##     ##    ##     ## ##    ##   ##    ## ##   ##
- ##        #### ########     ########  ##     ## ####    ###    ########
+ ########  ########  #### ##     ## ########
+ ##     ## ##     ##  ##  ##     ## ##
+ ##     ## ##     ##  ##  ##     ## ##
+ ##     ## ########   ##  ##     ## ######
+ ##     ## ##   ##    ##   ##   ##  ##
+ ##     ## ##    ##   ##    ## ##   ##
+ ########  ##     ## ####    ###    ########
 */
 Point g_target;
 namespace driveData {
@@ -415,21 +423,23 @@ Point start, target;
 int wait;
 int doneT;
 double maxAErr;
-void init(Point t, double mae, int w) {
+bool flip;
+void init(Point t, bool f, double mae, int w) {
     start = odometry.getPos();
     target = t;
     wait = w;
     doneT = BIL;
     maxAErr = mae;
+    flip = f;
 }
 }  // namespace driveData
-void pidDriveLineInit(Point target, double maxAErr, const int wait) {
+void pidDriveLineInit(Point target, bool flip, double maxAErr, const int wait) {
     // prevent div by 0 errors
     if (target.x == 0.0) target.x = 0.001;
     if (target.y == 0.0) target.y = 0.001;
     drivePid.doneTime = BIL;
     curvePid.doneTime = BIL;
-    driveData::init(target, maxAErr, wait);
+    driveData::init(target, flip, maxAErr, wait);
 }
 bool pidDriveLine() {
     using driveData::doneT;
@@ -445,11 +455,8 @@ bool pidDriveLine() {
     Point dirOrientation = polarToRect(1, odometry.getA());
     double aErr = dirOrientation.angleBetween(targetDir);
     // allow for driving backwards
-    int driveDir = 1;
-    if (aErr > PI / 2) {
-        driveDir = -1;
-        aErr = PI - aErr;
-    }
+    int driveDir = driveData::flip ? -1 : 1;
+    if (driveDir == -1) { aErr = PI - aErr; }
     if (dirOrientation < targetDir) aErr *= -driveDir;
     if (dirOrientation > targetDir) aErr *= driveDir;
 
@@ -480,5 +487,9 @@ bool pidDriveLine() {
     if (ret) printf("* DONE * ");
     return ret;
 }
-void pidDriveInit(Point target, const int wait) { pidDriveLineInit(target, BIL, wait); }
+void pidDriveInit(Point target, const int wait) {
+    Point pos = odometry.getPos();
+    double aErr = (target - pos).angleBetween(polarToRect(1, odometry.getA()));
+    pidDriveLineInit(target, aErr > PI / 2 ? true : false, BIL, wait);
+}
 bool pidDrive() { pidDriveLine(); }

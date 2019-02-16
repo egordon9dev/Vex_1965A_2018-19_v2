@@ -53,15 +53,15 @@ void opcontrol() {
         //     delay(10);
         // }
         // testDriveMtrs();
-        // odometry.setA(-PI / 2);
-        // setDriveSlew(true);
-        // pidDriveLineInit(Point(-35, 10), 0.1, 9999);
-        // while (1) {
-        //     odometry.update();
-        //     pidDrive();
-        //     printDrivePidValues();
-        //     delay(10);
-        // }
+        odometry.setA(-PI / 4);
+        setDriveSlew(true);
+        pidDriveLineInit(Point(6, 0), true, 0.1, 9999);
+        while (1) {
+            odometry.update();
+            pidDriveLine();
+            printDrivePidValues();
+            delay(10);
+        }
         auton3(true);
         printf("\nterminated\n");
         while (1) delay(1000);

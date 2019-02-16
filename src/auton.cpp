@@ -58,7 +58,7 @@ void auton3(bool leftSide) {
     turnPid.doneTime = BIL;
     const int autonT0 = millis();
     bool printing = true;
-    Point ptA, ptB;
+    Point ptA, ptB, ptC;
     int enc0;
     while (!ctlr.get_digital(DIGITAL_B)) {
         printf("%.2f ", (millis() - autonT0) / 1000.0);
@@ -169,32 +169,10 @@ void auton3(bool leftSide) {
             setDR(0);
             if (millis() - t0 > 400) {
                 timeBetweenI = 4500;
+                // pidDriveInit(ptB, 0);
+                ptA = Point(-25 * sideSign, 18);
                 ptB = Point(-50 * sideSign, -6.5);
-                pidDriveInit(ptB, 0);
-                i++;
-            }
-        } else if (i == j++) {  // knock bottom flag
-            printf("knock btm flag ");
-            printDrivePidValues();
-            is = IntakeState::FRONT;
-            if (pidDrive()) {
-                ptA = Point(-35 * sideSign, 0);
-                ptB = Point(-25 * sideSign, 18);
-                pidDriveInit(ptA, driveT);
-                i++;
-            }
-        } else if (i == j++) {  // drive back
-            printf("drive back ");
-            printDrivePidValues();
-            if (pidDrive()) {
-                pidFaceInit(ptB, false, 0);
-                i++;
-            }
-        } else if (i == j++) {  // face cap
-            printf("face cap 2 ");
-            printDrivePidValues();
-            if (pidFace()) {
-                pidDriveInit(ptB, driveT);
+                pidDriveLineInit(ptA, false, 0.05, driveT);
                 i++;
             }
         } else if (i == j++) {  // drive twd cap
@@ -202,7 +180,7 @@ void auton3(bool leftSide) {
             printDrivePidValues();
             drfbPidRunning = false;
             setDrfb(-12000);
-            if (pidDrive()) {
+            if (pidDriveLine()) {
                 k = 0;
                 i++;
             }
@@ -218,18 +196,21 @@ void auton3(bool leftSide) {
                 clawPid.target = claw180;
                 if (getClaw() > claw180 * 0.55) { drfbPidRunning = false; }
                 if (!drfbPidRunning) setDrfb(-12000);
-                if (getDrfb() < drfbPos0 + 10) k++;
+                if (getDrfb() < drfbPos0 + 10) {
+                    int targetDL, targetDR;
+                    if (leftSide) {
+                        targetDL = -16;
+                        targetDR = -35;
+                    } else {
+                        targetDL = -35;
+                        targetDR = -16;
+                    }
+                    pidSweepInit(targetDL, targetDR, 0);
+                    k++;
+                }
             } else if (k == o++) {
                 setDrfb(-12000);
-                int targetDL, targetDR;
-                if (leftSide) {
-                    targetDL = -18;
-                    targetDR = -6;
-                } else {
-                    targetDL = -6;
-                    targetDR = -18;
-                }
-                if (pidDriveSweep(targetDL, targetDR, 0)) {
+                if (pidSweep()) {
                     setDL(0);
                     setDR(0);
                     i++;

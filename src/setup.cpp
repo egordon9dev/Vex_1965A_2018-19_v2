@@ -459,7 +459,7 @@ void setup() {
     drivePid.maxIntegral = 5000;
     drivePid.kd = 110000;
     drivePid.DONE_ZONE = 1.0;
-    DLPid = DRPid = DrivePid;
+    DLPid = DRPid = drivePid;
     turnPid.kp = 26000;
     turnPid.ki = 250;
     turnPid.kd = 2000000;
