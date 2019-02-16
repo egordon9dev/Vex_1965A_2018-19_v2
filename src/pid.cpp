@@ -54,20 +54,25 @@ Point Odometry_t::getPos() {
 
 void Odometry_t::update() {
     double curDL = getDL(), curDR = getDR(), curDS = getDS();
-    double deltaDL = (curDL - prevDL) / ticksPerInch, deltaDR = (curDR - prevDR) / ticksPerInch, deltaDS = (curDS - prevDS) / ticksPerInchADI;
+    double deltaDL = (curDL - prevDL) / ticksPerInchADI, deltaDR = (curDR - prevDR) / ticksPerInchADI, deltaDS = (curDS - prevDS) / ticksPerInchADI;
     double deltaA = (deltaDR - deltaDL) / (2.0 * L);
     double chordLen = (deltaDL + deltaDR) / 2.0;
-    if (!((deltaDL < -0.01 && deltaDR > 0.01) || (deltaDL > 0.01 && deltaDR < -0.01))) {  // not turning
+    if (!((deltaDL < -0.0001 && deltaDR > 0.0001) || (deltaDL > 0.0001 && deltaDR < -0.0001))) {  // not turning
         x += deltaDS * cos(a + deltaA / 2.0 - PI / 2.0);
         y += deltaDS * sin(a + deltaA / 2.0 - PI / 2.0);
     }
     x += chordLen * cos(a + deltaA / 2.0);
     y += chordLen * sin(a + deltaA / 2.0);
     a += deltaA;
-    printf("(%.1f, %.1f, %.2f) [%d %d %d] ", x, y, a, (int)curDL, (int)curDR, (int)curDS);
+    printf("(%.1f, %.1f, %.2f) (%d %d %d) ", x, y, a, (int)curDL, (int)curDR, (int)curDS);
     prevDL = curDL;
     prevDR = curDR;
     prevDS = curDS;
+}
+
+void Odometry_t::reset() {
+    zeroDriveEncs();
+    prevDL = prevDR = prevDS = 0.0;
 }
 
 /*
@@ -140,96 +145,12 @@ double Pid_t::update() {
           errTot = 0.0;
       }*/
     prevErr = err;
-    // printf("p: %lf, i: %lf, d: %lf\t", p, i, d);
     // OUTPUT
     prop = p;
+    // printf("<%d, %d, %d> ", (int)p, (int)i, (int)d);
     return p + i + d;
 }
 
-/*
- ########  ########  #### ##     ## ########    ##       #### ##    ## ########
- ##     ## ##     ##  ##  ##     ## ##          ##        ##  ###   ## ##
- ##     ## ##     ##  ##  ##     ## ##          ##        ##  ####  ## ##
- ##     ## ########   ##  ##     ## ######      ##        ##  ## ## ## ######
- ##     ## ##   ##    ##   ##   ##  ##          ##        ##  ##  #### ##
- ##     ## ##    ##   ##    ## ##   ##          ##        ##  ##   ### ##
- ########  ##     ## ####    ###    ########    ######## #### ##    ## ########
-*/
-
-namespace driveLineData {
-Point start, target, delta, initToTarget;
-int wait;
-int doneT;
-void init(Point s, Point t, int w) {
-    start = s;
-    target = t;
-    delta = (target - start).noZeroes();
-    initToTarget = (target - odometry.getPos()).noZeroes();
-    wait = w;
-    doneT = BIL;
-}
-}  // namespace driveLineData
-void pidDriveLineInit(Point start, Point target, const int wait) {
-    // prevent div by 0 errors
-    start.noZeroes();
-    target.noZeroes();
-    drivePid.doneTime = BIL;
-    curvePid.doneTime = BIL;
-    driveLineData::init(start, target, wait);
-}
-bool pidDriveLine() {
-    using driveLineData::delta;
-    using driveLineData::doneT;
-    using driveLineData::start;
-    using driveLineData::target;
-    using driveLineData::wait;
-    Point pos(odometry.getX(), odometry.getY());
-    static Point prevPos(0, 0);
-    Point toTarget = target - pos;
-    drivePid.sensVal = toTarget * delta.unit();
-    drivePid.target = 0.0;
-    int drivePwr = (int)drivePid.update();
-    if (toTarget.mag() == 0.0) {
-        setDL(drivePwr);
-        setDR(drivePwr);
-    } else {
-        double parallelCmpt = toTarget.mag() * cos(toTarget.angleBetween(delta));
-        if (parallelCmpt == 0.0) parallelCmpt = 0.000001;
-        double perpindicularCmpt = toTarget.mag() * sin(toTarget.angleBetween(delta));
-        double tentative_aErr = atan(perpindicularCmpt / (0.2 * parallelCmpt));
-        if (toTarget < delta) tentative_aErr *= -1;
-        Point targetVector = polarToRect(1, atan2(delta.y, delta.x) + tentative_aErr);
-        Point orientationVector = polarToRect(1, odometry.getA());
-        double aErr = targetVector.angleBetween(orientationVector);
-        // error detection
-        // allow for driving backwards
-        int driveDir = 1;
-        if (aErr > PI / 2) {
-            driveDir = -1;
-            aErr = PI - aErr;
-        }
-        if (orientationVector < targetVector) aErr *= -driveDir;
-        if (orientationVector > targetVector) aErr *= driveDir;
-
-        // error correction
-        curvePid.sensVal = aErr;
-        curvePid.target = 0.0;
-        int turnPwr = clamp((int)curvePid.update(), -8000, 8000);
-        int drivePwrLim = 8000;
-        if (fabs(aErr) > 5.0 * (PI / 180.0)) drivePwrLim = 4000;
-        if (fabs(aErr) < 1.0 * (PI / 180.0)) drivePwrLim = 12000;
-        drivePwr = clamp(drivePwr, -drivePwrLim, drivePwrLim);
-        setDL(-drivePwr * driveDir - turnPwr);
-        setDR(-drivePwr * driveDir + turnPwr);
-    }
-    if (fabs(drivePid.sensVal) < 1 && (pos - prevPos).mag() < 0.01) {
-        if (doneT > millis()) doneT = millis();
-    } else {
-        doneT = BIL;
-    }
-    prevPos = pos;
-    return doneT + wait < millis();
-}
 /*
  ######## ##     ## ########  ##    ##
     ##    ##     ## ##     ## ###   ##
@@ -297,13 +218,47 @@ bool bangTurn(double a) {
     setDR(output);
     return err * dir > 0;
 }
-bool pidTurnSweep(double tL, double tR, int wait) {
-    DLPid.sensVal = getDL();
-    DRPid.sensVal = getDR();
-    DLPid.target = tL * ticksPerInch;
-    DRPid.target = tR * ticksPerInch;
-    setDL(DLPid.update());
-    setDR(DRPid.update());
+namespace sweep {
+int dl0, dr0;
+double tL, tR;
+int wait;
+void init(double tL, double tR, int wait) {
+    this->tL = tL;
+    this->tR = tR;
+    this->wait = wait;
+    DLPid.doneTime = DRPid.doneTime = BIL;
+    dl0 = getDL();
+    dr0 = getDR();
+}
+}  // namespace sweep
+bool pidSweepInit(double tL, double tR, int wait) { sweep::init(tL, tR, wait); }
+bool pidSweep() {
+    using sweep::tL;
+    using sweep::tR;
+    using sweep::wait;
+    DLPid.sensVal = getDL() - sweep::dl0;
+    DRPid.sensVal = getDR() - sweep::dr0;
+    DLPid.target = tL * ticksPerInchADI;
+    DRPid.target = tR * ticksPerInchADI;
+    if (DLPid.target == 0.0) DLPid.target = 0.000001;
+    if (DRPid.target == 0.0) DRPid.target = 0.000001;
+    double powerL = clamp(DLPid.update(), -12000.0, 12000.0);
+    double powerR = clamp(DRPid.update(), -12000.0, 12000.0);
+    int curve = 0;
+    curvePid.sensVal = DRPid.sensVal - DLPid.sensVal * ((double)tR / (double)tL);
+    curvePid.target = 0.0;
+    // curve is scaled down as the motion progresses
+    curve = curvePid.update() * 0.5 * (fabs((DL_pid.target - DL_pid.sensVal) / DL_pid.target) + fabs((DR_pid.target - DR_pid.sensVal) / DR_pid.target));
+    double curveInfluence = 0.75;
+    if (fabs(powerR) > fabs(powerL)) {
+        curve = clamp(curve, -fabs(powerL) * curveInfluence, fabs(powerL) * curveInfluence);
+    } else {
+        curve = clamp(curve, -fabs(powerR) * curveInfluence, fabs(powerR) * curveInfluence);
+    }
+    powerL -= curve;
+    powerR += curve;
+    setDL(powerL);
+    setDR(powerR);
     if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) return true;
     return false;
 }
@@ -446,51 +401,49 @@ bool pidDriveArc() {
 }
 
 /*
-====================================================================================================
-
- ##     ## ##    ## ##     ##  ######  ######## ########
- ##     ## ###   ## ##     ## ##    ## ##       ##     ##
- ##     ## ####  ## ##     ## ##       ##       ##     ##
- ##     ## ## ## ## ##     ##  ######  ######   ##     ##
- ##     ## ##  #### ##     ##       ## ##       ##     ##
- ##     ## ##   ### ##     ## ##    ## ##       ##     ##
-  #######  ##    ##  #######   ######  ######## ########
-
-===================================================================================================
-
+ ########  #### ########     ########  ########  #### ##     ## ########
+ ##     ##  ##  ##     ##    ##     ## ##     ##  ##  ##     ## ##
+ ##     ##  ##  ##     ##    ##     ## ##     ##  ##  ##     ## ##
+ ########   ##  ##     ##    ##     ## ########   ##  ##     ## ######
+ ##         ##  ##     ##    ##     ## ##   ##    ##   ##   ##  ##
+ ##         ##  ##     ##    ##     ## ##    ##   ##    ## ##   ##
+ ##        #### ########     ########  ##     ## ####    ###    ########
 */
-
 Point g_target;
 namespace driveData {
-Point target;
+Point start, target;
 int wait;
 int doneT;
-void init(Point t, int w) {
+double maxAErr;
+void init(Point t, double mae, int w) {
+    start = odometry.getPos();
     target = t;
     wait = w;
     doneT = BIL;
+    maxAErr = mae;
 }
 }  // namespace driveData
-void pidDriveInit(Point target, const int wait) {
+void pidDriveLineInit(Point target, double maxAErr, const int wait) {
     // prevent div by 0 errors
     if (target.x == 0.0) target.x = 0.001;
     if (target.y == 0.0) target.y = 0.001;
     drivePid.doneTime = BIL;
     curvePid.doneTime = BIL;
-    driveData::init(target, wait);
+    driveData::init(target, maxAErr, wait);
 }
-bool pidDrive() {
+bool pidDriveLine() {
     using driveData::doneT;
+    using driveData::maxAErr;
+    using driveData::start;
     using driveData::target;
     using driveData::wait;
     g_target = target;
     Point pos(odometry.getX(), odometry.getY());
-    static Point prevPos(0, 0);
     Point targetDir = target - pos;
+    if (targetDir * (target - start).unit() < 4) targetDir = target - start;
     // error detection
-    Point dirOrientation(cos(odometry.getA()), sin(odometry.getA()));
-    double aErr = acos(clamp((dirOrientation * targetDir) / (dirOrientation.mag() * targetDir.mag()), -1.0, 1.0));
-
+    Point dirOrientation = polarToRect(1, odometry.getA());
+    double aErr = dirOrientation.angleBetween(targetDir);
     // allow for driving backwards
     int driveDir = 1;
     if (aErr > PI / 2) {
@@ -503,12 +456,13 @@ bool pidDrive() {
     // error correction
     double curA = odometry.getA();
     drivePid.target = 0.0;
-    drivePid.sensVal = targetDir.mag() * cos(aErr);
-    if (drivePid.sensVal < 4) aErr = 0;
+    drivePid.sensVal = (target - pos) * targetDir.unit();
     curvePid.target = 0;
     curvePid.sensVal = aErr;
     int turnPwr = clamp((int)curvePid.update(), -8000, 8000);
-    int drivePwr = clamp((int)drivePid.update(), -10000, 10000);
+    int drivePMax = 10000;
+    if (fabs(aErr) > maxAErr) drivePMax = 2000;
+    int drivePwr = clamp((int)drivePid.update(), -drivePMax, drivePMax);
     // prevent turn saturation
     // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);
     int dlOut = -drivePwr * driveDir - turnPwr;
@@ -517,7 +471,8 @@ bool pidDrive() {
     setDR(drOut);
     // printf("%d %d ", dlOut, drOut);
 
-    if (fabs(drivePid.sensVal) < 3 && (pos - prevPos).mag() < 0.01) {
+    static Point prevPos(0, 0);
+    if (fabs(drivePid.sensVal) < 0.5 && (pos - prevPos).mag() < 0.01) {
         if (doneT > millis()) doneT = millis();
     }
     prevPos = pos;
@@ -525,3 +480,5 @@ bool pidDrive() {
     if (ret) printf("* DONE * ");
     return ret;
 }
+void pidDriveInit(Point target, const int wait) { pidDriveLineInit(target, BIL, wait); }
+bool pidDrive() { pidDriveLine(); }

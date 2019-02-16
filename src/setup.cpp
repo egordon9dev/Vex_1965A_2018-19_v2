@@ -13,8 +13,8 @@ pros::Motor mtr3(19);  // intake
 pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 pros::Motor mtr6(17);  // flywheel
-pros::Motor mtr7(14);  // drfb
-pros::Motor mtr8(11);  // claw
+pros::Motor mtr7(11);  // drfb
+pros::Motor mtr8(16);  // claw
 /* bad ports:
 5,
 15(claw),
@@ -36,24 +36,20 @@ pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 pros::Controller ctlr2(pros::E_CONTROLLER_PARTNER);
 using pros::delay;
 // sensors
-pros::ADIPotentiometer* drfbPot;
 pros::ADILineSensor* ballSensL;
 pros::ADILineSensor* ballSensR;
-pros::ADILineSensor* lineSens1;
 pros::ADIEncoder* perpindicularWheelEnc;
+pros::ADIEncoder* DLEnc;
+pros::ADIEncoder* DREnc;
 
 //----------- Constants ----------------
-// pot
-const int drfbPotMaxPos = 3300, drfbPotPos0 = 1058, drfbPotMinPos = 1055, drfbPotPos1 = 2260, drfbPotPos1Plus = 2530, drfbPotPos2 = 2805, drfbPotPos2Plus = 3150;
-const int drfbPotMinClaw0 = 1390, drfbPotMaxClaw0 = 1720, drfbPotMinClaw1 = 2080, drfbPot18Max = 1449;
-// ime
 const int drfbMaxPos = 2390, drfbPos0 = -30, drfbMinPos = -50, drfbPos1 = 1190, drfbPos1Plus = 1493, drfbPos2 = 1793, drfbPos2Plus = 2280;
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350;
 
 const double dShotSpeed1 = 2.62, dShotSpeed2 = 2.83;
 
-const int dblClickTime = 450, claw180 = 1350, clawPos0 = 0, /*590*/ clawPos1 = claw180 /*3800*/;
-const double ticksPerInch = 52.746 /*very good*/, ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
+const int dblClickTime = 450, claw180 = 1350;
+const double /*ticksPerInch = 52.746, */ ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
 
@@ -66,9 +62,15 @@ Point polarToRect(double mag, double angle) {
 }
 
 //----------- Drive -----------
-double getDL() { return (mtr4.get_position() - mtr5.get_position()) * 0.5; }
-double getDR() { return (-mtr1.get_position() + mtr2.get_position()) * 0.5; }
-double getDS() { return perpindicularWheelEnc->get_value(); }
+int DLEncBias = 0, DREncBias = 0, DSEncBias = 0;
+double getDL() { return -DLEnc->get_value() + DLEncBias; }
+double getDR() { return DREnc->get_value() + DREncBias; }
+double getDS() { return perpindicularWheelEnc->get_value() + DSEncBias; }
+void zeroDriveEncs() {
+    DLEncBias = -getDL();
+    DREncBias = -getDR();
+    DSEncBias = -getDS();
+}
 int millis() { return pros::millis(); }
 int DL_requested_voltage = 0, DR_requested_voltage = 0, driveLim = 12000;
 void setDR(int n) {
@@ -169,7 +171,6 @@ IntakeState getISLoad() {
 int getBallSensL() { return ballSensL->get_value(); }
 int getBallSensR() { return ballSensR->get_value(); }
 bool isBallIn() { return getBallSensL() < 2000 || getBallSensR() < 2000; }
-bool isLineDetected() { return lineSens1->get_value() < 500; }
 
 //----------- DRFB functions ---------
 int drfb_requested_voltage = 0;
@@ -188,10 +189,8 @@ void setDrfbDumb(int n) {
     mtr7.move_voltage(n);
     drfb_requested_voltage = n;
 }
-int getDrfbPot() { return 4095 - drfbPot->get_value(); }
 double drfbIMEBias = 0;
 double getDrfb() { return drfbIMEBias + mtr7.get_position(); }
-void printDrfbSensors() { pros::lcd::print(3, "ime %f pot %d", getDrfb(), getDrfbPot()); }
 
 int getDrfbEncoder() { return mtr7.get_position(); }
 int getDrfbVoltage() { return drfb_requested_voltage; }
@@ -394,7 +393,6 @@ void printDrivePidValues() {
     printf("DL%d DR%d drive %3.2f/%3.2f turn %2.2f/%2.2f curve %2.2f/%2.2f x %3.2f/%3.2f y %3.2f/%3.2f a %.2f\n", (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
     std::cout << std::endl;
 }
-void printState() { printf("drfb %d claw %d ball %d %d DL %d DR %d encs %d %d %d %d\n", (int)getDrfb(), (int)getClaw(), getBallSensL(), getBallSensR(), (int)getDL(), (int)getDR(), (int)mtr1.get_position(), (int)mtr2.get_position(), (int)mtr4.get_position(), (int)mtr5.get_position()); }
 
 void setDrfbParams(bool auton) {
     if (auton) {
@@ -414,7 +412,7 @@ void setDriveSlew(bool auton) {
     if (auton) {
         DLSlew.slewRate = DRSlew.slewRate = 120;
     } else {
-        DLSlew.slewRate = DRSlew.slewRate = 70;
+        DLSlew.slewRate = DRSlew.slewRate = 120;
     }
 }
 void setup() {
@@ -452,18 +450,16 @@ void setup() {
     drfbPid.target = drfbPos0;
 
     setDriveSlew(false);
-    DLPid.kp = DRPid.kp = 900;
-    DLPid.kd = DRPid.kd = 25000;
-    DLPid.DONE_ZONE = DRPid.DONE_ZONE = 1.5;
     dlSaver.setConstants(1, 1, 0, 0);
     drSaver.setConstants(1, 1, 0, 0);
 
     drivePid.kp = 2000;
-    drivePid.ki = 30;
+    drivePid.ki = 8;
     drivePid.iActiveZone = 2;
     drivePid.maxIntegral = 5000;
     drivePid.kd = 110000;
-    drivePid.DONE_ZONE = 3.0;
+    drivePid.DONE_ZONE = 1.0;
+    DLPid = DRPid = DrivePid;
     turnPid.kp = 26000;
     turnPid.ki = 250;
     turnPid.kd = 2000000;
@@ -483,10 +479,16 @@ void setup() {
     clawPid.target = 0;
     flywheelPid.target = 0;
 
+    ballSensL = new pros::ADILineSensor(7);
+    ballSensR = new pros::ADILineSensor(8);
+    perpindicularWheelEnc = new pros::ADIEncoder(3, 4, false);
+    DLEnc = new pros::ADIEncoder(1, 2, false);
+    DREnc = new pros::ADIEncoder(5, 6, false);
+
     // ballSensL->calibrate(); fix this: calibrate in a seperate thread
     // ballSensR->calibrate();
     int t0 = millis();
-    // while (millis() - t0 < 800) { int n = getDL() + getDR() + getDS(); }
+    // while (millis() - t0 < 800) { int n = getDL() + getDR() + getDS();delay(10); }
     first = false;
 }
 

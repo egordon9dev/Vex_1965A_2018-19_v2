@@ -11,11 +11,6 @@ void initialize() {
     pros::lcd::initialize();
     pros::lcd::set_text(1, "init");
 
-    drfbPot = new pros::ADIPotentiometer(2);
-    ballSensL = new pros::ADILineSensor(6);
-    lineSens1 = new pros::ADILineSensor(7);
-    ballSensR = new pros::ADILineSensor(8);
-    perpindicularWheelEnc = new pros::ADIEncoder(3, 4, false);
     setup();
 }
 

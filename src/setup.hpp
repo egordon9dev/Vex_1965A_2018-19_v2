@@ -7,23 +7,23 @@
 extern pros::Motor mtr1, mtr2, mtr3, mtr4, mtr5, mtr6, mtr7, mtr8;
 extern MotorSaver dlSaver, drSaver, drfbSaver, clawSaver, flySaver, intakeSaver;
 extern pros::Controller ctlr, ctlr2;
-extern pros::ADIPotentiometer* drfbPot;
 extern pros::ADILineSensor* ballSensL;
 extern pros::ADILineSensor* ballSensR;
-extern pros::ADILineSensor* lineSens1;
 extern pros::ADIEncoder* perpindicularWheelEnc;
+extern pros::ADIEncoder* DLEnc;
+extern pros::ADIEncoder* DREnc;
 extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1Plus, drfbPos2Plus, drfbMinClaw0, drfbMaxClaw0, drfbMinClaw1, drfb18Max;
 extern double drfbIMEBias;
-extern const int drfbPotMinPos, drfbPotMaxPos, drfbPotPos0, drfbPotPos1, drfbPotPos2, drfbPotPos1Plus, drfbPotPos2Plus, drfbPotMinClaw0, drfbPotMaxClaw0, drfbPotMinClaw1, drfbPot18Max;
-extern const int claw180, clawPos0, clawPos1;
+extern const int claw180;
 extern const double dShotSpeed1, dShotSpeed2;
 extern const int ctlrIdxLeft, ctlrIdxUp, ctlrIdxRight, ctlrIdxDown, ctlrIdxY, ctlrIdxX, ctlrIdxA, ctlrIdxB, ctlrIdxL1, ctlrIdxL2, ctlrIdxR1, ctlrIdxR2;
 extern int drfbPidBias;
 extern const int BIL, MIL;
 extern const int dblClickTime;
-extern const double PI;
-extern const double ticksPerInch;
+extern const double PI; /*
+ extern const double ticksPerInch;*/
 extern const double ticksPerInchADI;
+extern int DLEncBias, DREncBias, DSEncBias;
 extern int driveLim;
 extern int clawPowerLimit;
 extern int drfbFullRangePowerLimit;
@@ -39,7 +39,6 @@ void morningRoutine();
 bool** getAllClicks();
 void printAllClicks(int line, bool** allClicks);
 void printPidValues();
-void printState();
 void stopMotors();
 void stopMotorsBlock();
 Point polarToRect(double mag, double angle);
@@ -56,8 +55,8 @@ int getDRVoltage();
 void printDrivePidValues();
 void printDriveEncoders();
 void runMotorTest();
-bool isLineDetected();
 void setDriveSlew(bool auton);
+void zeroDriveEncs();
 
 //----------- Intake ------
 void setIntake(IntakeState is);
@@ -71,7 +70,6 @@ void trimDrfb(int trim);
 void setDrfb(int n);
 void setDrfbDumb(int n);
 void setDrfbParams(bool auton);
-int getDrfbPot();
 double getDrfb();
 int getDrfbEncoder();
 int getDrfbCurrent();

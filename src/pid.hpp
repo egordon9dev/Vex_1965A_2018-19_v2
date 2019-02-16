@@ -30,12 +30,13 @@ class Odometry_t {
     void setA(double a);
     void setX(double x);
     void setY(double y);
+    void reset();
     Point getPos();
 };
 
 void pidDriveInit(Point target, const int wait);
 bool pidDrive();
-void pidDriveLineInit(Point start, Point target, const int wait);
+void pidDriveLineInit(Point target, double maxAErr, const int wait);
 bool pidDriveLine();
 void pidTurnInit(const double angle, const int wait);
 bool pidTurn();

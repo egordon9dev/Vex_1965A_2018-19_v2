@@ -43,21 +43,20 @@ void opcontrol() {
         return;
     }
     if (1) {
-        setDriveSlew(true);
-        odometry.setA(0);
-        pidTurnInit(0.2, 9999);
-        while (1) {
-            odometry.update();
-            printf("i: %lf ", turnPid.errTot);
-            pidTurn();
-            printDrivePidValues();
-            delay(10);
-        }
+        // setDriveSlew(true);
+        // odometry.setA(0);
+        // pidTurnInit(0.2, 9999);
+        // while (1) {
+        //     odometry.update();
+        //     pidTurn();
+        //     printDrivePidValues();
+        //     delay(10);
+        // }
         // testDriveMtrs();
         // odometry.setA(-PI / 2);
         // setDriveSlew(true);
-        // pidDriveInit(Point(0, 10), 9999);
-        // while (0) {
+        // pidDriveLineInit(Point(-35, 10), 0.1, 9999);
+        // while (1) {
         //     odometry.update();
         //     pidDrive();
         //     printDrivePidValues();
@@ -184,7 +183,7 @@ void opcontrol() {
         prevFlywheel = getFlywheel();
         if (abs(joy[0]) < 10) joy[0] = 0;
         if (abs(joy[1]) < 10) joy[1] = 0;
-        driveLim = clamp((getDrfb() > 0.5 * (drfb18Max + drfbPos1)) ? 10000 : 12000, 0, driveLimFromPartner);
+        driveLim = clamp((getDrfb() > 0.5 * (drfb18Max + drfbPos1)) ? 8500 : 12000, 0, driveLimFromPartner);
         setDL(joy[1] + joy[0]);
         setDR(joy[1] - joy[0]);
         // printf("%d %d\n", joy[0], joy[1]);
@@ -429,9 +428,9 @@ void opcontrol() {
         delete[] allClicks;
         pros::delay(10);
     }
-    delete drfbPot;
     delete ballSensL;
     delete ballSensR;
     delete perpindicularWheelEnc;
-    delete lineSens1;
+    delete DLEnc;
+    delete DREnc;
 }
