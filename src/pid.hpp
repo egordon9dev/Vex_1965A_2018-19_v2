@@ -36,7 +36,7 @@ class Odometry_t {
 
 void pidDriveInit(Point target, const int wait);
 bool pidDrive();
-void pidDriveLineInit(Point target, bool flip, double maxAErr, const int wait);
+void pidDriveLineInit(Point start, Point target, bool flip, double maxAErr, const int wait);
 bool pidDriveLine();
 void pidTurnInit(const double angle, const int wait);
 bool pidTurn();
@@ -46,13 +46,12 @@ double getFaceA(const Point& p, bool flip);
 bool pidFace();
 void pidSweepInit(double tL, double tR, int wait);
 bool pidSweep();
-void pidDriveArcInit(Point start, Point target, double rMag, int rotationDir, int wait);
-void pidFollowArcInit(Point start, Point target, double rMag, int rotationDir, int wait);
+void pidDriveArcInit(Point start, Point target, double rMag, int rotDir, bool flip, int wait);
+void pidFollowArcInit(Point start, Point target, double rMag, int rotDir, bool flip, int wait);
 bool pidDriveArc();
-void pidDriveArcBias(int b);
 void printArcData();
 
-extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid;
+extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid, intakePid, curveVelPid;
 extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
 extern Odometry_t odometry;
 extern int g_pidTurnLimit;

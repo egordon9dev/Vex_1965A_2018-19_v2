@@ -32,7 +32,6 @@ using std::cout;
 using std::endl;
 void testAuton();
 void opcontrol() {
-    // testDriveMtrs();
     morningRoutine();
     ctlr.clear_line(2);
     if (pros::battery::get_capacity() < 15.0) {
@@ -43,7 +42,6 @@ void opcontrol() {
         return;
     }
     if (1) {
-        // setDriveSlew(true);
         // odometry.setA(0);
         // pidTurnInit(0.2, 9999);
         // while (1) {
@@ -53,16 +51,34 @@ void opcontrol() {
         //     delay(10);
         // }
         // testDriveMtrs();
-        odometry.setA(-PI / 4);
-        setDriveSlew(true);
-        pidDriveLineInit(Point(6, 0), true, 0.1, 9999);
-        while (1) {
-            odometry.update();
-            pidDriveLine();
-            printDrivePidValues();
-            delay(10);
-        }
-        auton3(true);
+        // while (!ctlr.get_digital(DIGITAL_B)) delay(10);
+        // odometry.setA(-PI / 2);
+        // odometry.setX(0);
+        // odometry.setY(0);
+        // odometry.reset();
+        // setDriveSlew(true);
+        // pidSweepInit(-5, -30, 999);
+        // while (ctlr.get_digital(DIGITAL_B)) {
+        //     odometry.update();
+        //     pidSweep();
+        //     printPidSweep();
+        //     delay(10);
+        // }
+        // while (1) {
+        //     stopMotors();
+        //     delay(10);
+        // }
+        auton3(false);
+        // int tttt = millis();
+        // flywheelPid.target = 1.5;
+        // while (millis() - tttt < 800) pidFlywheel();
+        // initPidIntake(-600, 0);
+        // while (1) {
+        //     pidFlywheel();
+        //     printPidValues();
+        //     pidIntake();
+        //     delay(10);
+        // }
         printf("\nterminated\n");
         while (1) delay(1000);
         testAuton();
@@ -116,7 +132,6 @@ void opcontrol() {
     double drv[] = {0, 0};
     int prevT = 0;
     int dt = 0;
-    double prevFlywheel = 0, dFlywheel = 0;
     bool prevDY = false, prevDA = false, prevR1 = false, prevR2 = false, prevL1 = false, prevL2 = false, prevX = false, prevB = false;
     int prevL2T = -9999999;
     int tDrfbOff = 0;
@@ -156,14 +171,13 @@ void opcontrol() {
         pros::lcd::print(4, "R %f", getDR());
         pros::lcd::print(5, "S %f", getDS());
         pros::lcd::print(6, "bat: %f", pros::battery::get_capacity());
-        pros::lcd::print(7, "drfb: %d", getDrfb());
+        pros::lcd::print(7, "drfb: %.2f", getDrfb());
         int driveLimFromPartner = 12000;
         if (ctlr2.get_digital(DIGITAL_R1)) {
             driveLimFromPartner = 4000;
         } else if (ctlr2.get_digital(DIGITAL_R2)) {
             driveLimFromPartner = 8000;
         }
-
         /*
          pros::lcd::print(3, "drfb %d", getDrfb());*/
         printPidValues();
@@ -175,17 +189,12 @@ void opcontrol() {
             dblClicks[i] = allClicks[2][i];
         }
         // printAllClicks(5, allClicks);
+        if (curClicks[ctlrIdxDown]) odometry.reset();
 
         if (curClicks[ctlrIdxB] && !prevClicks[ctlrIdxB]) { driveDir *= -1; }
         // DRIVE
-        int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(driveDir * ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
-        dFlywheel = getFlywheel() - prevFlywheel;
-        prevFlywheel = getFlywheel();
-        if (abs(joy[0]) < 10) joy[0] = 0;
-        if (abs(joy[1]) < 10) joy[1] = 0;
         driveLim = clamp((getDrfb() > 0.5 * (drfb18Max + drfbPos1)) ? 8500 : 12000, 0, driveLimFromPartner);
-        setDL(joy[1] + joy[0]);
-        setDR(joy[1] - joy[0]);
+        opctlDrive(driveDir);
         // printf("%d %d\n", joy[0], joy[1]);
 
         // FLYWHEEL
@@ -193,7 +202,7 @@ void opcontrol() {
         if (dblClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight]) {  // request a double shot
             dShotI = 0;
         } else if (dblClicks[ctlrIdxDown]) {
-            flywheelPid.target = 0.0;
+            flywheelPid.target = 1.0;  // 0.0;
             dShotI = -1;
         } else if (curClicks[ctlrIdxDown]) {
             flywheelPid.target = 1.0;

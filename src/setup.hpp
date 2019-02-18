@@ -15,6 +15,7 @@ extern pros::ADIEncoder* DREnc;
 extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1Plus, drfbPos2Plus, drfbMinClaw0, drfbMaxClaw0, drfbMinClaw1, drfb18Max;
 extern double drfbIMEBias;
 extern const int claw180;
+extern const int intakeShootTicks;
 extern const double dShotSpeed1, dShotSpeed2;
 extern const int ctlrIdxLeft, ctlrIdxUp, ctlrIdxRight, ctlrIdxDown, ctlrIdxY, ctlrIdxX, ctlrIdxA, ctlrIdxB, ctlrIdxL1, ctlrIdxL2, ctlrIdxR1, ctlrIdxR2;
 extern int drfbPidBias;
@@ -23,7 +24,7 @@ extern const int dblClickTime;
 extern const double PI; /*
  extern const double ticksPerInch;*/
 extern const double ticksPerInchADI;
-extern int DLEncBias, DREncBias, DSEncBias;
+extern double DLEncBias, DREncBias, DSEncBias;
 extern int driveLim;
 extern int clawPowerLimit;
 extern int drfbFullRangePowerLimit;
@@ -39,17 +40,22 @@ void morningRoutine();
 bool** getAllClicks();
 void printAllClicks(int line, bool** allClicks);
 void printPidValues();
+void printPidSweep();
 void stopMotors();
 void stopMotorsBlock();
 Point polarToRect(double mag, double angle);
 int millis();
 
 // -------- Drive --------
+void opctlDrive(int driveDir);
 void setDR(int n);
 void setDL(int n);
 double getDR();
 double getDL();
 double getDS();
+double getDLVel();
+double getDRVel();
+double getDriveVel();
 int getDLVoltage();
 int getDRVoltage();
 void printDrivePidValues();
@@ -60,10 +66,15 @@ void zeroDriveEncs();
 
 //----------- Intake ------
 void setIntake(IntakeState is);
+void setIntake(int n);
 int getBallSensL();
 int getBallSensR();
 bool isBallIn();
 IntakeState getISLoad();
+double getIntakePos();
+int getIntakeVoltage();
+void pidIntakeInit(double target, int wait);
+bool pidIntake();
 
 //----------- DRFB functions ---------
 void trimDrfb(int trim);
@@ -71,7 +82,6 @@ void setDrfb(int n);
 void setDrfbDumb(int n);
 void setDrfbParams(bool auton);
 double getDrfb();
-int getDrfbEncoder();
 int getDrfbCurrent();
 bool pidDrfb(double pos, int wait);
 void pidDrfb();
@@ -88,8 +98,8 @@ void setFlywheel(int n);
 double getFlywheel();
 int getFlywheelVoltage();
 bool pidFlywheel();
-bool pidFlywheel(int pwr0, double speed);
-bool pidFlywheel(int pwr0, double speed, int wait);
+void pidFlywheelInit(double speed, int wait);
+bool isPidFlywheelDone();
 
 void testDriveMtrs();
 #endif

@@ -9,8 +9,7 @@
  */
 void initialize() {
     pros::lcd::initialize();
-    pros::lcd::set_text(1, "init");
-
+    pros::lcd::set_text(1, "Unplug the joystick!");
     setup();
 }
 

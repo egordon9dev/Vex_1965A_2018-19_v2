@@ -2,7 +2,7 @@
 #include "main.h"
 #include "setup.hpp"
 using std::cout;
-Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid;
+Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid, intakePid, curveVelPid;
 Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
 Odometry_t odometry(6.982698, 1.0);
 /*
@@ -32,8 +32,7 @@ Pid_t::Pid_t() {
     DONE_ZONE = 10;
     maxIntegral = 9999999;
     dInactiveZone = iActiveZone = target = prevSensVal = sensVal = prevErr = errTot = unwind = deriv = prop = kp = ki = kd = 0.0;
-    derivativeUpdateInterval = 15;
-    prevTime = prevDUpdateTime = 0;
+    derivativeUpdateInterval = prevTime = prevDUpdateTime = 0;
 }
 Odometry_t::Odometry_t(double L, double perpL) {
     this->L = L;
@@ -64,7 +63,7 @@ void Odometry_t::update() {
     x += chordLen * cos(a + deltaA / 2.0);
     y += chordLen * sin(a + deltaA / 2.0);
     a += deltaA;
-    printf("(%.1f, %.1f, %.2f) (%d %d %d) ", x, y, a, (int)curDL, (int)curDR, (int)curDS);
+    printf("(%.1f, %.1f, %.2f) (%d %d %d) (%d %d)", x, y, a, (int)curDL, (int)curDR, (int)curDS, getBallSensL(), getBallSensR());
     prevDL = curDL;
     prevDR = curDR;
     prevDS = curDS;
@@ -280,134 +279,107 @@ bool pidSweep() {
  ##     ## ##    ##  ##    ##
  ##     ## ##     ##  ######
 */
+/*
 namespace arcData {
-const int pwrLim1 = 7500, pwrLim2 = pwrLim1 + 1000;
-int doneT;
-Point center;
-Point _target, _start;
-double _rMag;
-int _rotationDirection;
+Point center, target, start;
+double rMag;
+int rotDir;
 int wait;
-int bias;
 bool followArc;
-void init(Point start, Point target, double rMag, int rotationDirection) {
-    target.noZeroes();
-    start.noZeroes();
+bool flip;
+int prevT;
+double prevA;
+double prevArcPos;
+int drivePwr;
+double curvePwr;
+int doneT;
+const int driveMaxPwr = 7500;
+void init(Point s, Point t, double r, int rd, bool f, bool fa, int w) {
+    s.noZeroes();
+    t.noZeroes();
+    start = s;
+    target = t;
+    rMag = r;
+    rotDir = rd;
+    flip = f;
+    followArc = fa;
+    wait = w;
     doneT = BIL;
-    _start = start;
-    _target = target;
-    _rotationDirection = rotationDirection;
-    _rMag = rMag;
-    bias = 0;
-    followArc = false;
 
     Point deltaPos = target - start;
     Point midPt((start.x + target.x) / 2.0, (start.y + target.y) / 2.0);
-    double altAngle = atan2(deltaPos.y, deltaPos.x) + (PI / 2) * rotationDirection;
+    double altAngle = atan2(deltaPos.y, deltaPos.x) + (PI / 2) * rotDir;
     double altMag = sqrt(clamp(pow(rMag, 2) - pow(deltaPos.mag() / 2, 2), 0.0, 999999999.9));
     center = midPt + polarToRect(altMag, altAngle);
+
+    drivePwr = driveMaxPwr;
+    curvePwr = 0.0;
+    prevA = prevArcPos = 0;
+    prevT = -BIL;
 }
 // estimate the distance remaining for the drive
-// assumes you would never arc more than about 7*PI / 4
 double getArcPos() {
     Point pos = odometry.getPos() - center;
-    Point tgt = _target - center;
-    Point st = _start - center;
-    double a = acos(clamp((pos * tgt) / (pos.mag() * tgt.mag()), -1.0, 1.0));
-    if (_rotationDirection == 1) {
-        if (pos < st && a > PI / 2) a = 2 * PI - a;
+    Point tgt = target - center;
+    Point st = start - center;
+    double a = pos.angleBetween(tgt);
+    if (rotDir == 1) {
+        if (pos < tgt) a *= -1;
     } else {
-        if (pos > st && a > PI / 2) a = 2 * PI - a;
+        if (pos > tgt) a *= -1;
     }
     return a * pos.mag();
 }
 }  // namespace arcData
 
-void printArcData() {
-    printf("%.1f DL%d DR%d drive %3.1f/%3.1f curve %2.3f/%2.3f R %.1f/%.1f x %3.1f/%3.1f y %3.1f/%3.1f a %.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, curvePid.sensVal, curvePid.target, (odometry.getPos() - arcData::center).mag(), arcData::_rMag, odometry.getX(), arcData::_target.x, odometry.getY(), arcData::_target.y, odometry.getA());
-    std::cout << std::endl;
-}
-void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait) {
-    drivePid.doneTime = BIL;
-    turnPid.doneTime = BIL;
-    curvePid.doneTime = BIL;
-    arcData::init(start, target, rMag, rotationDirection);
-    arcData::wait = wait;
-}
-
-void pidFollowArcInit(Point start, Point target, double rMag, int rotationDirection, int wait) {
-    pidDriveArcInit(start, target, rMag, rotationDirection, wait);
-    arcData::followArc = true;
-}
-void pidDriveArcBias(int b) { arcData::bias = b; }
+void pidDriveArcInit(Point start, Point target, double rMag, int rotDir, bool flip, int wait) { arcData::init(start, target, rMag, rotDir, flip, false, wait); }
+void pidFollowArcInit(Point start, Point target, double rMag, int rotDir, bool flip, int wait) { arcData::init(start, target, rMag, rotDir, flip, true, wait); }
 bool pidDriveArc() {
-    using arcData::_rMag;
-    using arcData::_rotationDirection;
-    using arcData::_start;
-    using arcData::_target;
-    using arcData::center;
+    using arcData::curvePwr;
     using arcData::doneT;
-    using arcData::pwrLim1;
-    using arcData::pwrLim2;
-    using arcData::wait;
-    Point pos = odometry.getPos();
+    using arcData::driveMaxPwr;
+    using arcData::drivePwr;
+    using arcData::flip;
+    using arcData::followArc;
+    using arcData::prevA;
+    using arcData::prevArcPos;
+    using arcData::prevT;
     double arcPos = arcData::getArcPos();
-
-    Point rVector = center - pos;
-    Point targetVector = rVector.rotate(-_rotationDirection);
-    Point orientationVector(cos(odometry.getA()), sin(odometry.getA()));
-    double x = (targetVector * orientationVector) / (targetVector.mag() * orientationVector.mag());
-    double errAngle = acos(clamp(x, -1.0, 1.0));
-    double errRadius = rVector.mag() - _rMag;
-    // allow for driving backwards and allow for negative errAngle values
-    int driveDir = 1;
-    if (errAngle > PI / 2) {
-        driveDir = -1;
-        errAngle = PI - errAngle;
-    }
-    if (orientationVector < targetVector) errAngle *= -driveDir;
-    if (orientationVector > targetVector) errAngle *= driveDir;
-    // printf("center: %.1f,%.1f pos: %.1f,%.1ftarget:%.1f,%.1f\n", center.x, center.y, pos.x, pos.y, arcData::_target.x, arcData::_target.y);
-    // error correction
-    curvePid.sensVal = errAngle /*- clamp(errRadius * _rotationDirection * (PI / 6), -PI / 3, PI / 3)*/;
-    curvePid.target = 0;
-    Point rVec = pos - center, tgt = _target - center;
-    if (_rotationDirection == 1) {
-        if (rVec > tgt) arcPos *= -1;
+    int curT = millis();
+    int dt = curT - prevT;
+    double curA = odometry.getA();
+    if (dt < 500) {
+        if (dt > 29) {
+            double vel = (arcPos - prevArcPos) / dt;
+            curveVelPid.sensVal = (curA - prevA) / dt;
+            curveVelPid.target = vel / arcData::rMag * arcData::rotDir;
+            curvePwr += curveVelPid.update();
+            curvePwr = clamp(curvePwr, -12000.0, 12000.0);
+            prevT = curT;
+            prevArcPos = arcPos;
+            prevA = curA;
+        }
     } else {
-        if (rVec < tgt) arcPos *= -1;
+        prevT = curT;
+        prevArcPos = arcPos;
+        prevA = curA;
     }
-    if (fabs(arcPos) > rVec.mag() * PI) arcPos *= -1;
-    drivePid.sensVal = arcPos;
-    drivePid.target = 0;
-    double drivePwr = -drivePid.update();
-    if (arcData::followArc) drivePwr = pwrLim1;
-    int turnPwr = clamp((int)curvePid.update(), -pwrLim1, pwrLim1);
-    double pwrFactor = 1;  // clamp(1.0 / (1.0 + fabs(errRadius) / 2.0) * 1.0 / (1.0 + fabs(errAngle) * 6), 0.5, 1.0);
-    double curveFac = clamp(2.0 / (1.0 + exp(-_rMag / 7.0)) - 1.0, 0.001, 1.0);
-    double dlOut = clamp(drivePwr * pwrFactor * driveDir, (double)-pwrLim1, (double)pwrLim1);
-    double drOut = clamp(drivePwr * pwrFactor * driveDir, (double)-pwrLim1, (double)pwrLim1);
-    if (_rotationDirection * driveDir == -1) {
-        dlOut *= 1.0 / curveFac;
-        drOut *= curveFac;
-    } else {
-        dlOut *= curveFac;
-        drOut *= 1.0 / curveFac;
+    if (!followArc) {
+        drivePid.sensVal = arcPos;
+        drivePid.target = 0;
+        drivePwr = clamp((int)drivePid.update(), -driveMaxPwr, driveMaxPwr);
     }
-    dlOut -= _rotationDirection * driveDir * arcData::bias;
-    drOut += _rotationDirection * driveDir * arcData::bias;
-    setDL(clamp((int)dlOut, -pwrLim2, pwrLim2) - turnPwr);
-    setDR(clamp((int)drOut, -pwrLim2, pwrLim2) + turnPwr);
-    static Point prevPos(0, 0);
-
-    if (fabs(drivePid.sensVal) < 2 && (pos - prevPos).mag() < 0.01) {
-        if (doneT > millis()) doneT = millis();
-    } else {
-        doneT = BIL;
-    }
-    prevPos = pos;
-    return doneT + wait < millis();
+    setDL(drivePwr * (flip ? -1 : 1) - curvePwr);
+    setDR(drivePwr * (flip ? -1 : 1) + curvePwr);
+    using arcData::center;
+    if ((arcData::target - center).angleBetween(odometry.getPos() - center) < 0.2 && doneT > millis()) doneT = millis();
+    return millis() - doneT > arcData::wait;
 }
+
+void printArcData() {
+    printf("%.1f DL%d DR%d drive %3.1f/%3.1f curve %2.3f/%2.3f R %.1f/%.1f x %3.1f/%3.1f y %3.1f/%3.1f a %.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, curvePid.sensVal, curvePid.target, (odometry.getPos() - arcData::center).mag(), arcData::rMag, odometry.getX(), arcData::target.x, odometry.getY(), arcData::target.y, odometry.getA());
+    std::cout << std::endl;
+}*/
 /*
  ########  ########  #### ##     ## ########
  ##     ## ##     ##  ##  ##     ## ##
@@ -424,8 +396,8 @@ int wait;
 int doneT;
 double maxAErr;
 bool flip;
-void init(Point t, bool f, double mae, int w) {
-    start = odometry.getPos();
+void init(Point s, Point t, bool f, double mae, int w) {
+    start = s;
     target = t;
     wait = w;
     doneT = BIL;
@@ -433,13 +405,13 @@ void init(Point t, bool f, double mae, int w) {
     flip = f;
 }
 }  // namespace driveData
-void pidDriveLineInit(Point target, bool flip, double maxAErr, const int wait) {
+void pidDriveLineInit(Point start, Point target, bool flip, double maxAErr, const int wait) {
     // prevent div by 0 errors
     if (target.x == 0.0) target.x = 0.001;
     if (target.y == 0.0) target.y = 0.001;
     drivePid.doneTime = BIL;
     curvePid.doneTime = BIL;
-    driveData::init(target, flip, maxAErr, wait);
+    driveData::init(start, target, flip, maxAErr, wait);
 }
 bool pidDriveLine() {
     using driveData::doneT;
@@ -448,7 +420,7 @@ bool pidDriveLine() {
     using driveData::target;
     using driveData::wait;
     g_target = target;
-    Point pos(odometry.getX(), odometry.getY());
+    Point pos = odometry.getPos();
     Point targetDir = target - pos;
     if (targetDir * (target - start).unit() < 4) targetDir = target - start;
     // error detection
@@ -464,16 +436,18 @@ bool pidDriveLine() {
     double curA = odometry.getA();
     drivePid.target = 0.0;
     drivePid.sensVal = (target - pos) * targetDir.unit();
-    curvePid.target = 0;
-    curvePid.sensVal = aErr;
-    int turnPwr = clamp((int)curvePid.update(), -8000, 8000);
     int drivePMax = 10000;
-    if (fabs(aErr) > maxAErr) drivePMax = 2000;
-    int drivePwr = clamp((int)drivePid.update(), -drivePMax, drivePMax);
+    double drivePwr = drivePid.update();
+    if (fabs(aErr) > maxAErr) drivePwr = 0.0;
+    Pid_t* rotPid = (pos - start).mag() < 0.75 || (pos - target).mag() < 0.75 || fabs(drivePwr) < 0.001 ? &turnPid : &curvePid;
+    rotPid->target = 0;
+    rotPid->sensVal = aErr;
+    int rotPwr = clamp((int)rotPid->update(), -8000, 8000);
+    drivePwr = clamp((int)drivePwr, -drivePMax, drivePMax);
     // prevent turn saturation
     // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);
-    int dlOut = -drivePwr * driveDir - turnPwr;
-    int drOut = -drivePwr * driveDir + turnPwr;
+    int dlOut = -drivePwr * driveDir - rotPwr;
+    int drOut = -drivePwr * driveDir + rotPwr;
     setDL(dlOut);
     setDR(drOut);
     // printf("%d %d ", dlOut, drOut);
@@ -490,6 +464,6 @@ bool pidDriveLine() {
 void pidDriveInit(Point target, const int wait) {
     Point pos = odometry.getPos();
     double aErr = (target - pos).angleBetween(polarToRect(1, odometry.getA()));
-    pidDriveLineInit(target, aErr > PI / 2 ? true : false, BIL, wait);
+    pidDriveLineInit(odometry.getPos(), target, aErr > PI / 2 ? true : false, BIL, wait);
 }
 bool pidDrive() { pidDriveLine(); }

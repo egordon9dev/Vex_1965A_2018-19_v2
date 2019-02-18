@@ -36,11 +36,6 @@ void testPoint() {
 void codeTest() { testPoint(); }
 
 void doTests() {
-    while (0) {
-        pidFlywheel(0, 2.5);
-        printPidValues();
-        delay(10);
-    }
     const Point p1(30, 20);
     int lastT = 0;
     setDL(10000);
