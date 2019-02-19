@@ -302,8 +302,8 @@ void pidClaw() { pidClaw(clawPid.target, 999999); }
 */
 namespace flywheel {
 int requestedVoltage = 0;
-double target;
-int wait;
+double target = 0;
+int wait = 999999;
 void init(double t, int w) {
     target = t;
     wait = w;
@@ -619,7 +619,6 @@ void morningRoutine() {
     setDrfb(0);
     setClaw(0);
     pros::lcd::print(1, "Move the Drive");
-    int lksajf = millis();
     odometry.reset();
     double prevDL = 0.0, prevDR = 0.0, prevDS = 0.0;
     bool initDL = false, initDR = false, initDS = false;

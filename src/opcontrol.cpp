@@ -68,7 +68,7 @@ void opcontrol() {
         //     stopMotors();
         //     delay(10);
         // }
-        auton3(true);
+        auton5(true);
         // int tttt = millis();
         // flywheelPid.target = 1.5;
         // while (millis() - tttt < 800) pidFlywheel();
@@ -81,50 +81,6 @@ void opcontrol() {
         // }
         printf("\nterminated\n");
         while (1) delay(1000);
-        testAuton();
-        odometry.setA(PI / 2);
-        odometry.setX(0);
-        odometry.setY(0);
-        pidDriveInit(Point(0, 25), 200);
-        while (!ctlr.get_digital(DIGITAL_B)) {
-            odometry.update();
-            printDrivePidValues();
-            if (pidDrive()) break;
-            delay(10);
-        }
-        while (1) {
-            stopMotors();
-            delay(10);
-        }
-        while (0) {
-            printf("%d\n", getDrfb());
-            delay(100);
-        }
-        auton2(true);
-        while (1) delay(5000);
-
-        flywheelPid.target = 0;
-        clawPid.target = getClaw();
-        drfbPid.target = getDrfb();
-        int i = 0, t0, sideSign = 1, driveT = 100;
-        bool drfbPidRunning = true, clawPidRunning = true;
-        int lastT, autonT0 = millis();
-        bool printing = false;
-        Point ptA = Point(-5.3, 0), ptB;
-
-        while (0) {
-            for (int i = 0; i < 5; i++) {
-                odometry.update();
-                // pros::lcd::print(0, "x %f", odometry.getX());
-                // pros::lcd::print(1, "y %f", odometry.getY());
-                // pros::lcd::print(2, "a %f", odometry.getA());
-                // printDrivePidValues();
-                // printf("claw %d     drfb %d\n", (int)getClaw(), (int)getDrfb());
-                pidDriveArc();
-                delay(10);
-            }
-            printArcData();
-        }
     }
     setDriveSlew(false);
     setDrfbParams(false);
