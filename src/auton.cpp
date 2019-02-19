@@ -70,14 +70,14 @@ void auton3(bool leftSide) {
     ***********     Left (Red) Side     ************
     **************************************************/
     if (leftSide) {
-        ptBeforeCap1 = Point(0, 28);
-        ptAfterCap1 = Point(0, 42);
-        ptPivot1 = Point(0, -0.25);
-        ptShoot1 = Point(-5.5 * sideSign, -0.25);
-        ptShoot2 = Point(-27.5 * sideSign, -0.25);
-        ptAfterCap2 = Point(-24 * sideSign, 18);
-        ptPivotBeforeBtmFlag = Point(-24 * sideSign, -2);
-        ptAfterBtmFlag = Point(-51.5 * sideSign, -6.5);
+        ptBeforeCap1 = Point(0, 27);
+        ptAfterCap1 = Point(0, 41.5);
+        ptPivot1 = Point(0, -0.5);
+        ptShoot1 = Point(-4.5 * sideSign, -0.5);
+        ptShoot2 = Point(-25.5 * sideSign, -0.5);
+        ptAfterCap2 = Point(-23.5 * sideSign, 20);
+        ptPivotBeforeBtmFlag = Point(-23.5 * sideSign, -5.5);
+        ptAfterBtmFlag = Point(-47.5 * sideSign, -10);
     }
 
     /*************************************************
@@ -85,7 +85,7 @@ void auton3(bool leftSide) {
     **************************************************/
     else {
         ptBeforeCap1 = Point(0, 27);
-        ptAfterCap1 = Point(0, 42);
+        ptAfterCap1 = Point(0, 41.5);
         ptPivot1 = Point(0, -4);
         ptShoot1 = Point(-1.5 * sideSign, -4);
         ptShoot2 = Point(-23.75 * sideSign, -4);

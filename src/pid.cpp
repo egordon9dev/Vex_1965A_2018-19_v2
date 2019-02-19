@@ -453,7 +453,7 @@ bool pidDriveLine() {
     // printf("%d %d ", dlOut, drOut);
 
     static Point prevPos(0, 0);
-    if (fabs(drivePid.sensVal) < 0.5 && (pos - prevPos).mag() < 0.01) {
+    if (fabs(drivePid.sensVal) < 0.5 && ((pos - prevPos).mag() < 0.01 || wait == 0)) {
         if (doneT > millis()) doneT = millis();
     }
     prevPos = pos;
