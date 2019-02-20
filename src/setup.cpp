@@ -74,9 +74,10 @@ double getDLVel() { DLMtx.take(50);double d = mtr4.get_actual_velocity();DLMtx.g
 double getDRVel() { DRMtx.take(50);double d = -mtr1.get_actual_velocity();DRMtx.give();return d;}
 double getDriveVel() { return 0.5 * (getDLVel()+getDRVel()); }
 void zeroDriveEncs() {
-    DLEncBias -= getDL();
-    DREncBias -= getDR();
-    DSEncBias -= getDS();
+ DLMtx.take(50);
+    DLEncBias -= getDL();DLMtx.give();DRMtx.take(50);
+    DREncBias -= getDR();DRMtx.give();DSMtx.take(50);
+    DSEncBias -= getDS();DSMtx.give();
 }
 int millis() { return pros::millis(); }
 int DL_requested_voltage = 0, DR_requested_voltage = 0, driveLim = 12000;
@@ -87,8 +88,7 @@ void setDR(int n) {
  DRMtx.take(50);
     mtr1.move_voltage(-n);
     mtr2.move_voltage(n);
- DRMtx.give();
-    DR_requested_voltage = n;
+    DR_requested_voltage = n;DRMtx.give();
 }
 void setDL(int n) {
     n = clamp(n, -driveLim, driveLim);
@@ -97,8 +97,7 @@ void setDL(int n) {
  DLMtx.take(50);
     mtr4.move_voltage(n);
     mtr5.move_voltage(-n);
- DLMtx.give();
-    DL_requested_voltage = n;
+    DL_requested_voltage = n;DLMtx.give();
 }
 void opctlDrive(int driveDir) {
     int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(driveDir * ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
@@ -109,6 +108,7 @@ void opctlDrive(int driveDir) {
 }
 void testDriveMtrs() {
     while (true) {
+     DRMtx.take(50);
         int pwr = 4000;
         setDL(0);
         setDR(0);
@@ -119,7 +119,7 @@ void testDriveMtrs() {
         setDR(0);
         mtr2.move_voltage(pwr);
         delay(400);
-
+DRMtx.give();DLMtx.take(50);
         setDL(0);
         setDR(0);
         mtr4.move_voltage(pwr);
@@ -129,15 +129,15 @@ void testDriveMtrs() {
         setDR(0);
         mtr5.move_voltage(pwr);
         delay(400);
-
+DLMtx.give();
         setDL(0);
         setDR(0);
         delay(500);
         printf(".\n");
     }
 }
-int getDRVoltage() { return DR_requested_voltage; }
-int getDLVoltage() { return DL_requested_voltage; }
+int getDRVoltage() { DRMtx.take(50);int n = DR_requested_voltage; DRMtx.give();return n;}
+int getDLVoltage() { DLMtx.take(50);int n = DL_requested_voltage; DLMtx.give();return n;}
 
 /*
  #### ##    ## ########    ###    ##    ## ########
@@ -482,7 +482,7 @@ void printDrivePidValues() {
     printf("DL%d DR%d vel %f drive %3.2f/%3.2f turn %2.2f/%2.2f curve %2.2f/%2.2f x %3.2f/%3.2f y %3.2f/%3.2f a %.2f\n", (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), getDriveVel(), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
     std::cout << std::endl;
 }
-void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", DL_requested_voltage, DLPid.sensVal, DLPid.target, DR_requested_voltage, DRPid.sensVal, DRPid.target); }
+void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", getDLVoltage, DLPid.sensVal, DLPid.target, getDRVoltage, DRPid.sensVal, DRPid.target); }
 void odoTaskRun(void* param) {
   while(true) {
    odometry.update();
