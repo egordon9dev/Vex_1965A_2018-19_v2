@@ -4,7 +4,6 @@
 #include "main.h"
 #include "pid.hpp"
 #define TICKS_TO_DEG 0.4
-extern pros::Motor mtr1, mtr2, mtr3, mtr4, mtr5, mtr6, mtr7, mtr8;
 extern MotorSaver dlSaver, drSaver, drfbSaver, clawSaver, flySaver, intakeSaver;
 extern pros::Controller ctlr, ctlr2;
 extern pros::ADILineSensor* ballSensL;
