@@ -478,6 +478,16 @@ void printDrivePidValues() {
     std::cout << std::endl;
 }
 void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", DL_requested_voltage, DLPid.sensVal, DLPid.target, DR_requested_voltage, DRPid.sensVal, DRPid.target); }
+void odoTaskRun(void* param) {
+  while(true) {
+   odometry.update();
+   delay(4);
+  }
+}
+void startOdoTask() {
+  std::string s("param");
+  Task odoTask(odoTaskRun, &s);
+}
 /*
   ######  ######## ######## ##     ## ########
  ##    ## ##          ##    ##     ## ##     ##
