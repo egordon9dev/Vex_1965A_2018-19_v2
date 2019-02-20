@@ -15,6 +15,7 @@ pros::Motor mtr5(9);   // DL bottom
 pros::Motor mtr6(17);  // flywheel
 pros::Motor mtr7(11);  // drfb
 pros::Motor mtr8(16);  // claw
+Mutex DLMtx, DRMtx, DSMtx;
 /* bad ports:
 5,
 15(claw),
@@ -66,12 +67,12 @@ const int BIL = 1000000000, MIL = 1000000;
 */
 
 double DLEncBias = 0.0, DREncBias = 0.0, DSEncBias = 0.0;
-double getDL() { return (-DLEnc->get_value()) + DLEncBias; }
-double getDR() { return (DREnc->get_value()) + DREncBias; }
-double getDS() { return (perpindicularWheelEnc->get_value()) + DSEncBias; }
-double getDriveVel() { return 0.5 * (-mtr1.get_actual_velocity() + mtr4.get_actual_velocity()); }
-double getDLVel() { return mtr4.get_actual_velocity(); }
-double getDRVel() { return -mtr1.get_actual_velocity(); }
+double getDL() { DLMtx.take(50);double d = (-DLEnc->get_value()) + DLEncBias;DLMtx.give();return d; }
+double getDR() { DRMtx.take(50);double d = (DREnc->get_value()) + DREncBias;DRMtx.give();return d;}
+double getDS() { DSMtx.take(50);double d = (perpindicularWheelEnc->get_value()) + DSEncBias;DSMtx.give();return d;}
+double getDLVel() { DLMtx.take(50);double d = mtr4.get_actual_velocity();DLMtx.give();return d; }
+double getDRVel() { DRMtx.take(50);double d = -mtr1.get_actual_velocity();DRMtx.give();return d;}
+double getDriveVel() { return 0.5 * (getDLVel()+getDRVel()); }
 void zeroDriveEncs() {
     DLEncBias -= getDL();
     DREncBias -= getDR();
@@ -83,16 +84,20 @@ void setDR(int n) {
     n = clamp(n, -driveLim, driveLim);
     n = DRSlew.update(n);
     n = drSaver.getPwr(n, getDR());
+ DRMtx.take(50);
     mtr1.move_voltage(-n);
     mtr2.move_voltage(n);
+ DRMtx.give();
     DR_requested_voltage = n;
 }
 void setDL(int n) {
     n = clamp(n, -driveLim, driveLim);
     n = DLSlew.update(n);
     n = dlSaver.getPwr(n, getDL());
+ DLMtx.take(50);
     mtr4.move_voltage(n);
     mtr5.move_voltage(-n);
+ DLMtx.give();
     DL_requested_voltage = n;
 }
 void opctlDrive(int driveDir) {
