@@ -7,15 +7,10 @@
 #include "pid.hpp"
 
 // motors
-pros::Motor mtr1(20);  // DR top
-pros::Motor mtr2(8);   // DR bottom
 pros::Motor mtr3(19);  // intake
-pros::Motor mtr4(10);  // DL top
-pros::Motor mtr5(9);   // DL bottom
 pros::Motor mtr6(17);  // flywheel
 pros::Motor mtr7(11);  // drfb
 pros::Motor mtr8(16);  // claw
-Mutex DLMtx, DRMtx, DSMtx;
 /* bad ports:
 5,
 15(claw),
@@ -55,89 +50,6 @@ const int dblClickTime = 450, claw180 = 1370;
 const double /*ticksPerInch = 52.746, */ ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
-
-/*
- ########  ########  #### ##     ## ########
- ##     ## ##     ##  ##  ##     ## ##
- ##     ## ##     ##  ##  ##     ## ##
- ##     ## ########   ##  ##     ## ######
- ##     ## ##   ##    ##   ##   ##  ##
- ##     ## ##    ##   ##    ## ##   ##
- ########  ##     ## ####    ###    ########
-*/
-
-double DLEncBias = 0.0, DREncBias = 0.0, DSEncBias = 0.0;
-double getDL() { DLMtx.take(50);double d = (-DLEnc->get_value()) + DLEncBias;DLMtx.give();return d; }
-double getDR() { DRMtx.take(50);double d = (DREnc->get_value()) + DREncBias;DRMtx.give();return d;}
-double getDS() { DSMtx.take(50);double d = (perpindicularWheelEnc->get_value()) + DSEncBias;DSMtx.give();return d;}
-double getDLVel() { DLMtx.take(50);double d = mtr4.get_actual_velocity();DLMtx.give();return d; }
-double getDRVel() { DRMtx.take(50);double d = -mtr1.get_actual_velocity();DRMtx.give();return d;}
-double getDriveVel() { return 0.5 * (getDLVel()+getDRVel()); }
-void zeroDriveEncs() {
- DLMtx.take(50);
-    DLEncBias -= getDL();DLMtx.give();DRMtx.take(50);
-    DREncBias -= getDR();DRMtx.give();DSMtx.take(50);
-    DSEncBias -= getDS();DSMtx.give();
-}
-int millis() { return pros::millis(); }
-int DL_requested_voltage = 0, DR_requested_voltage = 0, driveLim = 12000;
-void setDR(int n) {
-    n = clamp(n, -driveLim, driveLim);
-    n = DRSlew.update(n);
-    n = drSaver.getPwr(n, getDR());
- DRMtx.take(50);
-    mtr1.move_voltage(-n);
-    mtr2.move_voltage(n);
-    DR_requested_voltage = n;DRMtx.give();
-}
-void setDL(int n) {
-    n = clamp(n, -driveLim, driveLim);
-    n = DLSlew.update(n);
-    n = dlSaver.getPwr(n, getDL());
- DLMtx.take(50);
-    mtr4.move_voltage(n);
-    mtr5.move_voltage(-n);
-    DL_requested_voltage = n;DLMtx.give();
-}
-void opctlDrive(int driveDir) {
-    int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(driveDir * ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
-    if (abs(joy[0]) < 10) joy[0] = 0;
-    if (abs(joy[1]) < 10) joy[1] = 0;
-    setDL(joy[1] + joy[0]);
-    setDR(joy[1] - joy[0]);
-}
-void testDriveMtrs() {
-    while (true) {
-     DRMtx.take(50);
-        int pwr = 4000;
-        setDL(0);
-        setDR(0);
-        mtr1.move_voltage(pwr);
-        delay(400);
-
-        setDL(0);
-        setDR(0);
-        mtr2.move_voltage(pwr);
-        delay(400);
-DRMtx.give();DLMtx.take(50);
-        setDL(0);
-        setDR(0);
-        mtr4.move_voltage(pwr);
-        delay(400);
-
-        setDL(0);
-        setDR(0);
-        mtr5.move_voltage(pwr);
-        delay(400);
-DLMtx.give();
-        setDL(0);
-        setDR(0);
-        delay(500);
-        printf(".\n");
-    }
-}
-int getDRVoltage() { DRMtx.take(50);int n = DR_requested_voltage; DRMtx.give();return n;}
-int getDLVoltage() { DLMtx.take(50);int n = DL_requested_voltage; DLMtx.give();return n;}
 
 /*
  #### ##    ## ########    ###    ##    ## ########
@@ -453,7 +365,7 @@ void printAllClicks(int line, bool** allClicks) {
     pros::lcd::print(line + 1, line2.c_str());
     pros::lcd::print(line + 2, line3.c_str());
 }
-
+int millis() { return pros::millis(); }
 void stopMotors() {
     setDrfb(0);
     setDL(0);
@@ -484,14 +396,22 @@ void printDrivePidValues() {
 }
 void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", getDLVoltage, DLPid.sensVal, DLPid.target, getDRVoltage, DRPid.sensVal, DRPid.target); }
 void odoTaskRun(void* param) {
-  while(true) {
-   odometry.update();
-   delay(4);
-  }
+    while (true) {
+        odometry.update();
+        delay(4);
+    }
 }
 void startOdoTask() {
-  std::string s("param");
-  Task odoTask(odoTaskRun, &s);
+    std::string s("param");
+    pros::Task odoTask(odoTaskRun, &s);
+}
+
+void opctlDrive(int driveDir) {
+    int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(driveDir * ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
+    if (abs(joy[0]) < 10) joy[0] = 0;
+    if (abs(joy[1]) < 10) joy[1] = 0;
+    setDL(joy[1] + joy[0]);
+    setDR(joy[1] - joy[0]);
 }
 /*
   ######  ######## ######## ##     ## ########
@@ -651,5 +571,5 @@ void morningRoutine() {
     pros::lcd::print(1, "Press A to confirm");
     while (!ctlr.get_digital(DIGITAL_A)) delay(10);
     first = false;
- startOdoTask();
+    startOdoTask();
 }

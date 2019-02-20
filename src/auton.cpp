@@ -116,7 +116,7 @@ void auton3(bool leftSide) {
             break;
         }
         int j = 0;
-        odometry.update();
+        // odometry.update();
         if (i == j++) {  // grab ball from under cap 1
             printf("drv twd cap 1 ");
             printDrivePidValues();

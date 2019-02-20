@@ -23,7 +23,6 @@ extern const int dblClickTime;
 extern const double PI; /*
  extern const double ticksPerInch;*/
 extern const double ticksPerInchADI;
-extern double DLEncBias, DREncBias, DSEncBias;
 extern int driveLim;
 extern int clawPowerLimit;
 extern int drfbFullRangePowerLimit;

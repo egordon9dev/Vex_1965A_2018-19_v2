@@ -41,7 +41,7 @@ void opcontrol() {
         }
         return;
     }
-    if (1) {
+    if (0) {
         // odometry.setA(0);
         // pidTurnInit(0.2, 9999);
         // while (1) {
@@ -94,6 +94,7 @@ void opcontrol() {
     bool drfbPidRunning = false;
     bool clawFlipped = false, clawInit = false;
     IntakeState intakeState = IntakeState::NONE;
+    bool intakeRunning = true;
     int driveDir = 1;
     int nBalls = 0;
     int intakeT0 = BIL;
@@ -118,7 +119,7 @@ void opcontrol() {
         // pros::lcd::print(2, "ballSens %d", getBallSens());
         // pros::lcd::print(3, "claw %d", getClaw());
         // pros::lcd::print(4, "flywheel %d", getFlywheel());
-        odometry.update();
+        // odometry.update();
 
         pros::lcd::print(0, "x %f", odometry.getX());
         pros::lcd::print(1, "y %f", odometry.getY());
@@ -158,61 +159,65 @@ void opcontrol() {
         if (dblClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight]) {  // request a double shot
             dShotI = 0;
         } else if (dblClicks[ctlrIdxDown]) {
-            flywheelPid.target = 1.0;  // 0.0;
+            pidFlywheelInit(1.0, 700);  // 0.0;
             dShotI = -1;
         } else if (curClicks[ctlrIdxDown]) {
-            flywheelPid.target = 1.0;
+            pidFlywheelInit(1.0, 700);
             dShotI = -1;
         } else if (curClicks[ctlrIdxLeft]) {
-            flywheelPid.target = dShotSpeed1;
+            pidFlywheelInit(dShotSpeed1, 700);
             dShotI = -1;
         } else if (curClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight]) {
-            flywheelPid.target = dShotSpeed2;
+            pidFlywheelInit(dShotSpeed2, 700);
             dShotI = -1;
         } else if (curClicks[ctlrIdxUp]) {
-            flywheelPid.target = 2.9;
+            pidFlywheelInit(2.9, 700);
             dShotI = -1;
         }
         // ---------- Double Shot -------------
         if (dShotI == 0) {
             dShotT0 = BIL;
+            if (fabs(flywheelPid.target - dShotSpeed2) > 0.001) pidFlywheelInit(dShotSpeed2, 700);
             dShotI++;
         }
         if (dShotI == 1) {
             // load ball 1, wait for flywheel
             printf("dShot prep ball 1 ");
-            flywheelPid.target = dShotSpeed2;
             if (isBallIn()) {
                 intakeState = IntakeState::FRONT_SLOW;
             } else {
                 intakeState = IntakeState::ALTERNATE;
             }
-            if (fabs(flywheelPid.sensVal - flywheelPid.target) < 0.05 && isBallIn() && dShotT0 > millis()) { dShotT0 = millis(); }
-            if (millis() - dShotT0 > 700) {
+            if (isPidFlywheelDone() && isBallIn() && dShotT0 > millis()) {
+                intakeRunning = false;
+                pidIntakeInit(intakeShootTicks, 80);
                 dShotT0 = millis();
                 dShotI++;
             }
         } else if (dShotI == 2) {  // shoot ball 1
             printf("dShot shoot ball 1 ");
-            intakeState = IntakeState::BACK_SLOW;
-            if (millis() - dShotT0 > 400) {
+            if (pidIntake()) {
+                intakeRunning = true;
                 intakeState = IntakeState::FRONT;
                 dShotT0 = BIL;
+                pidFlywheelInit(dShotSpeed1, 600);
                 dShotI++;
             }
         } else if (dShotI == 3) {  // load ball 2, wait for flywheel
             printf("dShot prep ball 2 ");
-            flywheelPid.target = dShotSpeed1;
             if (isBallIn()) {
                 intakeState = IntakeState::FRONT_SLOW;
             } else {
                 intakeState = IntakeState::ALTERNATE;
             }
-            if (fabs(flywheelPid.sensVal - flywheelPid.target) < 0.05 && isBallIn() && dShotT0 > millis()) { dShotT0 = millis(); }
-            if (millis() - dShotT0 > 1000) { dShotI++; }
+            if (isPidFlywheelDone() && isBallIn() && dShotT0 > millis()) {
+                intakeRunning = false;
+                pidIntakeInit(intakeShootTicks, 80);
+                dShotI++;
+            }
         } else if (dShotI == 4) {  // shoot ball 2
             printf("dShot shoot ball 2 ");
-            intakeState = IntakeState::BACK_SLOW;
+            pidIntake();
         }
         pidFlywheel();
         // printf("{req %d actl %d}", getFlywheelVoltage(), mtr6.get_voltage());
@@ -369,10 +374,12 @@ void opcontrol() {
             intakeState = IntakeState::BACK_SLOW;
         } else if (dShotI == -1) {
             if (intakeState == IntakeState::BACK_SLOW) { intakeState = IntakeState::ALTERNATE; }
+            if (isBallIn() && intakeState == IntakeState::ALTERNATE) intakeState = IntakeState::NONE;
             // prevent stall
             /*if (intakeState == IntakeState::FRONT && intakeSaver.isPwr(0.7) && !intakeSaver.isFaster(0.2)) { intakeState = IntakeState::ALTERNATE; }*/
         }
-        setIntake(intakeState);
+        if (dShotI == -1) intakeRunning = true;
+        if (intakeRunning) setIntake(intakeState);
         if (millis() - prevCtlrUpdateT > 150) {
             bool curIsBallIn = isBallIn();
             if (curIsBallIn) {
