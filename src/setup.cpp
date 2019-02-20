@@ -651,4 +651,5 @@ void morningRoutine() {
     pros::lcd::print(1, "Press A to confirm");
     while (!ctlr.get_digital(DIGITAL_A)) delay(10);
     first = false;
+ startOdoTask();
 }
