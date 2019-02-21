@@ -581,7 +581,10 @@ void auton5(bool leftSide) {
             clawPidRunning = true;
             clawPid.target = 0;
             is = IntakeState::FRONT;
-            if (odometry.getY() > ptAfterCap1.y - 18) driveLim = 6000;
+            if (odometry.getY() > ptAfterCap1.y - 18) {
+               if(fabs(getDriveVel()) > 70){ driveLim = 1;}
+               else {driveLim = 6000;}
+            }
             if (pidDriveLine()) {
                 timeBetweenI = 3000;
                 pidDriveLineInit(ptAfterCap1, ptBeforeShoot, false, 0.1, driveT);
