@@ -236,7 +236,7 @@ void setFlywheel(int n) {
 }
 double getFlywheel() { return -mtr6.get_position(); }
 double getFlywheelFromMotor() { return -3.1 / 200.0 * mtr6.get_actual_velocity(); }
-int getFlywheelVoltage() { return intake::requestedVoltage; }
+int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 
 double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9850}, {2.6, 9520}, {2.65, 9730}, {2.7, 10600}, {2.8, 10600}, {2.9, 11480}};
 void pidFlywheelInit(double speed, int wait) { flywheel::init(speed, wait); }
