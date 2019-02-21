@@ -39,7 +39,7 @@ pros::ADIEncoder* DLEnc;
 pros::ADIEncoder* DREnc;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 2390, drfbPos0 = -30, drfbMinPos = -50, drfbPos1 = 1220, drfbPos1Plus = 1493, drfbPos2 = 1793, drfbPos2Plus = 2280;
+const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1220, drfbPos1Plus = 1493, drfbPos2 = 1793, drfbPos2Plus = 2280;
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350;
 
 const double dShotSpeed1 = 2.62, dShotSpeed2 = 2.83;
@@ -238,7 +238,7 @@ double getFlywheel() { return -mtr6.get_position(); }
 double getFlywheelFromMotor() { return -3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9850}, {2.6, 9520}, {2.65, 9730}, {2.7, 10600}, {2.8, 10600}, {2.9, 11480}};
+double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9850}, {2.6, 10200}, {2.65, 10400}, {2.7, 10600}, {2.8, 10600}, {2.9, 11480}};
 void pidFlywheelInit(double speed, int wait) { flywheel::init(speed, wait); }
 bool pidFlywheel() {
     double speed = flywheel::target;

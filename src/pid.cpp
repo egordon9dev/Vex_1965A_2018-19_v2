@@ -63,7 +63,6 @@ void Odometry_t::update() {
     x += chordLen * cos(a + deltaA / 2.0);
     y += chordLen * sin(a + deltaA / 2.0);
     a += deltaA;
-    printf("(%.1f, %.1f, %.2f) (%d %d %d) (%d %d)", x, y, a, (int)curDL, (int)curDR, (int)curDS, getBallSensL(), getBallSensR());
     prevDL = curDL;
     prevDR = curDR;
     prevDS = curDS;

@@ -45,7 +45,6 @@ void opcontrol() {
         // odometry.setA(0);
         // pidTurnInit(0.2, 9999);
         // while (1) {
-        //     odometry.update();
         //     pidTurn();
         //     printDrivePidValues();
         //     delay(10);
@@ -59,7 +58,6 @@ void opcontrol() {
         // setDriveSlew(true);
         // pidSweepInit(-5, -30, 999);
         // while (ctlr.get_digital(DIGITAL_B)) {
-        //     odometry.update();
         //     pidSweep();
         //     printPidSweep();
         //     delay(10);
@@ -68,7 +66,7 @@ void opcontrol() {
         //     stopMotors();
         //     delay(10);
         // }
-        auton3(true);
+        auton5(true);
         // int tttt = millis();
         // flywheelPid.target = 1.5;
         // while (millis() - tttt < 800) pidFlywheel();
@@ -119,7 +117,6 @@ void opcontrol() {
         // pros::lcd::print(2, "ballSens %d", getBallSens());
         // pros::lcd::print(3, "claw %d", getClaw());
         // pros::lcd::print(4, "flywheel %d", getFlywheel());
-        // odometry.update();
 
         pros::lcd::print(0, "x %f", odometry.getX());
         pros::lcd::print(1, "y %f", odometry.getY());
