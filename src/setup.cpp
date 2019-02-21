@@ -398,7 +398,7 @@ void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", getDLVoltage, D
 void odoTaskRun(void* param) {
     while (true) {
         odometry.update();
-        delay(4);
+        delay(3);
     }
 }
 void startOdoTask() {
@@ -549,7 +549,7 @@ void morningRoutine() {
         setClawDumb(-2500);
         delay(10);
     }
-    drfbIMEBias = -getDrfb() - 65;
+    drfbIMEBias = -getDrfb() - 98;
     clawOpctl::bias = -getClaw() - 70;
     setDrfb(0);
     setClaw(0);

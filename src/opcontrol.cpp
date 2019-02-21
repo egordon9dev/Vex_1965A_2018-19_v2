@@ -41,7 +41,7 @@ void opcontrol() {
         }
         return;
     }
-    if (0) {
+    if (1) {
         // odometry.setA(0);
         // pidTurnInit(0.2, 9999);
         // while (1) {
@@ -68,7 +68,7 @@ void opcontrol() {
         //     stopMotors();
         //     delay(10);
         // }
-        auton5(true);
+        auton3(true);
         // int tttt = millis();
         // flywheelPid.target = 1.5;
         // while (millis() - tttt < 800) pidFlywheel();
@@ -110,7 +110,7 @@ void opcontrol() {
     int prevCtlrUpdateT = 0;
     bool prevIsBallIn = false;
 
-    flywheelPid.target = 1.0;
+    pidFlywheelInit(1.0, 9999);
     while (true) {
         dt = millis() - prevT;
         prevT = millis();
