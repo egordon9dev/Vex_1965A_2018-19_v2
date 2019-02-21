@@ -501,7 +501,7 @@ void auton5(bool leftSide) {
     int i = 0;
     int k = 0;
     double targetAngle = -PI / 2;
-    const int driveT = 160, driveTBeforeShoot = 240;
+    const int driveT = 150, driveTBeforeShoot = 200;
     IntakeState is = IntakeState::NONE;
     int t0 = BIL, t02 = BIL;
     int prevI = 0;
@@ -515,14 +515,11 @@ void auton5(bool leftSide) {
     driveLim = 12000;
 
     // tuning setpoints
-    Point ptBeforeCap1;
     Point ptAfterCap1;
     Point ptBeforeShoot;
     Point ptShoot;
-    Point ptBeforeCap2;
     Point ptAfterCap2;
     Point ptBeforePost;
-    Point ptPost;
     Point ptBeyondPost;
     double fwSpeed1, fwSpeed2;
 
@@ -548,10 +545,9 @@ void auton5(bool leftSide) {
         ptAfterCap1 = Point(0, 41.5);
         ptBeforeShoot = Point(0, 6.64);
         ptShoot = Point(17 * sideSign, 0);
-        ptBeforeCap2 = Point(20 * sideSign, 26);
-        ptAfterCap2 = Point(20.5 * sideSign, 46);
-        ptBeforePost = Point(10 * sideSign, 18);
-        ptBeyondPost = Point(38 * sideSign, 18);
+        ptAfterCap2 = Point(21 * sideSign, 46);
+        ptBeforePost = Point(11.5 * sideSign, 22);
+        ptBeyondPost = Point(38 * sideSign, 22);
     }
     Point origin(0, 0);
     odometry.setA(-PI / 2);
@@ -585,6 +581,7 @@ void auton5(bool leftSide) {
             clawPidRunning = true;
             clawPid.target = 0;
             is = IntakeState::FRONT;
+            if (odometry.getY() > ptAfterCap1.y - 18) driveLim = 6000;
             if (pidDriveLine()) {
                 timeBetweenI = 3000;
                 pidDriveLineInit(ptAfterCap1, ptBeforeShoot, false, 0.1, driveT);
@@ -594,6 +591,7 @@ void auton5(bool leftSide) {
             printf("drive to ptBeforShoot ");
             printDrivePidValues();
             is = IntakeState::ALTERNATE;
+            if (odometry.getY() < ptAfterCap1.y - 4) driveLim = 12000;
             if (pidDriveLine()) {
                 pidDriveLineInit(ptBeforeShoot, ptShoot, false, 0.05, driveTBeforeShoot);
                 timeBetweenI = 3000;
@@ -714,7 +712,7 @@ void auton5(bool leftSide) {
                     setDL(0);
                     setDR(0);
                     drfbPid.target = drfbPos1;
-                    if (getDrfb() < drfbPos1 + 100) {
+                    if (getDrfb() < drfbPos1 + 60) {
                         driveLim = 8500;
                         k = 0;
                         i++;
