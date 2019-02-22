@@ -496,7 +496,7 @@ Cap Side: 1 low cap, 1 high cap, 2 left side high flags
 */
 
 void auton5(bool leftSide) {
-    printf("\n\n\n--------------------   Auton 4 ---------------------\n\n\n");
+    printf("\n\n\n--------------------   Auton 5 ---------------------\n\n\n");
     int sideSign = leftSide ? 1 : -1;
     int i = 0;
     int k = 0;
@@ -582,8 +582,11 @@ void auton5(bool leftSide) {
             clawPid.target = 0;
             is = IntakeState::FRONT;
             if (odometry.getY() > ptAfterCap1.y - 18) {
-               if(fabs(getDriveVel()) > 70){ driveLim = 1;}
-               else {driveLim = 6000;}
+                if (fabs(getDriveVel()) > 80) {
+                    driveLim = 1;
+                } else {
+                    driveLim = 6000;
+                }
             }
             if (pidDriveLine()) {
                 timeBetweenI = 3000;

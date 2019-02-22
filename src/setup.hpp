@@ -15,7 +15,7 @@ extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1P
 extern double drfbIMEBias;
 extern const int claw180;
 extern const int intakeShootTicks;
-extern const double dShotSpeed1, dShotSpeed2;
+extern const double dShotSpeed1, dShotSpeed2, sShotSpeed;
 extern const int ctlrIdxLeft, ctlrIdxUp, ctlrIdxRight, ctlrIdxDown, ctlrIdxY, ctlrIdxX, ctlrIdxA, ctlrIdxB, ctlrIdxL1, ctlrIdxL2, ctlrIdxR1, ctlrIdxR2;
 extern int drfbPidBias;
 extern const int BIL, MIL;
@@ -26,7 +26,7 @@ extern const double ticksPerInchADI;
 extern int driveLim;
 extern int clawPowerLimit;
 extern int drfbFullRangePowerLimit;
-enum class IntakeState { FRONT, FRONT_SLOW, BACK, BACK_SLOW, ALTERNATE, NONE };
+enum class IntakeState { FRONT, BACK, BACK_SLOW, ALTERNATE, NONE };
 int clamp(int n, int min, int max);
 double clamp(double n, double min, double max);
 

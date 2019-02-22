@@ -89,6 +89,8 @@ double Slew_t::update(double in) {
     } else {
         output -= maxIncrease;
     }
+    if (fabs(in) < 0.001) output = 0;
+    if (in * output < 0) output = 0;
     return output;
 }
 // proportional + integral + derivative control feedback

@@ -43,6 +43,7 @@ const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1220, 
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350;
 
 const double dShotSpeed1 = 2.62, dShotSpeed2 = 2.83;
+const double sShotSpeed = 2.9;
 
 const int intakeShootTicks = -600;
 
@@ -84,15 +85,11 @@ bool pidIntake() {
     return millis() - intakePid.doneTime > wait;
 }
 void setIntake(int n) {  // +: front, -: back
-    if (mtr3.get_current_draw() > 1500) int n = 0;
     n = clamp(n, -12000, 12000);
-    static int prevFly = getFlywheel();
-    /*if (getFlywheel() - prevFly < 15 && n < 0) n = 0;*/  // fix this
     // n = intakeSlew.update(n);
     n = intakeSaver.getPwr(n, mtr3.get_position());
     mtr3.move_voltage(n);
     intake::requestedVoltage = n;
-    prevFly = getFlywheel();
 }
 int getIntakeVoltage() { return intake::requestedVoltage; }
 void setIntake(IntakeState is) {
@@ -101,8 +98,6 @@ void setIntake(IntakeState is) {
         setIntake(0);
     } else if (is == IntakeState::FRONT) {
         setIntake(12000);
-    } else if (is == IntakeState::FRONT_SLOW) {
-        setIntake(1000);
     } else if (is == IntakeState::BACK) {
         setIntake(-12000);
     } else if (is == IntakeState::BACK_SLOW) {
@@ -179,13 +174,12 @@ int claw_requested_voltage = 0;
 int clawPowerLimit = 12000;
 void setClaw(int n, bool limit) {
     n = clamp(n, -clawPowerLimit, clawPowerLimit);
-    if (mtr8.get_current_draw() > 2500) int n = 0;
     if (limit) {
         if (getDrfb() < drfbMinClaw0 || (getDrfb() > drfbMaxClaw0 && getDrfb() < drfbMinClaw1)) n = 0;
     }
-    int maxPwr = 1200;
-    if (getClaw() < 80 && n < -maxPwr) n = -maxPwr;
-    if (getClaw() > claw180 - 80 && n > maxPwr) n = maxPwr;
+    // int maxPwr = 1200;
+    // if (getClaw() < 80 && n < -maxPwr) n = -maxPwr;
+    // if (getClaw() > claw180 - 80 && n > maxPwr) n = maxPwr;
     n = clawSaver.getPwr(n, mtr8.get_position());
     n = clawSlew.update(n);
     mtr8.move_voltage(n);
@@ -407,7 +401,7 @@ void startOdoTask() {
 }
 
 void opctlDrive(int driveDir) {
-    int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(driveDir * ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
+    int joy[] = {lround(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), lround(driveDir * ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
     if (abs(joy[0]) < 10) joy[0] = 0;
     if (abs(joy[1]) < 10) joy[1] = 0;
     setDL(joy[1] + joy[0]);
