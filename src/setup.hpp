@@ -60,6 +60,7 @@ void printDrivePidValues();
 void printDriveEncoders();
 void runMotorTest();
 void setDriveSlew(bool auton);
+void setMaxAErr(double mae);
 void zeroDriveEncs();
 
 //----------- Intake ------

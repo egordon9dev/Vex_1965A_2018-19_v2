@@ -4,23 +4,14 @@
 using std::cout;
 Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid, intakePid, curveVelPid;
 Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
-Odometry_t odometry(6.982698, 1.0);
 /*
- ########  #### ########           #######  ########   #######
- ##     ##  ##  ##     ##         ##     ## ##     ## ##     ##
- ##     ##  ##  ##     ##         ##     ## ##     ## ##     ##
- ########   ##  ##     ## ####    ##     ## ##     ## ##     ## ####
- ##         ##  ##     ## ####    ##     ## ##     ## ##     ## ####
- ##         ##  ##     ##  ##     ##     ## ##     ## ##     ##  ##
- ##        #### ########  ##       #######  ########   #######  ##
-
-  ######  ##       ######## ##      ##
- ##    ## ##       ##       ##  ##  ##
- ##       ##       ##       ##  ##  ##
-  ######  ##       ######   ##  ##  ##
-       ## ##       ##       ##  ##  ##
- ##    ## ##       ##       ##  ##  ##
-  ######  ######## ########  ###  ###
+ ########  #### ########           ######  ##       ######## ##      ##
+ ##     ##  ##  ##     ##         ##    ## ##       ##       ##  ##  ##
+ ##     ##  ##  ##     ##         ##       ##       ##       ##  ##  ##
+ ########   ##  ##     ## ####     ######  ##       ######   ##  ##  ##
+ ##         ##  ##     ## ####          ## ##       ##       ##  ##  ##
+ ##         ##  ##     ##  ##     ##    ## ##       ##       ##  ##  ##
+ ##        #### ########  ##       ######  ######## ########  ###  ###
 */
 Slew_t::Slew_t() {
     slewRate = 100.0;
@@ -33,44 +24,6 @@ Pid_t::Pid_t() {
     maxIntegral = 9999999;
     dInactiveZone = iActiveZone = target = prevSensVal = sensVal = prevErr = errTot = unwind = deriv = prop = kp = ki = kd = 0.0;
     derivativeUpdateInterval = prevTime = prevDUpdateTime = 0;
-}
-Odometry_t::Odometry_t(double L, double perpL) {
-    this->L = L;
-    this->perpL = perpL;
-    this->a = PI / 2;
-    this->x = this->y = this->prevDL = this->prevDR = this->prevDS = 0.0;
-}
-double Odometry_t::getX() { return x; }
-double Odometry_t::getY() { return y; }
-double Odometry_t::getA() { return a; }
-void Odometry_t::setA(double a) { this->a = a; }
-void Odometry_t::setX(double x) { this->x = x; }
-void Odometry_t::setY(double y) { this->y = y; }
-Point Odometry_t::getPos() {
-    Point p(x, y);
-    return p;
-}
-
-void Odometry_t::update() {
-    double curDL = getDL(), curDR = getDR(), curDS = getDS();
-    double deltaDL = (curDL - prevDL) / ticksPerInchADI, deltaDR = (curDR - prevDR) / ticksPerInchADI, deltaDS = (curDS - prevDS) / ticksPerInchADI;
-    double deltaA = (deltaDR - deltaDL) / (2.0 * L);
-    double chordLen = (deltaDL + deltaDR) / 2.0;
-    if (!((deltaDL < -0.0001 && deltaDR > 0.0001) || (deltaDL > 0.0001 && deltaDR < -0.0001))) {  // not turning
-        x += deltaDS * cos(a + deltaA / 2.0 - PI / 2.0);
-        y += deltaDS * sin(a + deltaA / 2.0 - PI / 2.0);
-    }
-    x += chordLen * cos(a + deltaA / 2.0);
-    y += chordLen * sin(a + deltaA / 2.0);
-    a += deltaA;
-    prevDL = curDL;
-    prevDR = curDR;
-    prevDS = curDS;
-}
-
-void Odometry_t::reset() {
-    zeroDriveEncs();
-    prevDL = prevDR = prevDS = 0.0;
 }
 
 /*
@@ -89,8 +42,6 @@ double Slew_t::update(double in) {
     } else {
         output -= maxIncrease;
     }
-    if (fabs(in) < 0.001) output = 0;
-    if (in * output < 0) output = 0;
     return output;
 }
 // proportional + integral + derivative control feedback
@@ -406,6 +357,7 @@ void init(Point s, Point t, bool f, double mae, int w) {
     flip = f;
 }
 }  // namespace driveData
+void setMaxAErr(double mae) { driveData::maxAErr = mae; }
 void pidDriveLineInit(Point start, Point target, bool flip, double maxAErr, const int wait) {
     // prevent div by 0 errors
     if (target.x == 0.0) target.x = 0.001;
@@ -440,10 +392,16 @@ bool pidDriveLine() {
     int drivePMax = 10000;
     double drivePwr = drivePid.update();
     if (fabs(aErr) > maxAErr) drivePwr = 0.0;
-    Pid_t* rotPid = (pos - start).mag() < 0.75 || (pos - target).mag() < 0.75 || fabs(drivePwr) < 0.001 ? &turnPid : &curvePid;
-    rotPid->target = 0;
-    rotPid->sensVal = aErr;
-    int rotPwr = clamp((int)rotPid->update(), -8000, 8000);
+    // by updating both pids, we keep the derivative and integral terms updated so they don't get intermitent data
+    bool useTurnPid = (pos - start).mag() < 0.75 || (pos - target).mag() < 0.75 || fabs(drivePwr) < 0.001 /* || fabs(getDriveVel()) < 50*/;
+    turnPid.target = 0;
+    turnPid.sensVal = aErr;
+    double turnPidOutput = turnPid.update();
+    curvePid.target = 0;
+    curvePid.sensVal = aErr;
+    double curvePidOutput = curvePid.update();
+    if (!useTurnPid) turnPid.errTot = 0;
+    int rotPwr = clamp(lround(useTurnPid ? turnPidOutput : curvePidOutput), -8000, 8000);
     drivePwr = clamp((int)drivePwr, -drivePMax, drivePMax);
     // prevent turn saturation
     // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);

@@ -51,6 +51,7 @@ void zeroDriveEncs() {
     DSEncBias -= curDS;
     DSMtx.give();
 }
+// requested voltages are shared between tasks
 int DL_requested_voltage = 0, DR_requested_voltage = 0, driveLim = 12000;
 void setDR(int n) {
     n = clamp(n, -driveLim, driveLim);

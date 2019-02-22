@@ -41,7 +41,11 @@ void opcontrol() {
         }
         return;
     }
-    if (0) {
+    if (1) {
+        // while (1) {
+        //     printf("%d %d %d\n", (int)getDL(), (int)getDR(), (int)getDS());
+        //     delay(100);
+        // }
         // odometry.setA(0);
         // pidTurnInit(0.2, 9999);
         // while (1) {
