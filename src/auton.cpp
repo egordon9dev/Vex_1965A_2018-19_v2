@@ -72,13 +72,13 @@ void auton3(bool leftSide) {
     **************************************************/
     if (leftSide) {
         ptBeforeCap1 = Point(0, 26);
-        ptAfterCap1 = Point(0, 40);
-        ptPivot1 = Point(0, -0.25);
-        ptShoot1 = Point(-4.5 * sideSign, -0.25);
-        ptShoot2 = Point(-25.5 * sideSign, -0.25);
-        ptAfterCap2 = Point(-24.5 * sideSign, 13);
+        ptAfterCap1 = Point(0, 39.5);
+        ptPivot1 = Point(0, 0.25);
+        ptShoot1 = Point(-5.25 * sideSign, 0.25);
+        ptShoot2 = Point(-26.25 * sideSign, 0.75);
+        ptAfterCap2 = Point(-24.5 * sideSign, 10);
         ptPivotBeforeBtmFlag = Point(-23.5 * sideSign, -4);
-        ptAfterBtmFlag = Point(-49 * sideSign, -7);
+        ptAfterBtmFlag = Point(-49 * sideSign, -5.5);
     }
 
     /*************************************************
@@ -86,11 +86,11 @@ void auton3(bool leftSide) {
     **************************************************/
     else {
         ptBeforeCap1 = Point(0, 26);
-        ptAfterCap1 = Point(0, 39);
+        ptAfterCap1 = Point(0, 39.5);
         ptPivot1 = Point(0, -1);
         ptShoot1 = Point(-1.5 * sideSign, -1);
-        ptShoot2 = Point(-23.75 * sideSign, -1);
-        ptAfterCap2 = Point(-23 * sideSign, 12);
+        ptShoot2 = Point(-23.75 * sideSign, -0.5);
+        ptAfterCap2 = Point(-23 * sideSign, 11);
         ptPivotBeforeBtmFlag = Point(-24 * sideSign, -4);
         ptAfterBtmFlag = Point(-48.5 * sideSign, -7);
     }
@@ -132,12 +132,13 @@ void auton3(bool leftSide) {
             if (k == 0) {
                 if (pidDriveLine()) k++;
             } else if (k == 1) {
-                setDL(-7000);
-                setDR(-7000);
+                setDL(-6300);
+                setDR(-6300);
             }
             if (odometry.getY() > ptAfterCap1.y) {
                 pidDriveLineInit(ptAfterCap1, ptPivot1, false, 9999, driveT);
                 timeBetweenI = 4500;
+                t0 = millis();
                 i++;
             }
         } else if (i == j++) {  // drive back

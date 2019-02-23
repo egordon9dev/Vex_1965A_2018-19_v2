@@ -80,7 +80,7 @@ void opcontrol() {
         //     stopMotors();
         //     delay(10);
         // }
-        auton3(false);
+        auton3(true);
         // int tttt = millis();
         // flywheelPid.target = 1.5;
         // while (millis() - tttt < 800) pidFlywheel();
