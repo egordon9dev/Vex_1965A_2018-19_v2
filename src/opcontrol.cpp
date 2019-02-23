@@ -31,8 +31,18 @@ using pros::delay;
 using std::cout;
 using std::endl;
 void testAuton();
+bool robotInit = false;
 void opcontrol() {
-    morningRoutine();
+    if (!robotInit) {
+        morningRoutine();
+        pros::lcd::print(6, "R1 to confirm");
+        while (!ctlr.get_digital(DIGITAL_R1)) {
+            autoSel_update();
+            delay(5);
+        }
+        robotInit = true;
+    }
+    pros::lcd::print(4, "   READY    ");
     ctlr.clear_line(2);
     if (pros::battery::get_capacity() < 15.0) {
         for (int i = 1; i < 8; i++) {
@@ -42,9 +52,13 @@ void opcontrol() {
         return;
     }
     if (1) {
+        // odometry.setA(-PI / 2);
+        // odometry.setX(0);
+        // odometry.setY(0);
+        // odometry.reset();
         // while (1) {
-        //     printf("%d %d %d\n", (int)getDL(), (int)getDR(), (int)getDS());
-        //     delay(100);
+        //     printf("%d %d %d %.2f %.2f %.2f\n", (int)getDL(), (int)getDR(), (int)getDS(), odometry.getX(), odometry.getY(), odometry.getA());
+        //     delay(20);
         // }
         // odometry.setA(0);
         // pidTurnInit(0.2, 9999);
@@ -55,22 +69,18 @@ void opcontrol() {
         // }
         // testDriveMtrs();
         // while (!ctlr.get_digital(DIGITAL_B)) delay(10);
-        // odometry.setA(-PI / 2);
-        // odometry.setX(0);
-        // odometry.setY(0);
-        // odometry.reset();
         // setDriveSlew(true);
-        // pidSweepInit(-5, -30, 999);
-        // while (ctlr.get_digital(DIGITAL_B)) {
-        //     pidSweep();
-        //     printPidSweep();
+        // pidDriveLineInit(Point(0, 0), Point(0, 36), true, 0.1, 2000);
+        // while (!ctlr.get_digital(DIGITAL_B)) {
+        //     pidDriveLine();
+        //     printDrivePidValues();
         //     delay(10);
         // }
         // while (1) {
         //     stopMotors();
         //     delay(10);
         // }
-        auton5(false);
+        auton5(true);
         // int tttt = millis();
         // flywheelPid.target = 1.5;
         // while (millis() - tttt < 800) pidFlywheel();
@@ -242,6 +252,7 @@ void opcontrol() {
                 if (getDrfb() < drfbMinClaw0) {
                     atDrfbSetp = false;
                     drfbPidRunning = true;
+                    drfbFullRangePowerLimit = 12000;
                     setDrfbParams(true);
                     drfbPidBias = 5000;
                     autoFlipH = 0;
@@ -250,6 +261,7 @@ void opcontrol() {
                 } else if (fabs(getDrfb() - drfbPos1) < 100) {
                     atDrfbSetp = false;
                     drfbPidRunning = true;
+                    drfbFullRangePowerLimit = 12000;
                     setDrfbParams(true);
                     drfbPidBias = 5000;
                     autoFlipH = 1;
@@ -258,6 +270,7 @@ void opcontrol() {
                 } else if (fabs(getDrfb() - drfbPos2) < 100) {
                     atDrfbSetp = false;
                     drfbPidRunning = true;
+                    drfbFullRangePowerLimit = 12000;
                     setDrfbParams(true);
                     drfbPidBias = 6000;
                     autoFlipH = 2;
@@ -275,7 +288,7 @@ void opcontrol() {
             } else if (autoFlipI == 2) {
                 printf("auto flip step 2 ");
                 if (getDrfb() > drfbPid.target) drfbPidBias = 0;
-                if (!clawFlipRequest && fabs(getClaw() - clawPid.target) < claw180 * (autoFlipH == 2 ? 0.3 : 0.45)) {
+                if (!clawFlipRequest && fabs(getClaw() - clawPid.target) < claw180 * (autoFlipH == 2 ? 0.3 : (autoFlipH == 1 ? 0.37 : 0.45))) {
                     drfbPidBias = 0;
                     if (autoFlipH == 0) {
                         drfbPid.target = drfbPos0;

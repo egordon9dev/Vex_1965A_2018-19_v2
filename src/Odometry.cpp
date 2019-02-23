@@ -2,23 +2,15 @@
 #include "pid.hpp"
 #include "setup.hpp"
 pros::Mutex mtxX, mtxY, mtxA;
-pros::Mutex mtxPrevs;
+pros::Mutex odoUpdateMtx;
 Odometry_t odometry(6.982698, 1.0);
 Odometry_t::Odometry_t(double L, double perpL) {
     this->L = L;
     this->perpL = perpL;
-    mtxA.take(50);
     this->a = PI / 2;
-    mtxA.give();
-    mtxX.take(50);
     this->x = 0;
-    mtxX.give();
-    mtxY.take(50);
     this->y = 0;
-    mtxY.give();
-    mtxPrevs.take(50);
     this->prevDL = this->prevDR = this->prevDS = 0.0;
-    mtxPrevs.give();
 }
 double Odometry_t::getX() {
     mtxX.take(50);
@@ -56,10 +48,9 @@ void Odometry_t::setY(double y) {
 Point Odometry_t::getPos() { return Point(getX(), getY()); }
 
 void Odometry_t::update() {
+    odoUpdateMtx.take(50);
     double curDL = getDL(), curDR = getDR(), curDS = getDS();
-    mtxPrevs.take(50);
     double pdl = prevDL, pdr = prevDR, pds = prevDS;
-    mtxPrevs.give();
     double deltaDL = (curDL - pdl) / ticksPerInchADI, deltaDR = (curDR - pdr) / ticksPerInchADI, deltaDS = (curDS - pds) / ticksPerInchADI;
     double deltaA = (deltaDR - deltaDL) / (2.0 * L);
     double chordLen = (deltaDL + deltaDR) / 2.0;
@@ -70,16 +61,16 @@ void Odometry_t::update() {
     setX(getX() + chordLen * cos(a + deltaA / 2.0));
     setY(getY() + chordLen * sin(a + deltaA / 2.0));
     setA(getA() + deltaA);
-    mtxPrevs.take(50);
     prevDL = curDL;
     prevDR = curDR;
     prevDS = curDS;
-    mtxPrevs.give();
+    odoUpdateMtx.give();
 }
 
+void zeroDriveEncs();
 void Odometry_t::reset() {
+    odoUpdateMtx.take(50);
     zeroDriveEncs();
-    mtxPrevs.take(50);
     prevDL = prevDR = prevDS = 0.0;
-    mtxPrevs.give();
+    odoUpdateMtx.give();
 }

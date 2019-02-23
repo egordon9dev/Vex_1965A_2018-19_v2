@@ -2,7 +2,7 @@
 #include "main.h"
 #include "setup.hpp"
 using std::cout;
-Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid, intakePid, curveVelPid;
+Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid, intakePid, curveVelPid, sTurnPid;
 Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
 /*
  ########  #### ########           ######  ##       ######## ##      ##
@@ -394,6 +394,11 @@ bool pidDriveLine() {
     if (fabs(aErr) > maxAErr) drivePwr = 0.0;
     // by updating both pids, we keep the derivative and integral terms updated so they don't get intermitent data
     bool useTurnPid = (pos - start).mag() < 0.75 || (pos - target).mag() < 0.75 || fabs(drivePwr) < 0.001 /* || fabs(getDriveVel()) < 50*/;
+    bool useSTurnPid = (pos - target).mag() < 1 && aErr < 0.05;
+
+    sTurnPid.target = 0;
+    sTurnPid.sensVal = aErr;
+    double sTurnPidOutput = sTurnPid.update();
     turnPid.target = 0;
     turnPid.sensVal = aErr;
     double turnPidOutput = turnPid.update();
@@ -401,7 +406,8 @@ bool pidDriveLine() {
     curvePid.sensVal = aErr;
     double curvePidOutput = curvePid.update();
     if (!useTurnPid) turnPid.errTot = 0;
-    int rotPwr = clamp(lround(useTurnPid ? turnPidOutput : curvePidOutput), -8000, 8000);
+    if (!useSTurnPid) sTurnPid.errTot = 0;
+    int rotPwr = clamp(lround(useSTurnPid ? sTurnPidOutput : (useTurnPid ? turnPidOutput : curvePidOutput)), -8000, 8000);
     drivePwr = clamp((int)drivePwr, -drivePMax, drivePMax);
     // prevent turn saturation
     // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);

@@ -493,6 +493,8 @@ Cap Side: 1 low cap, 1 high cap, 2 left side high flags
  ##     ##  #######     ##     #######  ##    ##  ######
 
 2 balls middle post, 1 cap high post, 1 low scored cap
+
+Alignment tool: 3 3/8 + 1/32
 */
 
 void auton5(bool leftSide) {
@@ -501,7 +503,7 @@ void auton5(bool leftSide) {
     int i = 0;
     int k = 0;
     double targetAngle = -PI / 2;
-    const int driveT = 85, driveTBeforeShoot = 260;
+    const int driveT = 85, driveTBeforeShoot = 300;
     IntakeState is = IntakeState::NONE;
     int t0 = BIL, t02 = BIL;
     int prevI = 0;
@@ -528,15 +530,23 @@ void auton5(bool leftSide) {
     fwSpeed2 = 2.85;
 
     /*************************************************
-    ***********     Left (Red) Side     ************
+    ***********     Left (Red) Side     **************
     **************************************************/
     if (leftSide) {
-        ptAfterCap1 = Point(0, 41.5);
-        ptBeforeShoot = Point(0, 6.67);
+        // ptAfterCap1 = Point(0, 41.5);
+        // ptBeforeShoot = Point(0, 6.67);
+        // ptShoot = Point(17 * sideSign, 0);
+        // ptAfterCap2 = Point(21 * sideSign, 46);
+        // ptBeforePost = Point(11.5 * sideSign, 20.5);
+        // ptBeyondPost = Point(34 * sideSign, 20.5);
+
+        ptBeforeCap1 = Point(0, 30);
+        ptAfterCap1 = Point(0, 44);
+        ptBeforeShoot = Point(0, 7.67);
         ptShoot = Point(17 * sideSign, 0);
-        ptAfterCap2 = Point(21 * sideSign, 46);
-        ptBeforePost = Point(11.5 * sideSign, 20.5);
-        ptBeyondPost = Point(38 * sideSign, 20.5);
+        ptAfterCap2 = Point(24.91 * sideSign, 45.01);
+        ptBeforePost = Point(11.5 * sideSign, 19.5);
+        ptBeyondPost = Point(34 * sideSign, 19.5);
     }
 
     /*************************************************
@@ -544,18 +554,18 @@ void auton5(bool leftSide) {
     **************************************************/
     else {
         ptBeforeCap1 = Point(0, 36);
-        ptAfterCap1 = Point(0, 44);
+        ptAfterCap1 = Point(0, 43);
         ptBeforeShoot = Point(0, 6.672);
         ptShoot = Point(17 * sideSign, 0);
         ptAfterCap2 = Point(22.26 * sideSign, 45.51);
-        ptBeforePost = Point(15 * sideSign, 20.5);
-        ptBeyondPost = Point(32 * sideSign, 20.5);
+        ptBeforePost = Point(11.5 * sideSign, 20.5);
+        ptBeyondPost = Point(34 * sideSign, 20.5);
     }
     Point origin(0, 0);
+    odometry.reset();
     odometry.setA(-PI / 2);
     odometry.setX(origin.x);
     odometry.setY(origin.y);
-    odometry.reset();
 
     Point p1;
     // initialize
@@ -576,22 +586,22 @@ void auton5(bool leftSide) {
         }
         int j = 0;
         if (i == j++) {  // grab ball from under cap 1
-            printf("drv twd cap 1 ");
+            printf("drv twd cap 1 %d ", driveLim);
             printDrivePidValues();
             drfbPidRunning = true;
             drfbPid.target = drfbPos0;
             clawPidRunning = true;
             clawPid.target = 0;
             is = IntakeState::FRONT;
-            if (odometry.getY() > ptAfterCap1.y - 15) {
+            if (odometry.getY() > ptBeforeCap1.y - 8) {
                 DLSlew.slewRate = DRSlew.slewRate = 40;
                 setMaxAErr(9999);
             }
             if (k == 0) {
                 if (pidDriveLine()) k++;
             } else if (k == 1) {
-                setDL(-5000);
-                setDR(-5000);
+                setDL(-6300);
+                setDR(-6300);
             }
             if (odometry.getY() > ptAfterCap1.y) {
                 timeBetweenI = 4500;
@@ -602,14 +612,15 @@ void auton5(bool leftSide) {
         } else if (i == j++) {  // drive back
             printf("drive to ptBeforShoot ");
             printDrivePidValues();
-            if (millis() - t0 > 500) is = IntakeState::ALTERNATE;
+            if (millis() - t0 > 1000) is = IntakeState::ALTERNATE;
             if (odometry.getY() < ptAfterCap1.y - 6) {
                 setMaxAErr(0.1);
                 setDriveSlew(true);
             }
             if (pidDriveLine()) {
-                pidDriveLineInit(ptBeforeShoot, ptShoot, false, 0.09, driveTBeforeShoot);
+                pidDriveLineInit(ptBeforeShoot, ptShoot, false, 0.08, driveTBeforeShoot);
                 timeBetweenI = 4500;
+                is = IntakeState::ALTERNATE;
                 i++;
             }
         } else if (i == j++) {
@@ -644,7 +655,7 @@ void auton5(bool leftSide) {
             } else if (k == 2) {
                 printf("load 2 ");
                 printPidValues();
-                if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 3000) {
+                if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 1800) {
                     intakeRunning = false;
                     pidIntakeInit(intakeShootTicks, 80);
                     k++;
@@ -801,6 +812,12 @@ void autonSkills() {}
 void autonomous() {
     odometry.reset();
     setDriveSlew(true);
-    auton3(true);
+    if (autoSel_nAuton == 0) {
+        while (1) { delay(10); }
+    } else if (autoSel_nAuton == 1) {
+        auton3(autoSel_leftSide);
+    } else if (autoSel_nAuton == 2) {
+        auton5(autoSel_leftSide);
+    }
     stopMotorsBlock();
 }

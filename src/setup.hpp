@@ -30,8 +30,11 @@ enum class IntakeState { FRONT, BACK, BACK_SLOW, ALTERNATE, NONE };
 int clamp(int n, int min, int max);
 double clamp(double n, double min, double max);
 
+extern bool autoSel_leftSide;
+extern int autoSel_nAuton;
 void setup();
 void morningRoutine();
+void autoSel_update();
 
 //------- Misc ----------
 // returns prevClicks, curClicks, DblClicks
@@ -61,7 +64,6 @@ void printDriveEncoders();
 void runMotorTest();
 void setDriveSlew(bool auton);
 void setMaxAErr(double mae);
-void zeroDriveEncs();
 
 //----------- Intake ------
 void setIntake(IntakeState is);

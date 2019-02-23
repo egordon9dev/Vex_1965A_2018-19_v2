@@ -39,7 +39,7 @@ pros::ADIEncoder* DLEnc;
 pros::ADIEncoder* DREnc;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1220, drfbPos1Plus = 1493, drfbPos2 = 1793, drfbPos2Plus = 2280;
+const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1170, drfbPos1Plus = 1493, drfbPos2 = 1780, drfbPos2Plus = 2280;
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350;
 
 const double dShotSpeed1 = 2.62, dShotSpeed2 = 2.83;
@@ -385,7 +385,7 @@ void printPidValues() {
 }
 extern Point g_target;
 void printDrivePidValues() {
-    printf("DL%d DR%d vel %f drive %3.2f/%3.2f turn %2.2f/%2.2f curve %2.2f/%2.2f x %3.2f/%3.2f y %3.2f/%3.2f a %.2f\n", (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), getDriveVel(), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
+    printf("DL%d DR%d (%d %d %d) vel %f drive %3.2f/%3.2f turn %2.2f/%2.2f curve %2.2f/%2.2f x %3.2f/%3.2f y %3.2f/%3.2f a %.2f\n", (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), (int)getDL(), (int)getDR(), (int)getDS(), getDriveVel(), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
     std::cout << std::endl;
 }
 void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", getDLVoltage, DLPid.sensVal, DLPid.target, getDRVoltage, DRPid.sensVal, DRPid.target); }
@@ -504,7 +504,15 @@ void setup() {
     turnPid.maxIntegral = 5000;
     turnPid.DONE_ZONE = PI / 20;
 
-    curvePid.kp = 50000;
+    sTurnPid.kp = 52000;
+    sTurnPid.ki = 500;
+    sTurnPid.kd = 4000000;
+    sTurnPid.iActiveZone = 0.1;
+    sTurnPid.unwind = 0.003;
+    sTurnPid.maxIntegral = 5000;
+    sTurnPid.DONE_ZONE = PI / 20;
+
+    curvePid.kp = 65000;
 
     curveVelPid.kp = 10000000;
 
@@ -562,8 +570,42 @@ void morningRoutine() {
         prevDS = getDS();
         delay(10);
     }
-    pros::lcd::print(1, "Press A to confirm");
-    while (!ctlr.get_digital(DIGITAL_A)) delay(10);
     first = false;
     startOdoTask();
+}
+
+/*
+    ###    ##     ## ########  #######      ######  ######## ##       ########  ######  ########
+   ## ##   ##     ##    ##    ##     ##    ##    ## ##       ##       ##       ##    ##    ##
+  ##   ##  ##     ##    ##    ##     ##    ##       ##       ##       ##       ##          ##
+ ##     ## ##     ##    ##    ##     ##     ######  ######   ##       ######   ##          ##
+ ######### ##     ##    ##    ##     ##          ## ##       ##       ##       ##          ##
+ ##     ## ##     ##    ##    ##     ##    ##    ## ##       ##       ##       ##    ##    ##
+ ##     ##  #######     ##     #######      ######  ######## ######## ########  ######     ##
+ */
+bool autoSel_leftSide = false;
+int autoSel_nAuton = 0;
+void autoSel_update() {
+    if (ctlr.get_digital_new_press(DIGITAL_LEFT)) {
+        autoSel_leftSide = !autoSel_leftSide;
+    } else if (ctlr.get_digital_new_press(DIGITAL_RIGHT)) {
+        autoSel_nAuton++;
+        if (autoSel_nAuton > 2) autoSel_nAuton = 0;
+    }
+    pros::lcd::print(1, " AUTON SELECT ");
+    if (autoSel_nAuton == 0) {
+        pros::lcd::print(2, " ---- NONE ----");
+    } else if (autoSel_nAuton == 1) {
+        pros::lcd::print(2, " Flag Side Auton (3)");
+    } else if (autoSel_nAuton == 2) {
+        pros::lcd::print(2, "Cap Side Auton (5)");
+    }
+    if (autoSel_nAuton == 0) {
+        pros::lcd::clear_line(3);
+    } else if (autoSel_leftSide) {
+        pros::lcd::print(3, "Left, Red Side");
+    } else {
+        pros::lcd::print(3, "Right, Blue Side");
+    }
+    pros::lcd::print(4, "[L/R]  [ ]  [+n]");
 }

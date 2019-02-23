@@ -51,7 +51,7 @@ void pidFollowArcInit(Point start, Point target, double rMag, int rotDir, bool f
 bool pidDriveArc();
 void printArcData();
 
-extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid, intakePid, curveVelPid;
+extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, sTurnPid, curvePid, intakePid, curveVelPid;
 extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
 extern Odometry_t odometry;
 extern int g_pidTurnLimit;

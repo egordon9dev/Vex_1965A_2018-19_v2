@@ -10,7 +10,7 @@ pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 double getDL() {
     DLMtx.take(50);
-    double d = (-DLEnc->get_value()) + DLEncBias;
+    double d = (DLEnc->get_value()) + DLEncBias;
     DLMtx.give();
     return d;
 }
