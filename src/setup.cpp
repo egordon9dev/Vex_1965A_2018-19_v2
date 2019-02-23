@@ -481,8 +481,8 @@ void setup() {
     dlSaver.setConstants(1, 1, 0, 0);
     drSaver.setConstants(1, 1, 0, 0);
 
-    drivePid.kp = 2000;
-    drivePid.ki = 8;
+    drivePid.kp = 1650;
+    drivePid.ki = 3;
     drivePid.iActiveZone = 2;
     drivePid.maxIntegral = 5000;
     drivePid.kd = 110000;
