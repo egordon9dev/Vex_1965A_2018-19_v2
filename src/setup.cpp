@@ -512,7 +512,7 @@ void setup() {
     sTurnPid.maxIntegral = 5000;
     sTurnPid.DONE_ZONE = PI / 20;
 
-    curvePid.kp = 65000;
+    curvePid.kp = 55000;
 
     curveVelPid.kp = 10000000;
 

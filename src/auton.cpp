@@ -85,24 +85,24 @@ void auton3(bool leftSide) {
     ***********     Right (Blue) Side     ************
     **************************************************/
     else {
-        ptBeforeCap1 = Point(0, 33);
-        ptAfterCap1 = Point(0, 36);
+        ptBeforeCap1 = Point(0, 34.5);
+        ptAfterCap1 = Point(0, 37.5);
         ptPivot1 = Point(0, -0.1);
-        ptShoot1 = Point(-1.5 * sideSign, -0.1);
-        ptShoot2 = Point(-23.75 * sideSign, 0.3);
-        ptAfterCap2 = Point(-23 * sideSign, 11);
+        ptShoot1 = Point(-0.5 * sideSign, -0.1);
+        ptShoot2 = Point(-24.3 * sideSign, -0.1);
+        ptAfterCap2 = Point(-25 * sideSign, 11);
         ptPivotBeforeBtmFlag = Point(-24 * sideSign, -4);
-        ptAfterBtmFlag = Point(-50 * sideSign, -8.5);
+        ptAfterBtmFlag = Point(-50 * sideSign, -9.5);
     }
     Point origin = Point(0, -4);
     odometry.setA(-PI / 2);
     odometry.setX(origin.x);
     odometry.setY(origin.y);
+    odometry.reset();
 
     // initialize
     t0 = millis();
     pidFlywheelInit(2.9, 500);
-    odometry.reset();
     pidDriveLineInit(origin, ptBeforeCap1, true, 0.1, 0);  //<--- keep this 0 wait!!
     setDriveSlew(true);
     while (!ctlr.get_digital(DIGITAL_B)) {
@@ -141,15 +141,17 @@ void auton3(bool leftSide) {
             if (odometry.getY() > ptAfterCap1.y) {
                 pidDriveLineInit(ptAfterCap1, ptPivot1, false, 9999, driveT);
                 timeBetweenI = 4500;
+				driveLim = 4000;
                 t0 = millis();
                 i++;
             }
         } else if (i == j++) {  // drive back
             printf("drive back ");
             printDrivePidValues();
-            if (millis() - t0 > 1000) is = IntakeState::ALTERNATE;
+            if (millis() - t0 > 1800) is = IntakeState::ALTERNATE;
             if (odometry.getY() < ptAfterCap1.y - 6) {
                 setMaxAErr(0.1);
+				driveLim = 12000;
                 setDriveSlew(true);
             }
             if (pidDriveLine()) {
@@ -221,6 +223,7 @@ void auton3(bool leftSide) {
             printDrivePidValues();
             drfbPidRunning = false;
             setDrfb(-12000);
+			printf("<%.2f / %.2f>", getDrfb(), drfbPid.target);
             if (pidDriveLine()) {
                 k = 0;
                 i++;
@@ -474,7 +477,7 @@ Cap Side: 1 low cap, 1 high cap, 2 left side high flags
                     pidFlywheelInit(1.0, 9999);
                     pidDriveLineInit(odometry.getPos(), ptAfterShoot, true, 0.1, 0);
                     i++;
-                }
+                }lksand
             }
         } else if (i == j++) {
             printf("drive to ptAfterPost");
@@ -554,8 +557,8 @@ void auton5(bool leftSide) {
     Point ptBeyondPost;
     double fwSpeed1, fwSpeed2;
 
-    fwSpeed1 = 2.63;
-    fwSpeed2 = 2.83;
+    fwSpeed1 = 2.65;
+    fwSpeed2 = 2.85;
 
     /*************************************************
     ***********     Left (Red) Side     **************
@@ -568,11 +571,11 @@ void auton5(bool leftSide) {
         // ptBeforePost = Point(11.5 * sideSign, 20.5);
         // ptBeyondPost = Point(34 * sideSign, 20.5);
 
-        ptBeforeCap1 = Point(0, 30);
-        ptAfterCap1 = Point(0, 44);
-        ptBeforeShoot = Point(0, 6.96);
+        ptBeforeCap1 = Point(0, 38.5);
+        ptAfterCap1 = Point(0, 41.5);
+        ptBeforeShoot = Point(0, 6.965);
         ptShoot = Point(17 * sideSign, 0);
-        ptAfterCap2 = Point(23.4 * sideSign, 44);
+        ptAfterCap2 = Point(22.9 * sideSign, 43.3);
         ptBeforePost = Point(11.5 * sideSign, 19.5);
         ptBeyondPost = Point(34 * sideSign, 19.5);
     }
@@ -581,8 +584,8 @@ void auton5(bool leftSide) {
     ***********     Right (Blue) Side     ************
     **************************************************/
     else {
-        ptBeforeCap1 = Point(0, 30);
-        ptAfterCap1 = Point(0, 44);
+        ptBeforeCap1 = Point(0, 38.5);
+        ptAfterCap1 = Point(0, 41.5);
         ptBeforeShoot = Point(0, 6.7);
         ptShoot = Point(17 * sideSign, 0);
         ptAfterCap2 = Point(22.80 * sideSign, 45.01);
@@ -621,18 +624,19 @@ void auton5(bool leftSide) {
             clawPidRunning = true;
             clawPid.target = 0;
             is = IntakeState::FRONT;
-            if (odometry.getY() > ptBeforeCap1.y - 8) {
+            if (odometry.getY() > ptBeforeCap1.y - 14) {
                 DLSlew.slewRate = DRSlew.slewRate = 40;
                 setMaxAErr(9999);
             }
             if (k == 0) {
                 if (pidDriveLine()) k++;
             } else if (k == 1) {
-                setDL(-6300);
-                setDR(-6300);
+                setDL(-12000);
+                setDR(-12000);
             }
             if (odometry.getY() > ptAfterCap1.y) {
                 timeBetweenI = 4500;
+				driveLim = 4000;
                 pidDriveLineInit(ptAfterCap1, ptBeforeShoot, false, 9999, driveT);
                 t0 = millis();
                 i++;
@@ -640,9 +644,10 @@ void auton5(bool leftSide) {
         } else if (i == j++) {  // drive back
             printf("drive to ptBeforShoot ");
             printDrivePidValues();
-            if (millis() - t0 > 1000) is = IntakeState::ALTERNATE;
+            if (millis() - t0 > 1800) is = IntakeState::ALTERNATE;
             if (odometry.getY() < ptAfterCap1.y - 6) {
                 setMaxAErr(0.1);
+				driveLim = 12000;
                 setDriveSlew(true);
             }
             if (pidDriveLine()) {
@@ -683,7 +688,7 @@ void auton5(bool leftSide) {
             } else if (k == 2) {
                 printf("load 2 ");
                 printPidValues();
-                if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 1800) {
+                if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 2500) {
                     intakeRunning = false;
                     pidIntakeInit(intakeShootTicks, 80);
                     k++;

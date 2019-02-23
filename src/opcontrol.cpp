@@ -51,15 +51,15 @@ void opcontrol() {
         }
         return;
     }
-    if (0) {
-        // odometry.setA(-PI / 2);
-        // odometry.setX(0);
-        // odometry.setY(0);
-        // odometry.reset();
-        // while (1) {
-        //     printf("%d %d %d %.2f %.2f %.2f\n", (int)getDL(), (int)getDR(), (int)getDS(), odometry.getX(), odometry.getY(), odometry.getA());
-        //     delay(20);
-        // }
+    if (1) {
+        odometry.setA(-PI / 2);
+        odometry.setX(0);
+        odometry.setY(0);
+        odometry.reset();
+        //while (1) {
+        //   printf("%d %d %d %.2f %.2f %.2f\n", (int)getDL(), (int)getDR(), (int)getDS(), odometry.getX(), odometry.getY(), odometry.getA());
+        //    delay(20);
+        //}
         // odometry.setA(0);
         // pidTurnInit(0.2, 9999);
         // while (1) {
@@ -80,7 +80,10 @@ void opcontrol() {
         //     stopMotors();
         //     delay(10);
         // }
-        auton3(false);
+	//	while(1) {
+		//	printf("%.2f\n", getDrfb());
+		//}
+        auton5(true);
         // int tttt = millis();
         // flywheelPid.target = 1.5;
         // while (millis() - tttt < 800) pidFlywheel();
