@@ -72,27 +72,27 @@ void auton3(bool leftSide) {
     **************************************************/
     if (leftSide) {
         ptBeforeCap1 = Point(0, 26);
-        ptAfterCap1 = Point(0, 39.5);
+        ptAfterCap1 = Point(0, 34.5);
         ptPivot1 = Point(0, 0.25);
-        ptShoot1 = Point(-5.25 * sideSign, 0.25);
-        ptShoot2 = Point(-26.25 * sideSign, 0.75);
+        ptShoot1 = Point(-5.25 * sideSign, 0.5);
+        ptShoot2 = Point(-26.6 * sideSign, 1);
         ptAfterCap2 = Point(-24.5 * sideSign, 10);
         ptPivotBeforeBtmFlag = Point(-23.5 * sideSign, -4);
-        ptAfterBtmFlag = Point(-49 * sideSign, -5.5);
+        ptAfterBtmFlag = Point(-52 * sideSign, -5);
     }
 
     /*************************************************
     ***********     Right (Blue) Side     ************
     **************************************************/
     else {
-        ptBeforeCap1 = Point(0, 26);
-        ptAfterCap1 = Point(0, 39.5);
-        ptPivot1 = Point(0, -1);
-        ptShoot1 = Point(-1.5 * sideSign, -1);
-        ptShoot2 = Point(-23.75 * sideSign, -0.5);
+        ptBeforeCap1 = Point(0, 33);
+        ptAfterCap1 = Point(0, 36);
+        ptPivot1 = Point(0, -0.1);
+        ptShoot1 = Point(-1.5 * sideSign, -0.1);
+        ptShoot2 = Point(-23.75 * sideSign, 0.3);
         ptAfterCap2 = Point(-23 * sideSign, 11);
         ptPivotBeforeBtmFlag = Point(-24 * sideSign, -4);
-        ptAfterBtmFlag = Point(-48.5 * sideSign, -7);
+        ptAfterBtmFlag = Point(-50 * sideSign, -8.5);
     }
     Point origin = Point(0, -4);
     odometry.setA(-PI / 2);
@@ -130,10 +130,13 @@ void auton3(bool leftSide) {
                 setMaxAErr(9999);
             }
             if (k == 0) {
-                if (pidDriveLine()) k++;
+                if (pidDriveLine()) {
+                    t0 = millis();
+                    k++;
+                }
             } else if (k == 1) {
-                setDL(-6300);
-                setDR(-6300);
+                setDL(-12000);
+                setDR(-12000);
             }
             if (odometry.getY() > ptAfterCap1.y) {
                 pidDriveLineInit(ptAfterCap1, ptPivot1, false, 9999, driveT);
@@ -227,9 +230,14 @@ void auton3(bool leftSide) {
             if (k == o++) {
                 printf("flip cap ");
                 printPidValues();
-                drfbPidRunning = true;
-                drfbPid.target = drfb18Max;
-                if (getDrfb() > drfbMinClaw0 - 100) k++;
+                drfbPidRunning = false;
+                // drfbPid.target = drfb18Max;
+                setDrfb(12000);
+                if (getDrfb() > drfbMinClaw0 - 100) {
+                    drfbPid.target = drfb18Max;
+                    drfbPidRunning = true;
+                    k++;
+                }
             } else if (k == o++) {
                 clawPid.target = claw180;
                 printPidValues();
@@ -546,8 +554,8 @@ void auton5(bool leftSide) {
     Point ptBeyondPost;
     double fwSpeed1, fwSpeed2;
 
-    fwSpeed1 = 2.65;
-    fwSpeed2 = 2.85;
+    fwSpeed1 = 2.63;
+    fwSpeed2 = 2.83;
 
     /*************************************************
     ***********     Left (Red) Side     **************
@@ -562,9 +570,9 @@ void auton5(bool leftSide) {
 
         ptBeforeCap1 = Point(0, 30);
         ptAfterCap1 = Point(0, 44);
-        ptBeforeShoot = Point(0, 7.67);
+        ptBeforeShoot = Point(0, 6.96);
         ptShoot = Point(17 * sideSign, 0);
-        ptAfterCap2 = Point(24.91 * sideSign, 45.01);
+        ptAfterCap2 = Point(23.4 * sideSign, 44);
         ptBeforePost = Point(11.5 * sideSign, 19.5);
         ptBeyondPost = Point(34 * sideSign, 19.5);
     }
@@ -575,9 +583,9 @@ void auton5(bool leftSide) {
     else {
         ptBeforeCap1 = Point(0, 30);
         ptAfterCap1 = Point(0, 44);
-        ptBeforeShoot = Point(0, 6.672);
+        ptBeforeShoot = Point(0, 6.7);
         ptShoot = Point(17 * sideSign, 0);
-        ptAfterCap2 = Point(22.26 * sideSign, 45.51);
+        ptAfterCap2 = Point(22.80 * sideSign, 45.01);
         ptBeforePost = Point(11.5 * sideSign, 20.5);
         ptBeyondPost = Point(34 * sideSign, 20.5);
     }
@@ -767,7 +775,7 @@ void auton5(bool leftSide) {
                 setDR(0);
                 drfbPidBias = -3000;
                 drfbPid.target = drfbPos1;
-                if (getDrfb() < drfbPos1 + 65) {
+                if (getDrfb() < drfbPos1 + 30) {
                     drfbPidBias = 0;
                     driveLim = 8500;
                     k = 0;

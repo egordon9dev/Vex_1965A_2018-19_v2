@@ -51,7 +51,7 @@ void opcontrol() {
         }
         return;
     }
-    if (1) {
+    if (0) {
         // odometry.setA(-PI / 2);
         // odometry.setX(0);
         // odometry.setY(0);
@@ -80,7 +80,7 @@ void opcontrol() {
         //     stopMotors();
         //     delay(10);
         // }
-        auton3(true);
+        auton3(false);
         // int tttt = millis();
         // flywheelPid.target = 1.5;
         // while (millis() - tttt < 800) pidFlywheel();

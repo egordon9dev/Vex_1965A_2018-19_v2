@@ -504,7 +504,7 @@ void setup() {
     turnPid.maxIntegral = 5000;
     turnPid.DONE_ZONE = PI / 20;
 
-    sTurnPid.kp = 52000;
+    sTurnPid.kp = 59000;
     sTurnPid.ki = 500;
     sTurnPid.kd = 4000000;
     sTurnPid.iActiveZone = 0.1;
