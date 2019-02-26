@@ -10,13 +10,13 @@ pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 double getDL() {
     DLMtx.take(50);
-    double d = (DLEnc->get_value()) + DLEncBias;
+    double d = (mtr4.get_position()) + DLEncBias;
     DLMtx.give();
     return d;
 }
 double getDR() {
     DRMtx.take(50);
-    double d = (DREnc->get_value()) + DREncBias;
+    double d = (-mtr1.get_position()) + DREncBias;
     DRMtx.give();
     return d;
 }

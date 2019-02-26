@@ -48,7 +48,7 @@ const double sShotSpeed = 2.9;
 const int intakeShootTicks = -600;
 
 const int dblClickTime = 450, claw180 = 1370;
-const double /*ticksPerInch = 52.746, */ ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
+const double /*ticksPerInch = 52.746, */ ticksPerInchADI = /*35.2426*/ 52.746, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
 
