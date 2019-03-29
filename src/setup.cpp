@@ -228,6 +228,7 @@ void setFlywheel(int n) {
     n = clamp(n, 0, 12000);
     // n = flywheelSlew.update(n);
     // n = flySaver.getPwr(n, getFlywheel());
+    n = 10800;
     mtr6.move_voltage(-n);
     flywheel::requestedVoltage = n;
 }
@@ -235,7 +236,7 @@ double getFlywheel() { return -mtr6.get_position(); }
 double getFlywheelFromMotor() { return -3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {1.0, 3700}, {2.0, 7000}, {2.2, 7700}, {2.4, 8500}, {2.5, 8950}, {2.6, 9250}, {2.7, 9650}, {2.8, 10000}, {2.9, 10560}};
+double FWSpeeds[][2] = {{0, 0}, {1.0, 3700}, {2.0, 7000}, {2.2, 7700}, {2.4, 8500}, {2.5, 8950}, {2.6, 9250}, {2.7, 9650}, {2.8, 10000}, {2.9, 10080}};
 void pidFlywheelInit(double speed, double pidZone, int wait) { flywheel::init(speed, pidZone, wait); }
 bool pidFlywheel() {
     double speed = flywheel::target;
@@ -450,8 +451,8 @@ void setup() {
         printf("setting up...\n");
     }
     flywheelSlew.slewRate = 999999;  // 60;
-    flywheelPid.kp = 1200.0;         // 3500
-    flywheelPid.kd = 200000.0;       // 300000
+    flywheelPid.kp = 700.0;          // 3500
+    flywheelPid.kd = 30000.0;        // 300000
     flywheelPid.DONE_ZONE = 0.1;
     flySaver.setConstants(1, 1, 0, 0);
 
