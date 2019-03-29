@@ -11,7 +11,8 @@ extern pros::ADILineSensor* ballSensR;
 extern pros::ADIEncoder* perpindicularWheelEnc;
 extern pros::ADIEncoder* DLEnc;
 extern pros::ADIEncoder* DREnc;
-extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1Plus, drfbPos2Plus, drfbMinClaw0, drfbMaxClaw0, drfbMinClaw1, drfb18Max;
+extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1Plus, drfbPos2Plus, drfbMinClaw0, drfbMaxClaw0, drfbMinClaw1, drfb18Max, drfbPosShoot;
+extern const int drfbHoldPwr;
 extern double drfbIMEBias;
 extern const int claw180;
 extern const int intakeShootTicks;
@@ -99,7 +100,7 @@ void setFlywheel(int n);
 double getFlywheel();
 int getFlywheelVoltage();
 bool pidFlywheel();
-void pidFlywheelInit(double speed, int wait);
+void pidFlywheelInit(double speed, double pidZone, int wait);
 bool isPidFlywheelDone();
 
 void testDriveMtrs();

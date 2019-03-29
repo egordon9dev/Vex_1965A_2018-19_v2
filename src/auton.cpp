@@ -102,7 +102,7 @@ void auton3(bool leftSide) {
 
     // initialize
     t0 = millis();
-    pidFlywheelInit(2.9, 500);
+    pidFlywheelInit(2.9, 0.1, 500);
     pidDriveLineInit(origin, ptBeforeCap1, true, 0.1, 0);  //<--- keep this 0 wait!!
     setDriveSlew(true);
     while (!ctlr.get_digital(DIGITAL_B)) {
@@ -141,7 +141,7 @@ void auton3(bool leftSide) {
             if (odometry.getY() > ptAfterCap1.y) {
                 pidDriveLineInit(ptAfterCap1, ptPivot1, false, 9999, driveT);
                 timeBetweenI = 4500;
-				driveLim = 4000;
+                driveLim = 4000;
                 t0 = millis();
                 i++;
             }
@@ -151,7 +151,7 @@ void auton3(bool leftSide) {
             if (millis() - t0 > 1800) is = IntakeState::ALTERNATE;
             if (odometry.getY() < ptAfterCap1.y - 6) {
                 setMaxAErr(0.1);
-				driveLim = 12000;
+                driveLim = 12000;
                 setDriveSlew(true);
             }
             if (pidDriveLine()) {
@@ -184,7 +184,7 @@ void auton3(bool leftSide) {
             if (pidIntake()) {
                 intakeRunning = true;
                 is = IntakeState::ALTERNATE;
-                pidFlywheelInit(2.9, 500);
+                pidFlywheelInit(2.9, 0.1, 500);
                 pidDriveLineInit(ptShoot1, ptShoot2, true, 0.08, driveTBeforeShoot);
                 timeBetweenI = 4000;
                 i++;
@@ -212,7 +212,7 @@ void auton3(bool leftSide) {
             pidDrive();
             if (pidIntake()) {
                 intakeRunning = true;
-                pidFlywheelInit(1.0, 9999);
+                pidFlywheelInit(1.0, 0.1, 9999);
                 is = IntakeState::FRONT;
                 timeBetweenI = 4500;
                 pidDriveLineInit(ptShoot2, ptAfterCap2, false, 0.08, driveT);
@@ -223,7 +223,7 @@ void auton3(bool leftSide) {
             printDrivePidValues();
             drfbPidRunning = false;
             setDrfb(-12000);
-			printf("<%.2f / %.2f>", getDrfb(), drfbPid.target);
+            printf("<%.2f / %.2f>", getDrfb(), drfbPid.target);
             if (pidDriveLine()) {
                 k = 0;
                 i++;
@@ -601,7 +601,7 @@ void auton5(bool leftSide) {
     Point p1;
     // initialize
     t0 = BIL;
-    pidFlywheelInit(fwSpeed2, 700);
+    pidFlywheelInit(fwSpeed2, 0.1, 700);
     pidDriveLineInit(origin, ptBeforeCap1, true, 0.1, 0);  //<--- keep this 0 wait!!
     setDriveSlew(true);
     while (!ctlr.get_digital(DIGITAL_B)) {
@@ -636,7 +636,7 @@ void auton5(bool leftSide) {
             }
             if (odometry.getY() > ptAfterCap1.y) {
                 timeBetweenI = 4500;
-				driveLim = 4000;
+                driveLim = 4000;
                 pidDriveLineInit(ptAfterCap1, ptBeforeShoot, false, 9999, driveT);
                 t0 = millis();
                 i++;
@@ -647,7 +647,7 @@ void auton5(bool leftSide) {
             if (millis() - t0 > 1800) is = IntakeState::ALTERNATE;
             if (odometry.getY() < ptAfterCap1.y - 6) {
                 setMaxAErr(0.1);
-				driveLim = 12000;
+                driveLim = 12000;
                 setDriveSlew(true);
             }
             if (pidDriveLine()) {
@@ -681,7 +681,7 @@ void auton5(bool leftSide) {
                 if (pidIntake()) {
                     intakeRunning = true;
                     is = IntakeState::ALTERNATE;
-                    pidFlywheelInit(fwSpeed1, 800);
+                    pidFlywheelInit(fwSpeed1, 0.1, 800);
                     t0 = millis();
                     k++;
                 }
@@ -699,7 +699,7 @@ void auton5(bool leftSide) {
                 if (pidIntake()) {
                     intakeRunning = true;
                     is = IntakeState::NONE;
-                    pidFlywheelInit(1.0, 9999);
+                    pidFlywheelInit(1.0, 0.1, 9999);
                     pidDriveLineInit(ptShoot, ptAfterCap2, false, 0.1, 0);
                     k = 0;
                     i++;

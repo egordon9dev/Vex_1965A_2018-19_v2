@@ -40,7 +40,8 @@ pros::ADIEncoder* DREnc;
 
 //----------- Constants ----------------
 const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1170, drfbPos1Plus = 1493, drfbPos2 = 1780, drfbPos2Plus = 2280;
-const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350;
+const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosShoot = 250;
+const int drfbHoldPwr = -1600;
 
 const double dShotSpeed1 = 2.62, dShotSpeed2 = 2.83;
 const double sShotSpeed = 2.9;
@@ -125,7 +126,7 @@ IntakeState getISLoad() {
 }
 int getBallSensL() { return ballSensL->get_value(); }
 int getBallSensR() { return ballSensR->get_value(); }
-bool isBallIn() { return getBallSensL() < 2000 || getBallSensR() < 2000; }
+bool isBallIn() { return false; }
 
 //----------- DRFB functions ---------
 int drfb_requested_voltage = 0;
@@ -215,9 +216,11 @@ namespace flywheel {
 int requestedVoltage = 0;
 double target = 0;
 int wait = 999999;
-void init(double t, int w) {
+double pidZone = 0.1;
+void init(double t, double pz, int w) {
     target = t;
     wait = w;
+    pidZone = pz;
     flywheelPid.doneTime = BIL;
 }
 }  // namespace flywheel
@@ -232,8 +235,8 @@ double getFlywheel() { return -mtr6.get_position(); }
 double getFlywheelFromMotor() { return -3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {1.0, 4200}, {2.0, 7700}, {2.2, 8400}, {2.4, 9100}, {2.5, 9850}, {2.6, 10200}, {2.65, 10400}, {2.7, 10600}, {2.8, 10600}, {2.9, 11480}};
-void pidFlywheelInit(double speed, int wait) { flywheel::init(speed, wait); }
+double FWSpeeds[][2] = {{0, 0}, {1.0, 3700}, {2.0, 7000}, {2.2, 7700}, {2.4, 8500}, {2.5, 8950}, {2.6, 9250}, {2.7, 9650}, {2.8, 10000}, {2.9, 10560}};
+void pidFlywheelInit(double speed, double pidZone, int wait) { flywheel::init(speed, pidZone, wait); }
 bool pidFlywheel() {
     double speed = flywheel::target;
     static double prevSpeed = 0.0;
@@ -244,7 +247,7 @@ bool pidFlywheel() {
     static int prevUpdateT = -9999;
     static double sumVel = 0.0;
     static int numVel = 0;
-    if (fabs(speed - prevSpeed) > 0.1) {
+    if (fabs(speed - prevSpeed) > 0.01) {
         output = 0.0;
         crossedTarget = false;
         if (speed > prevSpeed) {
@@ -278,17 +281,17 @@ bool pidFlywheel() {
             prevPosition = getFlywheel();
             flywheelPid.target = speed;
             if (!crossedTarget) {
-                if (flywheelPid.sensVal > flywheelPid.target - 0.1 * dir) {
-                    if (dir == 1) {
-                        crossedTarget = true;
-                    } else {
-                        setFlywheel(0);
-                    }
-                } else if (flywheelPid.sensVal < flywheelPid.target - 0.1 * dir) {
-                    if (dir == -1) {
+                if (dir == 1) {
+                    if (flywheelPid.sensVal > flywheelPid.target - flywheel::pidZone) {
                         crossedTarget = true;
                     } else {
                         setFlywheel(12000);
+                    }
+                } else {
+                    if (flywheelPid.sensVal < flywheelPid.target + flywheel::pidZone) {
+                        crossedTarget = true;
+                    } else {
+                        setFlywheel(0);
                     }
                 }
             }
@@ -447,8 +450,8 @@ void setup() {
         printf("setting up...\n");
     }
     flywheelSlew.slewRate = 999999;  // 60;
-    flywheelPid.kp = 1000.0;         // 3500
-    flywheelPid.kd = 250000.0;       // 300000
+    flywheelPid.kp = 1200.0;         // 3500
+    flywheelPid.kd = 200000.0;       // 300000
     flywheelPid.DONE_ZONE = 0.1;
     flySaver.setConstants(1, 1, 0, 0);
 
