@@ -1,5 +1,6 @@
 #include "setup.hpp"
 #include <cassert>
+#include <deque>
 #include <string>
 #include "MotorSaver.hpp"
 #include "Point.hpp"
@@ -228,7 +229,6 @@ void setFlywheel(int n) {
     n = clamp(n, 0, 12000);
     // n = flywheelSlew.update(n);
     // n = flySaver.getPwr(n, getFlywheel());
-    n = 10800;
     mtr6.move_voltage(-n);
     flywheel::requestedVoltage = n;
 }
@@ -236,18 +236,21 @@ double getFlywheel() { return -mtr6.get_position(); }
 double getFlywheelFromMotor() { return -3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {1.0, 3700}, {2.0, 7000}, {2.2, 7700}, {2.4, 8500}, {2.5, 8950}, {2.6, 9250}, {2.7, 9650}, {2.8, 10000}, {2.9, 10080}};
+double FWSpeeds[][2] = {{0, 0}, {1.0, 3750}, {2.0, 7000}, {2.2, 7700}, {2.4, 8500}, {2.5, 8950}, {2.6, 9250}, {2.7, 9650}, {2.8, 9750}, {2.9, 10800}};
 void pidFlywheelInit(double speed, double pidZone, int wait) { flywheel::init(speed, pidZone, wait); }
 bool pidFlywheel() {
+    static std::deque<int> pwrs;
+    static bool pidShutdown = false;
     double speed = flywheel::target;
     static double prevSpeed = 0.0;
-    static int prevT = 0, prevPosition = 0;
+    static int prevT = 0;
     static double output = 0.0;
     static bool crossedTarget = false;
     static int dir = 1;
     static int prevUpdateT = -9999;
     static double sumVel = 0.0;
     static int numVel = 0;
+    static int crossedTargetT = 0;
     if (fabs(speed - prevSpeed) > 0.01) {
         output = 0.0;
         crossedTarget = false;
@@ -271,35 +274,60 @@ bool pidFlywheel() {
         }
     }
     if (dt < 1000 && dt > 0) {
+        flywheelPid.target = speed;
+        if (crossedTarget) {
+            // after shooting a ball, the flywheel slows down a lot
+            if (flywheelPid.sensVal < flywheelPid.prevSensVal - 0.1) {
+                dir = 1;
+                crossedTarget = false;
+            }
+        }
+        if (!crossedTarget) {
+            pidShutdown = false;
+            if (dir == 1) {
+                if (flywheelPid.sensVal > flywheelPid.target - flywheel::pidZone) {
+                    crossedTarget = true;
+                    crossedTargetT = millis();
+                } else {
+                    setFlywheel(12000);
+                }
+            } else {
+                if (flywheelPid.sensVal < flywheelPid.target + flywheel::pidZone) {
+                    crossedTarget = true;
+                    crossedTargetT = millis();
+                } else {
+                    setFlywheel(0);
+                }
+            }
+        }
         sumVel += getFlywheelFromMotor();
         numVel++;
-        if (millis() - prevUpdateT > 50) {  // 95
+        if (millis() - prevUpdateT > 50) {
+            // average sensor reading during the the update interval
+            flywheelPid.sensVal = sumVel / numVel;
 
-            flywheelPid.sensVal = sumVel / numVel;  //(getFlywheel() - prevPosition) / (millis() - prevUpdateT);
+            // reset for next time
             sumVel = 0.0;
             numVel = 0;
             prevUpdateT = millis();
-            prevPosition = getFlywheel();
-            flywheelPid.target = speed;
-            if (!crossedTarget) {
-                if (dir == 1) {
-                    if (flywheelPid.sensVal > flywheelPid.target - flywheel::pidZone) {
-                        crossedTarget = true;
-                    } else {
-                        setFlywheel(12000);
-                    }
-                } else {
-                    if (flywheelPid.sensVal < flywheelPid.target + flywheel::pidZone) {
-                        crossedTarget = true;
-                    } else {
-                        setFlywheel(0);
-                    }
-                }
-            }
+
             if (crossedTarget) {
-                output += flywheelPid.update();
-                output = clamp(output, -6000.0, 6000.0);
-                setFlywheel(bias + lround(output));
+                double deltaOutput = flywheelPid.update();
+                if (millis() - crossedTargetT > 1000) pidShutdown = true;
+                if (pidShutdown && pwrs.size() > 0) {
+                    int sum = 0;
+                    for (const auto& p : pwrs) { sum += p; }
+                    int avgPwr = sum / pwrs.size();
+                    setFlywheel(avgPwr);
+                    printf("settled at %d", avgPwr);
+                } else {
+                    output += deltaOutput;
+                    output = clamp(output, -6000.0, 6000.0);
+                    int curPwr = bias + lround(output);
+                    setFlywheel(curPwr);
+                    pwrs.push_back(curPwr);
+                    if (pwrs.size() > 10) pwrs.pop_front();
+                }
             }
         }
     }
@@ -451,8 +479,10 @@ void setup() {
         printf("setting up...\n");
     }
     flywheelSlew.slewRate = 999999;  // 60;
-    flywheelPid.kp = 700.0;          // 3500
-    flywheelPid.kd = 30000.0;        // 300000
+    // 2 fw: kp=1200 kd=200k
+    // 1 fw: kp=700 kd=30k
+    flywheelPid.kp = 1000.0;
+    flywheelPid.kd = 200000.0;
     flywheelPid.DONE_ZONE = 0.1;
     flySaver.setConstants(1, 1, 0, 0);
 

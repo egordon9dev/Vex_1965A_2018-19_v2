@@ -102,7 +102,7 @@ void auton3(bool leftSide) {
 
     // initialize
     t0 = millis();
-    pidFlywheelInit(2.9, 0.1, 500);
+    pidFlywheelInit(sShotSpeed, 0.1, 500);
     pidDriveLineInit(origin, ptBeforeCap1, true, 0.1, 0);  //<--- keep this 0 wait!!
     setDriveSlew(true);
     while (!ctlr.get_digital(DIGITAL_B)) {
@@ -184,7 +184,7 @@ void auton3(bool leftSide) {
             if (pidIntake()) {
                 intakeRunning = true;
                 is = IntakeState::ALTERNATE;
-                pidFlywheelInit(2.9, 0.1, 500);
+                pidFlywheelInit(sShotSpeed, 0.1, 500);
                 pidDriveLineInit(ptShoot1, ptShoot2, true, 0.08, driveTBeforeShoot);
                 timeBetweenI = 4000;
                 i++;
