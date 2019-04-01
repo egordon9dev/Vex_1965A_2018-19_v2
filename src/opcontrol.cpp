@@ -206,7 +206,7 @@ void opcontrol() {
                 intakeState = IntakeState::FRONT;
             }
         }
-        // pidFlywheelInit(2.7, 0.1, 999);
+        // pidFlywheelInit(2.9, 0.1, 999);
         pidFlywheel();
         // printf("{req %d actl %d}", getFlywheelVoltage(), mtr6.get_voltage());
         // drfb

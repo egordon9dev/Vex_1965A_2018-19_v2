@@ -481,8 +481,9 @@ void setup() {
     flywheelSlew.slewRate = 999999;  // 60;
     // 2 fw: kp=1200 kd=200k
     // 1 fw: kp=700 kd=30k
-    flywheelPid.kp = 1000.0;
-    flywheelPid.kd = 200000.0;
+    // complex fw: kp=1000, kd=200000
+    flywheelPid.kp = 700.0;
+    flywheelPid.kd = 180000.0;
     flywheelPid.DONE_ZONE = 0.1;
     flySaver.setConstants(1, 1, 0, 0);
 
