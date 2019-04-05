@@ -42,7 +42,7 @@ pros::ADIEncoder* DREnc;
 //----------- Constants ----------------
 const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1170, drfbPos1Plus = 1493, drfbPos2 = 1780, drfbPos2Plus = 2280;
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosShoot = 250;
-const int drfbHoldPwr = -1600;
+const int drfbHoldPwr = -1500;
 
 const double dShotSpeed1 = 2.62, dShotSpeed2 = 2.83;
 const double sShotSpeed = 2.9;
@@ -100,6 +100,8 @@ void setIntake(IntakeState is) {
         setIntake(0);
     } else if (is == IntakeState::FRONT) {
         setIntake(12000);
+    } else if (is == IntakeState::FRONT_HOLD) {
+        setIntake(1500);
     } else if (is == IntakeState::BACK) {
         setIntake(-12000);
     } else if (is == IntakeState::BACK_SLOW) {
@@ -128,6 +130,8 @@ IntakeState getISLoad() {
 int getBallSensL() { return ballSensL->get_value(); }
 int getBallSensR() { return ballSensR->get_value(); }
 bool isBallIn() { return false; }
+bool isTopBallIn() { return getBallSensL() < 1000; }
+bool isBtmBallIn() { return getBallSensR() < 1100; }
 
 //----------- DRFB functions ---------
 int drfb_requested_voltage = 0;
@@ -412,7 +416,7 @@ void stopMotorsBlock() {
     }
 }
 void printPidValues() {
-    printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f claw%2d %4d/%4d intake%2d %4d/%4d\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target);
+    printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f claw%2d %4d/%4d intake%2d %4d/%4d ballsens %d %d\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, (int)getBallSensL(), (int)getBallSensR());
     std::cout << std::endl;
 }
 extern Point g_target;
@@ -480,10 +484,10 @@ void setup() {
     }
     flywheelSlew.slewRate = 999999;  // 60;
     // 2 fw: kp=1200 kd=200k
-    // 1 fw: kp=700 kd=30k
+    // 1 fw: kp=700 kd=180k
     // complex fw: kp=1000, kd=200000
-    flywheelPid.kp = 700.0;
-    flywheelPid.kd = 180000.0;
+    flywheelPid.kp = 1200.0;
+    flywheelPid.kd = 200000.0;
     flywheelPid.DONE_ZONE = 0.1;
     flySaver.setConstants(1, 1, 0, 0);
 

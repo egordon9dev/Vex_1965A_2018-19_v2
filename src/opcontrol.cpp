@@ -117,10 +117,11 @@ void opcontrol() {
     int autoFlipH;
     int prevCtlrUpdateT = 0;
     bool prevIsBallIn = false;
-    bool shootRequest = false;
     bool intakeToggle = false;
 
     pidFlywheelInit(1.0, 0.1, 9999);
+    // int iti = 0;    // iti = Intake Tracker Index
+    // int itt = BIL;  // itt = Intake Tracker Time
     while (true) {
         pros::lcd::print(0, "x %f", odometry.getX());
         pros::lcd::print(1, "y %f", odometry.getY());
@@ -128,7 +129,7 @@ void opcontrol() {
         pros::lcd::print(3, "L %f", getDL());
         pros::lcd::print(4, "R %f", getDR());
         pros::lcd::print(5, "S %f", getDS());
-        pros::lcd::print(6, "bat: %f", pros::battery::get_capacity());
+        // pros::lcd::print(6, "iti: %d", iti);
         pros::lcd::print(7, "drfb: %.2f", getDrfb());
         /*
          pros::lcd::print(3, "drfb %d", getDrfb());*/
@@ -148,74 +149,22 @@ void opcontrol() {
         driveLim = (getDrfb() > 0.5 * (drfb18Max + drfbPos1)) ? 8500 : 12000;
         opctlDrive(driveDir);
         // printf("%d %d\n", joy[0], joy[1]);
-
         // FLYWHEEL
-        // ----------- Single Shot ------------
         if (dblClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight] && dShotI == -1) {  // request a double shot
             dShotI = 0;
         } else if (curClicks[ctlrIdxDown]) {
             pidFlywheelInit(1.0, 0.1, 700);
             dShotI = -1;
-        } /*else if (curClicks[ctlrIdxLeft]) {
-            pidFlywheelInit(dShotSpeed1, 700);
-            dShotI = -1;
-        } else if (curClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight]) {
-            if (fabs(flywheelPid.target - dShotSpeed2) > 0.001) pidFlywheelInit(dShotSpeed2, 700);
-            dShotI = -1;
-        }*/
-        else if (curClicks[ctlrIdxUp]) {
+        } else if (curClicks[ctlrIdxUp]) {
             pidFlywheelInit(sShotSpeed, 0.1, 700);
             dShotI = -1;
         }
-        // ---------- Double Shot -------------
-        if (dShotI == 0) {
-            if (fabs(flywheelPid.target - dShotSpeed2) > 0.001) pidFlywheelInit(dShotSpeed2, 0.1, 700);
-            dShotI++;
-        }
-        if (dShotI == 1) {
-            // load ball 1, wait for flywheel
-            printf("dShot prep ball 1 ");
-            intakeState = IntakeState::ALTERNATE;
-            if (isPidFlywheelDone() && isBallIn()) {
-                intakeRunning = false;
-                pidIntakeInit(intakeShootTicks, 80);
-                dShotI++;
-            }
-        } else if (dShotI == 2) {  // shoot ball 1
-            printf("dShot shoot ball 1 ");
-            if (pidIntake()) {
-                intakeRunning = true;
-                intakeState = IntakeState::FRONT;
-                pidFlywheelInit(dShotSpeed1, 0.1, 800);
-                dShotI++;
-            }
-        } else if (dShotI == 3) {  // load ball 2, wait for flywheel
-            printf("dShot prep ball 2 ");
-            intakeState = IntakeState::ALTERNATE;
-            if (isPidFlywheelDone() && isBallIn()) {
-                intakeRunning = false;
-                pidIntakeInit(intakeShootTicks, 80);
-                dShotI++;
-            }
-        } else if (dShotI == 4) {  // shoot ball 2
-            printf("dShot shoot ball 2 ");
-            if (pidIntake()) {
-                dShotI = -1;
-                pidFlywheelInit(sShotSpeed, 0.1, 700);
-                intakeRunning = true;
-                intakeState = IntakeState::FRONT;
-            }
-        }
+
         // pidFlywheelInit(2.9, 0.1, 999);
         pidFlywheel();
         // printf("{req %d actl %d}", getFlywheelVoltage(), mtr6.get_voltage());
         // drfb
         double drfbPos = getDrfb();
-        /*if (curClicks[ctlrIdxR1] && (curClicks[ctlrIdxY] || curClicks[ctlrIdxA])) {
-            if (!prevClicks[ctlrIdxR1]) drfbIMEBias -= 10;
-        } else if (curClicks[ctlrIdxR2] && (curClicks[ctlrIdxY] || curClicks[ctlrIdxA])) {
-            if (!prevClicks[ctlrIdxR2]) drfbIMEBias += 10;
-        } else */
         if (curClicks[ctlrIdxR1]) {
             atDrfbSetp = false;
             drfbPidRunning = false;
@@ -249,6 +198,14 @@ void opcontrol() {
             drfbPidBias = 0;
 
             drfbPid.target = drfbPos2;
+            setDrfbParams(true);
+        } else if (curClicks[ctlrIdxL2]) {
+            drfbPidRunning = true;
+            drfbFullRangePowerLimit = 12000;
+            autoFlipI = -1;
+            drfbPidBias = 0;
+
+            drfbPid.target = drfbPosShoot;
             setDrfbParams(true);
         } else if (autoFlipI > -1) {
             if (autoFlipI == 0) {
@@ -325,15 +282,11 @@ void opcontrol() {
         }
         if (drfbPidRunning) {
             if (drfbPid.target < drfbPosShoot) {
-                printf("holding\n");
+                // printf("holding\n");
                 setDrfb(drfbHoldPwr);
             } else {
                 pidDrfb();
             }
-        }
-        if (shootRequest && getDrfb() > drfbPosShoot) {
-            shootRequest = false;
-            intakeState = IntakeState::FRONT;
         }
         // CLAW
         if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && autoFlipI == -1) {
@@ -363,57 +316,23 @@ void opcontrol() {
         clawPid.sensVal = getClaw();
         setClaw(clamp(clawPid.update(), -12000.0, 12000.0));
 
-        // INTAKE
-        /*
-        ------ intended functionality ------
-        intake FRONT:   grab two balls
-        intake BACK:    load balls
-        intake BACK:    fire first ball
-        intake BACK:    fire second ball
-        */
-
-        if (curClicks[ctlrIdxL2] && !prevClicks[ctlrIdxL2]) { intakeToggle = !intakeToggle; }
+        // -----------  Intake  ------------
+        if (isTopBallIn() && isBtmBallIn() && !curClicks[ctlrIdxL1]) intakeToggle = false;
+        if (curClicks[ctlrIdxL1] && !prevClicks[ctlrIdxL1]) { intakeToggle = !intakeToggle; }
         if (intakeToggle) {
-            if (dShotI == 4) dShotI = -1;
             intakeRunning = true;
             intakeState = IntakeState::FRONT;
         } else {
-            if (dShotI == 4) dShotI = -1;
             intakeRunning = true;
-            intakeState = IntakeState::NONE;
-        }
-        if (curClicks[ctlrIdxL1]) {
-            if (dShotI == 4) dShotI = -1;
-            intakeRunning = true;
-            intakeState = IntakeState::NONE;
-            shootRequest = true;
-
-            atDrfbSetp = false;
-            drfbPidRunning = true;
-            drfbFullRangePowerLimit = 12000;
-            autoFlipI = -1;
-            drfbPidBias = 0;
-
-            drfbPid.target = drfbPosShoot;
-            setDrfbParams(true);
-        } else if (dShotI == -1) {
-            // intakeRunning = true;
-            // if (intakeState == IntakeState::BACK_SLOW) { intakeState = IntakeState::ALTERNATE; }
-            // if (isBallIn() && intakeState == IntakeState::ALTERNATE) intakeState = IntakeState::NONE;
-            // prevent stall
-            /*if (intakeState == IntakeState::FRONT && intakeSaver.isPwr(0.7) && !intakeSaver.isFaster(0.2)) { intakeState = IntakeState::ALTERNATE; }*/
+            intakeState = isTopBallIn() ? IntakeState::FRONT_HOLD : IntakeState::NONE;
         }
         if (intakeRunning) setIntake(intakeState);
         if (millis() - prevCtlrUpdateT > 150) {
-            bool curIsBallIn = isBallIn();
-            if (curIsBallIn) {
-                if (prevIsBallIn) {
-                    ctlr.print(2, 0, "--- Ball In ---");
-                } else {
-                    ctlr.rumble(" .");
-                }
+            bool curIsBallIn = isBtmBallIn();
+            if (curIsBallIn && !prevIsBallIn) {
+                ctlr.rumble(" .");
             } else {
-                ctlr.print(2, 0, "                ");
+                ctlr.print(2, 0, "Balls: %s, %s", isBtmBallIn() ? "BTM" : "---", isTopBallIn() ? "TOP" : "---");
             }
             prevIsBallIn = curIsBallIn;
             prevCtlrUpdateT = millis();

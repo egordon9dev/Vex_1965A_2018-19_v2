@@ -27,7 +27,7 @@ extern const double ticksPerInchADI;
 extern int driveLim;
 extern int clawPowerLimit;
 extern int drfbFullRangePowerLimit;
-enum class IntakeState { FRONT, BACK, BACK_SLOW, ALTERNATE, NONE };
+enum class IntakeState { FRONT, FRONT_HOLD, BACK, BACK_SLOW, ALTERNATE, NONE };
 int clamp(int n, int min, int max);
 double clamp(double n, double min, double max);
 
@@ -72,6 +72,8 @@ void setIntake(int n);
 int getBallSensL();
 int getBallSensR();
 bool isBallIn();
+bool isTopBallIn();
+bool isBtmBallIn();
 IntakeState getISLoad();
 double getIntakePos();
 int getIntakeVoltage();
