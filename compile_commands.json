@@ -728,11 +728,11 @@
             "-fdiagnostics-color",
             "--std=gnu++17",
             "-o",
-            "bin/opcontrol.cpp.o",
-            "src\\opcontrol.cpp"
+            "bin/setup.cpp.o",
+            "src\\setup.cpp"
         ],
         "directory": "C:\\Users\\Ethan\\Desktop\\6000",
-        "file": "src\\opcontrol.cpp"
+        "file": "src\\setup.cpp"
     },
     {
         "arguments": [
@@ -763,10 +763,10 @@
             "-fdiagnostics-color",
             "--std=gnu++17",
             "-o",
-            "bin/setup.cpp.o",
-            "src\\setup.cpp"
+            "bin/opcontrol.cpp.o",
+            "src\\opcontrol.cpp"
         ],
         "directory": "C:\\Users\\Ethan\\Desktop\\6000",
-        "file": "src\\setup.cpp"
+        "file": "src\\opcontrol.cpp"
     }
 ]

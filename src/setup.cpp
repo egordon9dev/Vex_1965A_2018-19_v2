@@ -44,8 +44,7 @@ const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1170, 
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosShoot = 250;
 const int drfbHoldPwr = -1500;
 
-const double dShotSpeed1 = 2.62, dShotSpeed2 = 2.83;
-const double sShotSpeed = 2.8;
+const double idleSpeed = 1.5, sShotSpeed = 2.8;
 
 const int intakeShootTicks = -600;
 
@@ -101,7 +100,7 @@ void setIntake(IntakeState is) {
     } else if (is == IntakeState::FRONT) {
         setIntake(12000);
     } else if (is == IntakeState::FRONT_HOLD) {
-        setIntake(1500);
+        setIntake(500);
     } else if (is == IntakeState::BACK) {
         setIntake(-12000);
     } else if (is == IntakeState::BACK_SLOW) {
@@ -240,7 +239,7 @@ double getFlywheel() { return mtr6.get_position(); }
 double getFlywheelFromMotor() { return 3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {1.0, 3750}, {2.0, 7000}, {2.2, 7700}, {2.4, 8500}, {2.5, 8950}, {2.6, 9250}, {2.7, 9650}, {2.8, 9750}, {2.9, 10800}};
+double FWSpeeds[][2] = {{0, 0}, {2.8, 11100}, {2.9, 11400}};
 void pidFlywheelInit(double speed, double pidZone, int wait) { flywheel::init(speed, pidZone, wait); }
 bool pidFlywheel() {
     static std::deque<int> pwrs;
@@ -255,6 +254,7 @@ bool pidFlywheel() {
     static double sumVel = 0.0;
     static int numVel = 0;
     static int crossedTargetT = 0;
+    static double filtD = 0.0;
     if (fabs(speed - prevSpeed) > 0.01) {
         output = 0.0;
         crossedTarget = false;
@@ -283,6 +283,7 @@ bool pidFlywheel() {
             // after shooting a ball, the flywheel slows down a lot
             if (flywheelPid.sensVal < flywheelPid.prevSensVal - 0.1) {
                 dir = 1;
+                output = 0.0;
                 crossedTarget = false;
             }
         }
@@ -314,7 +315,10 @@ bool pidFlywheel() {
             sumVel = 0.0;
             numVel = 0;
             prevUpdateT = millis();
-            double deltaOutput = flywheelPid.update();
+            flywheelPid.update();
+            double k = 0.9;
+            filtD = k * filtD + (1 - k) * flywheelPid.deriv;
+            double deltaOutput = flywheelPid.prop + filtD;
             if (crossedTarget) {
                 if (millis() - crossedTargetT > 50000000) pidShutdown = true;
                 if (pidShutdown && pwrs.size() > 0) {
@@ -485,7 +489,7 @@ void setup() {
     // 2 fw: kp=1200 kd=200k
     // 1 fw: kp=700 kd=180k
     // complex fw: kp=1000, kd=200000
-    flywheelPid.kp = 4000.0;
+    flywheelPid.kp = 2000.0;
     flywheelPid.ki = 0;
     flywheelPid.kd = 700000.0;
     flywheelPid.DONE_ZONE = 0.1;

@@ -212,7 +212,7 @@ void auton3(bool leftSide) {
             pidDrive();
             if (pidIntake()) {
                 intakeRunning = true;
-                pidFlywheelInit(1.0, 0.1, 9999);
+                pidFlywheelInit(idleSpeed, 0.1, 9999);
                 is = IntakeState::FRONT;
                 timeBetweenI = 4500;
                 pidDriveLineInit(ptShoot2, ptAfterCap2, false, 0.08, driveT);
@@ -699,7 +699,7 @@ void auton5(bool leftSide) {
                 if (pidIntake()) {
                     intakeRunning = true;
                     is = IntakeState::NONE;
-                    pidFlywheelInit(1.0, 0.1, 9999);
+                    pidFlywheelInit(idleSpeed, 0.1, 9999);
                     pidDriveLineInit(ptShoot, ptAfterCap2, false, 0.1, 0);
                     k = 0;
                     i++;
