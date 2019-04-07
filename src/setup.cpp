@@ -45,7 +45,7 @@ const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max
 const int drfbHoldPwr = -1500;
 
 const double dShotSpeed1 = 2.62, dShotSpeed2 = 2.83;
-const double sShotSpeed = 2.9;
+const double sShotSpeed = 2.8;
 
 const int intakeShootTicks = -600;
 
@@ -233,11 +233,11 @@ void setFlywheel(int n) {
     n = clamp(n, 0, 12000);
     // n = flywheelSlew.update(n);
     // n = flySaver.getPwr(n, getFlywheel());
-    mtr6.move_voltage(-n);
+    mtr6.move_voltage(n);
     flywheel::requestedVoltage = n;
 }
-double getFlywheel() { return -mtr6.get_position(); }
-double getFlywheelFromMotor() { return -3.1 / 200.0 * mtr6.get_actual_velocity(); }
+double getFlywheel() { return mtr6.get_position(); }
+double getFlywheelFromMotor() { return 3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 
 double FWSpeeds[][2] = {{0, 0}, {1.0, 3750}, {2.0, 7000}, {2.2, 7700}, {2.4, 8500}, {2.5, 8950}, {2.6, 9250}, {2.7, 9650}, {2.8, 9750}, {2.9, 10800}};
@@ -314,10 +314,9 @@ bool pidFlywheel() {
             sumVel = 0.0;
             numVel = 0;
             prevUpdateT = millis();
-
+            double deltaOutput = flywheelPid.update();
             if (crossedTarget) {
-                double deltaOutput = flywheelPid.update();
-                if (millis() - crossedTargetT > 1000) pidShutdown = true;
+                if (millis() - crossedTargetT > 50000000) pidShutdown = true;
                 if (pidShutdown && pwrs.size() > 0) {
                     int sum = 0;
                     for (const auto& p : pwrs) { sum += p; }
@@ -486,8 +485,9 @@ void setup() {
     // 2 fw: kp=1200 kd=200k
     // 1 fw: kp=700 kd=180k
     // complex fw: kp=1000, kd=200000
-    flywheelPid.kp = 1200.0;
-    flywheelPid.kd = 200000.0;
+    flywheelPid.kp = 4000.0;
+    flywheelPid.ki = 0;
+    flywheelPid.kd = 700000.0;
     flywheelPid.DONE_ZONE = 0.1;
     flySaver.setConstants(1, 1, 0, 0);
 

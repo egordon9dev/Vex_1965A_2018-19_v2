@@ -31,7 +31,7 @@ using pros::delay;
 using std::cout;
 using std::endl;
 void testAuton();
-bool robotInit = false;
+bool robotInit = true;
 void opcontrol() {
     if (!robotInit) {
         morningRoutine();
@@ -160,7 +160,7 @@ void opcontrol() {
             dShotI = -1;
         }
 
-        // pidFlywheelInit(2.9, 0.1, 999);
+        pidFlywheelInit(2.8, 0.1, 999);
         pidFlywheel();
         // printf("{req %d actl %d}", getFlywheelVoltage(), mtr6.get_voltage());
         // drfb
