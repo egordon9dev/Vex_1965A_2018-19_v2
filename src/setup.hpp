@@ -11,7 +11,7 @@ extern pros::ADILineSensor* ballSensR;
 extern pros::ADIEncoder* perpindicularWheelEnc;
 extern pros::ADIEncoder* DLEnc;
 extern pros::ADIEncoder* DREnc;
-extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1Plus, drfbPos2Plus, drfbMinClaw0, drfbMaxClaw0, drfbMinClaw1, drfb18Max, drfbPosShoot;
+extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1Plus, drfbPos2Plus, drfbMinClaw0, drfbMaxClaw0, drfbMinClaw1, drfb18Max, drfbPosCloseIntake;
 extern const int drfbHoldPwr;
 extern double drfbIMEBias;
 extern const int claw180;
@@ -83,10 +83,12 @@ bool pidIntake();
 //----------- DRFB functions ---------
 void trimDrfb(int trim);
 void setDrfb(int n);
+void setDrfbDull(int n);
 void setDrfbDumb(int n);
 void setDrfbParams(bool auton);
 double getDrfb();
 int getDrfbCurrent();
+int getDrfbVoltage();
 bool pidDrfb(double pos, int wait);
 void pidDrfb();
 //---------- Claw functions --------

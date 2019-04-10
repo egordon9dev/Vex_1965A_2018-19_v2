@@ -9,16 +9,16 @@ pros::Motor mtr2(8);   // DR bottom
 pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 double getDL() {
-    DLMtx.take(50);
+    /*DLMtx.take(50);
     double d = (mtr4.get_position()) + DLEncBias;
-    DLMtx.give();
-    return d;
+    DLMtx.give();*/
+    return DLEnc->get_value();  // d;
 }
 double getDR() {
-    DRMtx.take(50);
+    /*DRMtx.take(50);
     double d = (-mtr1.get_position()) + DREncBias;
-    DRMtx.give();
-    return d;
+    DRMtx.give();*/
+    return DREnc->get_value();  // d;
 }
 double getDS() {
     DSMtx.take(50);

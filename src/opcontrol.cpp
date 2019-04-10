@@ -52,6 +52,10 @@ void opcontrol() {
         return;
     }
     if (0) {
+        while (1) {
+            printf("%d %d\n", (int)(getDL() + 0.5), (int)(getDR() + 0.5));
+            delay(10);
+        }
         // odometry.setA(-PI / 2);
         // odometry.setX(0);
         // odometry.setY(0);
@@ -119,7 +123,7 @@ void opcontrol() {
     bool intakeToggle = false;
     bool fwPidRunning = false;
     int fwPwr = 7000;
-
+    int prevNotHoldingT = -9999;
     // int iti = 0;    // iti = Intake Tracker Index
     // int itt = BIL;  // itt = Intake Tracker Time
     while (true) {
@@ -129,7 +133,7 @@ void opcontrol() {
         pros::lcd::print(3, "L %f", getDL());
         pros::lcd::print(4, "R %f", getDR());
         pros::lcd::print(5, "S %f", getDS());
-        pros::lcd::print(7, "drfb: %.2f", getDrfb());
+        pros::lcd::print(7, "drfb%d: %.2f", getDrfbVoltage(), getDrfb());
 
         printf("t: %d ", millis());
         printPidValues();
@@ -170,14 +174,14 @@ void opcontrol() {
         **       Y: Low Post
         **       A: High Post
         */
-        if (curClicks[ctlrIdxR1]) {
+        if (curClicks[ctlrIdxR1] && getDrfb() < drfbPos2Plus) {
             atDrfbSetp = false;
             drfbPidRunning = false;
             drfbFullRangePowerLimit = 12000;
             autoFlipI = -1;
             tDrfbOff = millis();
             setDrfb(12000);
-        } else if (curClicks[ctlrIdxR2]) {
+        } else if (curClicks[ctlrIdxR2] && getDrfb() >= drfbPosCloseIntake) {
             atDrfbSetp = false;
             drfbPidRunning = false;
             drfbFullRangePowerLimit = 12000;
@@ -206,7 +210,7 @@ void opcontrol() {
             drfbFullRangePowerLimit = 12000;
             autoFlipI = -1;
             drfbPidBias = 0;
-            drfbPid.target = drfbPosShoot;
+            drfbPid.target = drfbPosCloseIntake;
             setDrfbParams(true);
         } else if (autoFlipI > -1) {
             if (autoFlipI == 0) {
@@ -268,7 +272,7 @@ void opcontrol() {
                 printf("auto flip step 3 ");
                 if (fabs(getDrfb() - drfbPid.target) < 100) autoFlipI = -1;
             }
-        } else if ((millis() - tDrfbOff > 130 && millis() - opcontrolT0 > 300) || getDrfb() < (drfbPos0 + drfbPosShoot) * 0.5) {
+        } else if ((millis() - tDrfbOff > 130 && millis() - opcontrolT0 > 300) || getDrfb() < (drfbPos0 + drfbPosCloseIntake) * 0.5) {
             if (!drfbPidRunning) {
                 drfbPidBias = 0;
                 drfbPidRunning = true;
@@ -279,13 +283,16 @@ void opcontrol() {
             printf("idling");
             setDrfb(0);
         }
+        bool isDrfbHolding = false;
         if (drfbPidRunning) {
-            if (drfbPid.target < drfbPosShoot) {
-                setDrfb(drfbHoldPwr);
+            if (drfbPid.target < drfbPosCloseIntake) {
+                setDrfbDull(getDrfb() < drfbPos0 || millis() - prevNotHoldingT > 400 ? drfbHoldPwr : -12000);
+                isDrfbHolding = true;
             } else {
                 pidDrfb();
             }
         }
+        if (!isDrfbHolding) prevNotHoldingT = millis();
         // CLAW
         if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && autoFlipI == -1) {
             if (atDrfbSetp && (fabs(getDrfb() - drfbPos1) < 100 || fabs(getDrfb() - drfbPos2) < 100) || getDrfb() < drfbMinClaw0) {

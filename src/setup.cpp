@@ -40,11 +40,11 @@ pros::ADIEncoder* DLEnc;
 pros::ADIEncoder* DREnc;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1170, drfbPos1Plus = 1493, drfbPos2 = 1780, drfbPos2Plus = 2280;
-const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosShoot = 250;
+const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1250, drfbPos1Plus = 1470, drfbPos2 = 1800, drfbPos2Plus = 2270;
+const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 300;
 const int drfbHoldPwr = -1500;
 
-const double idleSpeed = 1.5, sShotSpeed = 2.8;
+const double idleSpeed = 1.5, sShotSpeed = 3.05;
 
 const int intakeShootTicks = -600;
 
@@ -145,6 +145,11 @@ void setDrfb(int n) {
     mtr7.move_voltage(n);
     drfb_requested_voltage = n;
 }
+void setDrfbDull(int n) {
+    n = drfbSlew.update(n);
+    mtr7.move_voltage(n);
+    drfb_requested_voltage = n;
+}
 void setDrfbDumb(int n) {
     mtr7.move_voltage(n);
     drfb_requested_voltage = n;
@@ -239,7 +244,7 @@ double getFlywheel() { return mtr6.get_position(); }
 double getFlywheelFromMotor() { return 3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {2.8, 11100}, {2.9, 11400}};
+double FWSpeeds[][2] = {{0, 0}, {2.8, 11000}, {2.9, 11000}, {3.0, 10800}, {3.05, 11050}};
 void pidFlywheelInit(double speed, double pidZone, int wait) { flywheel::init(speed, pidZone, wait); }
 bool pidFlywheel() {
     static std::deque<int> pwrs;
@@ -419,7 +424,7 @@ void stopMotorsBlock() {
     }
 }
 void printPidValues() {
-    printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f claw%2d %4d/%4d intake%2d %4d/%4d ballsens %d %d\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, (int)getBallSensL(), (int)getBallSensR());
+    printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f claw%2d %4d/%4d intake%2d %4d/%4d ballsens %d %d\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target), (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, (int)getBallSensL(), (int)getBallSensR());
     std::cout << std::endl;
 }
 extern Point g_target;
@@ -486,12 +491,13 @@ void setup() {
         printf("setting up...\n");
     }
     flywheelSlew.slewRate = 999999;  // 60;
-    // 2 fw: kp=1200 kd=200k
+    // 2 fw + mesh,rubber bands: kp=2000 kd=700k:     2.9-2.43  2.12-1.73
+    // 2 fw + rubber bands:                             2.9-2.54  2.492-2.203
     // 1 fw: kp=700 kd=180k
     // complex fw: kp=1000, kd=200000
-    flywheelPid.kp = 2000.0;
+    flywheelPid.kp = 900.0;  // 900    3.0
     flywheelPid.ki = 0;
-    flywheelPid.kd = 700000.0;
+    flywheelPid.kd = 150000;  // 150k
     flywheelPid.DONE_ZONE = 0.1;
     flySaver.setConstants(1, 1, 0, 0);
 
