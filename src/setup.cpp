@@ -46,7 +46,7 @@ const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1250 -
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 300;
 const int drfbHoldPwr = -1500;
 
-double sShotSpeed = 2.9;
+double sShotSpeed = 3.0;
 double fw_a4_middleFlag = 3.0;
 double fw_a4_sideFlag = 3.0;
 
