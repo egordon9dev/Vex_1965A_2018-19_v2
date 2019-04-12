@@ -17,7 +17,7 @@ extern const int drfbHoldPwr;
 extern double drfbIMEBias;
 extern const int claw180;
 extern const int intakeOneShotTicks;
-extern const double sShotSpeed, idleSpeed;
+extern double sShotSpeed, fw_a4_middleFlag, fw_a4_sideFlag;
 extern const int ctlrIdxLeft, ctlrIdxUp, ctlrIdxRight, ctlrIdxDown, ctlrIdxY, ctlrIdxX, ctlrIdxA, ctlrIdxB, ctlrIdxL1, ctlrIdxL2, ctlrIdxR1, ctlrIdxR2;
 extern int drfbPidBias;
 extern const int BIL, MIL;

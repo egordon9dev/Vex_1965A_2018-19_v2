@@ -212,7 +212,7 @@ void auton3(bool leftSide) {
             pidDrive();
             if (pidIntake()) {
                 intakeRunning = true;
-                pidFlywheelInit(idleSpeed, 0.1, 9999);
+                pidFlywheelInit(1.5, 0.1, 9999);
                 is = IntakeState::FRONT;
                 timeBetweenI = 4500;
                 pidDriveLineInit(ptShoot2, ptAfterCap2, false, 0.08, driveT);
@@ -298,7 +298,7 @@ align left/right: 1 finger(3 segments tip to 3rd joint/wrinkle) far from the pla
 12 pts
 Cap Side: 1 low cap, 1 high cap, 2 left side high flags
 */
-/*void auton4(bool leftSide) {
+void auton4(bool leftSide) {
     printf("\n\n\n--------------------   Auton 4 ---------------------\n\n\n");
     int sideSign = leftSide ? 1 : -1;
     int i = 0;
@@ -321,44 +321,21 @@ Cap Side: 1 low cap, 1 high cap, 2 left side high flags
     // tuning setpoints
     Point ptBeforeCap1;
     Point ptAfterCap1;
-    Point ptBeforeShoot;
-    Point ptAfterShoot;
-    Point ptAfterCap2;
-    Point ptBeforePost;
-    Point ptPost;
-    Point ptAfterPost;
-    int fwSpeed1, fwSpeed2;
 
-    fwSpeed1 = dShotSpeed1;
-    fwSpeed2 = dShotSpeed2;
     /*************************************************
     ***********     Left (Red) Side     ************
-    ************************************************** /
+    **************************************************/
     if (leftSide) {
         ptBeforeCap1 = Point(0, 27);
         ptAfterCap1 = Point(0, 41.5);
-        ptBeforeShoot = Point(16 * sideSign, -1);
-        ptShoot = Point(27 * sideSign, -1);
-        ptAfterShoot = Point(24 * sideSign, -1);
-        ptAfterCap2 = Point(24 * sideSign, 41);
-        ptBeforePost = Point(24 * sideSign, 18);
-        ptPost = Point(26 * sideSign, 18);
-        ptAfterPost = Point(12 * sideSign, 18);
     }
 
     /*************************************************
     ***********     Right (Blue) Side     ************
-    ************************************************** /
+    **************************************************/
     else {
         ptBeforeCap1 = Point(0, 27);
         ptAfterCap1 = Point(0, 41.5);
-        ptBeforeShoot = Point(16 * sideSign, -1);
-        ptShoot = Point(27 * sideSign, -1);
-        ptAfterShoot = Point(24 * sideSign, -1);
-        ptAfterCap2 = Point(24 * sideSign, 41);
-        ptBeforePost = Point(24 * sideSign, 18);
-        ptPost = Point(26 * sideSign, 18);
-        ptAfterPost = Point(12 * sideSign, 18);
     }
     odometry.setA(-PI / 2);
     odometry.setX(0);
@@ -366,7 +343,7 @@ Cap Side: 1 low cap, 1 high cap, 2 left side high flags
 
     // initialize
     t0 = millis();
-    pidFlywheelInit(fwSpeed2, 500);
+    pidFlywheelInit(fw_a4_middleFlag, 500);
     odometry.reset();
     pidDriveInit(ptBeforeCap1, 0);
     setDriveSlew(true);
@@ -477,7 +454,8 @@ Cap Side: 1 low cap, 1 high cap, 2 left side high flags
                     pidFlywheelInit(1.0, 9999);
                     pidDriveLineInit(odometry.getPos(), ptAfterShoot, true, 0.1, 0);
                     i++;
-                }lksand
+                }
+                lksand
             }
         } else if (i == j++) {
             printf("drive to ptAfterPost");
@@ -513,22 +491,23 @@ Cap Side: 1 low cap, 1 high cap, 2 left side high flags
         delay(10);
     }
     stopMotorsBlock();
-}*/
-/*
-    ###    ##     ## ########  #######  ##    ## ########
-   ## ##   ##     ##    ##    ##     ## ###   ## ##
-  ##   ##  ##     ##    ##    ##     ## ####  ## ##
- ##     ## ##     ##    ##    ##     ## ## ## ## #######
- ######### ##     ##    ##    ##     ## ##  ####       ##
- ##     ## ##     ##    ##    ##     ## ##   ### ##    ##
- ##     ##  #######     ##     #######  ##    ##  ######
+}
+* /
+    /*
+        ###    ##     ## ########  #######  ##    ## ########
+       ## ##   ##     ##    ##    ##     ## ###   ## ##
+      ##   ##  ##     ##    ##    ##     ## ####  ## ##
+     ##     ## ##     ##    ##    ##     ## ## ## ## #######
+     ######### ##     ##    ##    ##     ## ##  ####       ##
+     ##     ## ##     ##    ##    ##     ## ##   ### ##    ##
+     ##     ##  #######     ##     #######  ##    ##  ######
 
-2 balls middle post, 1 cap high post, 1 low scored cap
+    2 balls middle post, 1 cap high post, 1 low scored cap
 
-Alignment tool: 3 3/8 + 1/32
-*/
+    Alignment tool: 3 3/8 + 1/32
+    */
 
-void auton5(bool leftSide) {
+    void auton5(bool leftSide) {
     printf("\n\n\n--------------------   Auton 5 ---------------------\n\n\n");
     int sideSign = leftSide ? 1 : -1;
     int i = 0;
@@ -699,7 +678,7 @@ void auton5(bool leftSide) {
                 if (pidIntake()) {
                     intakeRunning = true;
                     is = IntakeState::NONE;
-                    pidFlywheelInit(idleSpeed, 0.1, 9999);
+                    pidFlywheelInit(1.5, 0.1, 9999);
                     pidDriveLineInit(ptShoot, ptAfterCap2, false, 0.1, 0);
                     k = 0;
                     i++;

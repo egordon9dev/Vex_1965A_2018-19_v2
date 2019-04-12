@@ -46,7 +46,9 @@ const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1250 -
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 300;
 const int drfbHoldPwr = -1500;
 
-const double idleSpeed = 1.5, sShotSpeed = 3.00;
+double sShotSpeed = 2.9;
+double fw_a4_middleFlag = 3.0;
+double fw_a4_sideFlag = 3.0;
 
 const int intakeOneShotTicks = 350;
 
@@ -246,7 +248,7 @@ double getFlywheel() { return mtr6.get_position(); }
 double getFlywheelFromMotor() { return 3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {2.8, 11000}, {2.9, 11000}, {3.0, 10800}, {3.05, 11050}};
+double FWSpeeds[][2] = {{0, 0}, {2.8, 11000}, {2.9, 11000}, {3.0, 10800}, {3.06, 11600}};
 void pidFlywheelInit(double speed, double pidZone, int wait) { flywheel::init(speed, pidZone, wait); }
 bool pidFlywheel() {
     static std::deque<int> pwrs;
