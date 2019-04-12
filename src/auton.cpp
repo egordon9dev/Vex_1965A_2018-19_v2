@@ -174,7 +174,7 @@ void auton3(bool leftSide) {
             pidDrive();
             if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 1000) {  // typical: 10ms
                 intakeRunning = false;
-                pidIntakeInit(intakeShootTicks, 80);
+                pidIntakeInit(999777000, 80);
                 i++;
             }
         } else if (i == j++) {  // shoot 1
@@ -203,7 +203,7 @@ void auton3(bool leftSide) {
             pidDrive();
             if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 1900) {  // typical: 1400ms
                 intakeRunning = false;
-                pidIntakeInit(intakeShootTicks, 80);
+                pidIntakeInit(999777000, 80);
                 i++;
             }
         } else if (i == j++) {  // shoot 2
@@ -447,7 +447,7 @@ Cap Side: 1 low cap, 1 high cap, 2 left side high flags
                 printPidValues();
                 if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 1000) {
                     intakeRunning = false;
-                    pidIntakeInit(intakeShootTicks, 80);
+                    pidIntakeInit(999777000, 80);
                     k++;
                 }
             } else if (k == 1) {
@@ -465,7 +465,7 @@ Cap Side: 1 low cap, 1 high cap, 2 left side high flags
                 printPidValues();
                 if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 3000) {
                     intakeRunning = false;
-                    pidIntakeInit(intakeShootTicks, 80);
+                    pidIntakeInit(999777000, 80);
                     k++;
                 }
             } else if (k == 3) {
@@ -672,7 +672,7 @@ void auton5(bool leftSide) {
                 printPidValues();
                 if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 1500) {
                     intakeRunning = false;
-                    pidIntakeInit(intakeShootTicks, 80);
+                    pidIntakeInit(999777000, 80);
                     k++;
                 }
             } else if (k == 1) {
@@ -690,7 +690,7 @@ void auton5(bool leftSide) {
                 printPidValues();
                 if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 2500) {
                     intakeRunning = false;
-                    pidIntakeInit(intakeShootTicks, 80);
+                    pidIntakeInit(999777000, 80);
                     k++;
                 }
             } else if (k == 3) {

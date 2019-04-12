@@ -124,6 +124,8 @@ void opcontrol() {
     bool fwPidRunning = false;
     int fwPwr = 7000;
     int prevNotHoldingT = -9999;
+
+    bool oneShotReq = false, prevOneShotReq = false, intakeRunning = true;
     // int iti = 0;    // iti = Intake Tracker Index
     // int itt = BIL;  // itt = Intake Tracker Time
     while (true) {
@@ -272,7 +274,7 @@ void opcontrol() {
                 printf("auto flip step 3 ");
                 if (fabs(getDrfb() - drfbPid.target) < 100) autoFlipI = -1;
             }
-        } else if ((millis() - tDrfbOff > 130 && millis() - opcontrolT0 > 300) || getDrfb() < (drfbPos0 + drfbPosCloseIntake) * 0.5) {
+        } else if ((millis() - tDrfbOff > 130 && millis() - opcontrolT0 > 300) || getDrfb() < drfbPosCloseIntake) {
             if (!drfbPidRunning) {
                 drfbPidBias = 0;
                 drfbPidRunning = true;
@@ -323,12 +325,26 @@ void opcontrol() {
         // -----------  Intake  ------------
         if (isTopBallIn() && isBtmBallIn() && !curClicks[ctlrIdxL1]) intakeToggle = false;
         if (curClicks[ctlrIdxL1] && !prevClicks[ctlrIdxL1]) { intakeToggle = !intakeToggle; }
-        if (intakeToggle) {
-            intakeState = IntakeState::FRONT;
-        } else {
-            intakeState = isTopBallIn() ? IntakeState::FRONT_HOLD : IntakeState::NONE;
+        if (curClicks[ctlrIdxLeft] && !prevClicks[ctlrIdxLeft]) intakeState = IntakeState::BACK;
+        if (curClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight]) oneShotReq = true;
+        intakeRunning = !oneShotReq;
+        if (oneShotReq && !prevOneShotReq) {
+            intakeRunning = false;
+            pidIntakeInit(intakeOneShotTicks, 100);
         }
-        setIntake(intakeState);
+        prevOneShotReq = oneShotReq;
+        if (intakeState != IntakeState::BACK) {
+            if (intakeToggle) {
+                intakeState = IntakeState::FRONT;
+            } else {
+                intakeState = isTopBallIn() ? IntakeState::FRONT_HOLD : IntakeState::NONE;
+            }
+        }
+        if (intakeRunning) {
+            setIntake(intakeState);
+        } else {
+            if (pidIntake()) oneShotReq = false;
+        }
         if (millis() - prevCtlrUpdateT > 150) {
             bool curIsBallIn = isBtmBallIn();
             if (curIsBallIn && !prevIsBallIn) {

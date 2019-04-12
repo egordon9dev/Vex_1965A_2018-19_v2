@@ -40,13 +40,15 @@ pros::ADIEncoder* DLEnc;
 pros::ADIEncoder* DREnc;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1250, drfbPos1Plus = 1470, drfbPos2 = 1800, drfbPos2Plus = 2270;
+const int driveTurnLim = 9000;
+
+const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1250 - 50, drfbPos1Plus = 1470 - 50, drfbPos2 = 1800, drfbPos2Plus = 2270;
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 300;
 const int drfbHoldPwr = -1500;
 
-const double idleSpeed = 1.5, sShotSpeed = 3.05;
+const double idleSpeed = 1.5, sShotSpeed = 3.00;
 
-const int intakeShootTicks = -600;
+const int intakeOneShotTicks = 350;
 
 const int dblClickTime = 450, claw180 = 1370;
 const double /*ticksPerInch = 52.746, */ ticksPerInchADI = /*35.2426*/ 52.746, ticksPerRadian = 368.309;
@@ -102,9 +104,9 @@ void setIntake(IntakeState is) {
     } else if (is == IntakeState::FRONT_HOLD) {
         setIntake(500);
     } else if (is == IntakeState::BACK) {
-        setIntake(-12000);
+        setIntake(-5000);
     } else if (is == IntakeState::BACK_SLOW) {
-        setIntake(-7000);
+        setIntake(-2000);
     } else if (is == IntakeState::ALTERNATE) {
         if (isBallIn()) {
             setIntake(1000);
@@ -260,7 +262,9 @@ bool pidFlywheel() {
     static int numVel = 0;
     static int crossedTargetT = 0;
     static double filtD = 0.0;
+    static double prevSensVal = 0;
     if (fabs(speed - prevSpeed) > 0.01) {
+        printf("\n\nFlywheelPid New Target\n");
         output = 0.0;
         crossedTarget = false;
         if (speed > prevSpeed) {
@@ -284,12 +288,24 @@ bool pidFlywheel() {
     }
     if (dt < 1000 && dt > 0) {
         flywheelPid.target = speed;
+
+        sumVel += getFlywheelFromMotor();
+        numVel++;
+        bool updateNow = false;
+        if (millis() - prevUpdateT > 50) {
+            // average sensor reading during the the update interval
+            flywheelPid.sensVal = sumVel / numVel;
+            updateNow = true;
+        }
+
         if (crossedTarget) {
+            printf("{fw1 cur: %1.3f, prev: %1.3f}\n", flywheelPid.sensVal, prevSensVal);
             // after shooting a ball, the flywheel slows down a lot
-            if (flywheelPid.sensVal < flywheelPid.prevSensVal - 0.1) {
+            if (flywheelPid.sensVal < prevSensVal - 0.1) {
                 dir = 1;
                 output = 0.0;
                 crossedTarget = false;
+                printf("\n---------------- Flywheel PID Reset -----------------\n\n");
             }
         }
         if (!crossedTarget) {
@@ -310,12 +326,7 @@ bool pidFlywheel() {
                 }
             }
         }
-        sumVel += getFlywheelFromMotor();
-        numVel++;
-        if (millis() - prevUpdateT > 50) {
-            // average sensor reading during the the update interval
-            flywheelPid.sensVal = sumVel / numVel;
-
+        if (updateNow) {
             // reset for next time
             sumVel = 0.0;
             numVel = 0;
@@ -341,6 +352,8 @@ bool pidFlywheel() {
                     if (pwrs.size() > 10) pwrs.pop_front();
                 }
             }
+            printf("{ flywheelPid, output: %d, crossedTarget: %s, prevSensVal: %1.3f } ", lround(output), crossedTarget ? "True" : "False", prevSensVal);
+            prevSensVal = flywheelPid.sensVal;
         }
     }
     return millis() - flywheelPid.doneTime > flywheel::wait;
@@ -445,11 +458,15 @@ void startOdoTask() {
 }
 
 void opctlDrive(int driveDir) {
-    int joy[] = {lround(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), lround(driveDir * ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
-    if (abs(joy[0]) < 10) joy[0] = 0;
-    if (abs(joy[1]) < 10) joy[1] = 0;
-    setDL(joy[1] + joy[0]);
-    setDR(joy[1] - joy[0]);
+    int trn = lround(ctlr.get_analog(ANALOG_RIGHT_X));
+    int drv = lround(driveDir * ctlr.get_analog(ANALOG_LEFT_Y));
+    if (abs(drv) < 10) drv = 0;
+    if (abs(trn) < 10) trn = 0;
+    drv = lround(drv * 12000.0 / 127.0);
+    trn = lround(trn * 12000.0 / 127.0);
+    if (abs(drv) < 4000) trn = clamp(trn, -driveTurnLim, driveTurnLim);
+    setDL(drv + trn);
+    setDR(drv - trn);
 }
 /*
   ######  ######## ######## ##     ## ########
@@ -495,7 +512,7 @@ void setup() {
     // 2 fw + rubber bands:                             2.9-2.54  2.492-2.203
     // 1 fw: kp=700 kd=180k
     // complex fw: kp=1000, kd=200000
-    flywheelPid.kp = 900.0;  // 900    3.0
+    flywheelPid.kp = 1100.0;
     flywheelPid.ki = 0;
     flywheelPid.kd = 150000;  // 150k
     flywheelPid.DONE_ZONE = 0.1;
