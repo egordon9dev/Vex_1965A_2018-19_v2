@@ -303,8 +303,8 @@ void auton4(bool leftSide) {
     int sideSign = leftSide ? 1 : -1;
     int i = 0;
     int k = 0;
-    double targetAngle = leftSide ? 1.166 : PI - 1.166;
-    const int driveT = 150, turnT = 200;
+    double targetAngle = leftSide ? 1.166+PI : 2*PI - 1.166;
+    const int driveT = 150;
     IntakeState is = IntakeState::NONE;
     double arcRadius;
     int t0 = BIL, t02 = BIL;
@@ -340,17 +340,20 @@ void auton4(bool leftSide) {
     else {
         ptBeforeCap1 = Point(0, 27);
         ptAfterCap1 = Point(0, 41.5);
+       return;
     }
+    Point pt0(0,0);
     odometry.setA(targetAngle);
     odometry.setX(0);
     odometry.setY(0);
 
     // initialize
     t0 = millis();
-    pidFlywheelInit(fw_a4_middleFlag, 0.1, 500);
+    pidFlywheelInit(3.0, 0.1, 500);
     odometry.reset();
-    pidDriveInit(ptBeforeCap1, 0);
+    pidDriveLineInit(pt0, ptC1, true, 0.1, driveT);
     setDriveSlew(true);
+   
     while (!ctlr.get_digital(DIGITAL_B)) {
         printf("%.2f ", (millis() - autonT0) / 1000.0);
         pros::lcd::print(8, "Time: %d ms", millis() - autonT0);
@@ -366,23 +369,21 @@ void auton4(bool leftSide) {
         if (i == j++) {  // grab ball from under cap 1
             printf("drv twd cap 1 ");
             printDrivePidValues();
-            drfbPidRunning = true;
-            drfbPid.target = drfbPos0;
+            drfbPidRunning = false;
             clawPidRunning = true;
             clawPid.target = 0;
-            is = IntakeState::FRONT;
-            if (k == 0) {
-                pidDrive();
-                if (odometry.getY() > ptBeforeCap1.y - 1 && fabs(getDriveVel()) < 20) k++;
-            } else if (k == 1) {
-                setDL(-5000);
-                setDR(-5000);
-                if (odometry.getY() > ptAfterCap1.y) {
-                    timeBetweenI = 4500;
-                    i++;
-                }
+            is = IntakeState::NONE;
+            bool driveDone = pidDriveLine();
+            if (driveDone) {
+               pidDriveLineInit(ptC1, ptBeforeC2, false, 0.1, driveT);
+               i++;
             }
-
+        } else if (i == j++) {
+           
+        } else if (i == j++) {
+        } else if (i == j++) {
+        } else if (i == j++) {
+        } else if (i == j++) {
         } else if (i == j++) {
             if (i == 12345) printf("\n\nAUTON TIMEOUT\n");
             stopMotors();
