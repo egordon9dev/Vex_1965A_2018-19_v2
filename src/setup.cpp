@@ -43,14 +43,14 @@ pros::ADIEncoder* DREnc;
 const int driveTurnLim = 9000;
 
 const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1250 - 50, drfbPos1Plus = 1470 - 50, drfbPos2 = 1800, drfbPos2Plus = 2270;
-const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 300;
+const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200;
 const int drfbHoldPwr = -1500;
 
 double sShotSpeed = 3.0;
 double fw_a4_middleFlag = 3.0;
 double fw_a4_sideFlag = 3.0;
 
-const int intakeOneShotTicks = 350;
+const int intakeOneShotTicks = 600, intakeOneShotTicksTop = 450;
 
 const int dblClickTime = 450, claw180 = 1370;
 const double /*ticksPerInch = 52.746, */ ticksPerInchADI = /*35.2426*/ 52.746, ticksPerRadian = 368.309;
@@ -106,7 +106,7 @@ void setIntake(IntakeState is) {
     } else if (is == IntakeState::FRONT_HOLD) {
         setIntake(500);
     } else if (is == IntakeState::BACK) {
-        setIntake(-5000);
+        setIntake(-12000);
     } else if (is == IntakeState::BACK_SLOW) {
         setIntake(-2000);
     } else if (is == IntakeState::ALTERNATE) {
@@ -301,7 +301,7 @@ bool pidFlywheel() {
         }
 
         if (crossedTarget) {
-            printf("{fw1 cur: %1.3f, prev: %1.3f}\n", flywheelPid.sensVal, prevSensVal);
+            // printf("{fw1 cur: %1.3f, prev: %1.3f}\n", flywheelPid.sensVal, prevSensVal);
             // after shooting a ball, the flywheel slows down a lot
             if (flywheelPid.sensVal < prevSensVal - 0.1) {
                 dir = 1;
@@ -344,7 +344,7 @@ bool pidFlywheel() {
                     for (const auto& p : pwrs) { sum += p; }
                     int avgPwr = sum / pwrs.size();
                     setFlywheel(avgPwr);
-                    printf("settled at %d", avgPwr);
+                    // printf("settled at %d", avgPwr);
                 } else {
                     output += deltaOutput;
                     output = clamp(output, -6000.0, 6000.0);
@@ -354,7 +354,7 @@ bool pidFlywheel() {
                     if (pwrs.size() > 10) pwrs.pop_front();
                 }
             }
-            printf("{ flywheelPid, output: %d, crossedTarget: %s, prevSensVal: %1.3f } ", lround(output), crossedTarget ? "True" : "False", prevSensVal);
+            // printf("{ flywheelPid, output: %d, crossedTarget: %s, prevSensVal: %1.3f } ", lround(output), crossedTarget ? "True" : "False", prevSensVal);
             prevSensVal = flywheelPid.sensVal;
         }
     }
@@ -467,6 +467,7 @@ void opctlDrive(int driveDir) {
     drv = lround(drv * 12000.0 / 127.0);
     trn = lround(trn * 12000.0 / 127.0);
     if (abs(drv) < 4000) trn = clamp(trn, -driveTurnLim, driveTurnLim);
+    drv = clamp(drv, -11500, 11500);
     setDL(drv + trn);
     setDR(drv - trn);
 }
@@ -498,7 +499,7 @@ void setDriveSlew(bool auton) {
     if (auton) {
         DLSlew.slewRate = DRSlew.slewRate = 120;
     } else {
-        DLSlew.slewRate = DRSlew.slewRate = 120;
+        DLSlew.slewRate = DRSlew.slewRate = 50;
     }
 }
 void setup() {
@@ -514,15 +515,15 @@ void setup() {
     // 2 fw + rubber bands:                             2.9-2.54  2.492-2.203
     // 1 fw: kp=700 kd=180k
     // complex fw: kp=1000, kd=200000
-    flywheelPid.kp = 1100.0;
+    flywheelPid.kp = 1000.0;
     flywheelPid.ki = 0;
     flywheelPid.kd = 150000;  // 150k
     flywheelPid.DONE_ZONE = 0.1;
     flySaver.setConstants(1, 1, 0, 0);
 
-    intakePid.kp = 70;
+    intakePid.kp = 100;
     intakePid.ki = 0.05;
-    intakePid.kd = 3000;
+    intakePid.kd = 5000;
     intakePid.maxIntegral = 4000;
     intakePid.iActiveZone = 300;
     intakeSlew.slewRate = 200;

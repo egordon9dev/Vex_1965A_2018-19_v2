@@ -52,7 +52,13 @@ void opcontrol() {
         return;
     }
     if (0) {
+        pidIntakeInit(intakeOneShotTicks, 99999);
         while (1) {
+            printf("%d/%d\n", (int)lround(intakePid.sensVal), (int)lround(intakePid.target));
+            pidIntake();
+            delay(10);
+        }
+        while (0) {
             printf("%d %d\n", (int)(getDL() + 0.5), (int)(getDR() + 0.5));
             delay(10);
         }
@@ -87,7 +93,7 @@ void opcontrol() {
         //	while(1) {
         //	printf("%.2f\n", getDrfb());
         //}
-        auton5(true);
+        auton4(false);
         // int tttt = millis();
         // flywheelPid.target = 1.5;
         // while (millis() - tttt < 800) pidFlywheel();
@@ -109,7 +115,7 @@ void opcontrol() {
     int tDrfbOff = 0;
     bool drfbPidRunning = false;
     bool clawFlipped = false;
-    IntakeState intakeState = IntakeState::FRONT_HOLD;
+    IntakeState intakeState = IntakeState::FRONT_HOLD, isBeforeBack = IntakeState::NONE;
     int driveDir = 1;
     bool clawFlipRequest = false;
     setDrfbParams(false);
@@ -190,23 +196,21 @@ void opcontrol() {
             tDrfbOff = millis();
             setDrfb(-12000);
         } else if (curClicks[ctlrIdxY]) {
-            if (!prevClicks[ctlrIdxY]) sShotSpeed -= 0.02;
-            /*atDrfbSetp = true;
+            atDrfbSetp = true;
             drfbPidRunning = true;
             drfbFullRangePowerLimit = 12000;
             autoFlipI = -1;
             drfbPidBias = 0;
             drfbPid.target = drfbPos1;
-            setDrfbParams(true);*/
+            setDrfbParams(true);
         } else if (curClicks[ctlrIdxA]) {
-            if (!prevClicks[ctlrIdxA]) sShotSpeed += 0.02;
-            /*atDrfbSetp = true;
+            atDrfbSetp = true;
             drfbPidRunning = true;
             drfbFullRangePowerLimit = (getDrfb() > drfbPos2 + 50) ? 5000 : 12000;
             autoFlipI = -1;
             drfbPidBias = 0;
             drfbPid.target = drfbPos2;
-            setDrfbParams(true);*/
+            setDrfbParams(true);
 
         } else if (curClicks[ctlrIdxL2]) {
             atDrfbSetp = false;
@@ -290,7 +294,7 @@ void opcontrol() {
         bool isDrfbHolding = false;
         if (drfbPidRunning) {
             // protect against lift sag locking us out of moving the lift
-            if (getDrfb() < drfbPosCloseIntake && drfbPid.target > drfbPosCloseIntake + 0.001 && drfbPid.target < drfbPosCloseIntake + 200) drfbPid.target = drfbPos0;
+            if (getDrfb() < drfbPosCloseIntake && drfbPid.target > drfbPosCloseIntake + 0.001 && drfbPid.target < drfbPosCloseIntake + 200) { drfbPid.target = drfbPos0; }
             // hold lift down
             if (drfbPid.target < drfbPosCloseIntake) {
                 setDrfbDull(getDrfb() < drfbPos0 || millis() - prevNotHoldingT > 400 ? drfbHoldPwr : -12000);
@@ -331,6 +335,15 @@ void opcontrol() {
 
         // -----------  Intake  ------------
         if (curClicks[ctlrIdxL1]) prevL1T = millis();
+        // auto lift drfb
+        if (!isTopBallIn() && !isBtmBallIn() && !oneShotReq && autoFlipI == -1 && driveDir == -1) {
+            if (!curClicks[ctlrIdxR2] && drfbPidRunning && drfbPid.target < drfbPosCloseIntake) {
+                drfbFullRangePowerLimit = 12000;
+                drfbPidBias = 0;
+                drfbPid.target = drfbPosCloseIntake;
+                setDrfbParams(true);
+            }
+        }
         // auto-off
         if (isTopBallIn() && isBtmBallIn() && millis() - prevL1T > 800) { intakeState = IntakeState::FRONT_HOLD; }
         // toggle
@@ -342,13 +355,17 @@ void opcontrol() {
             }
         }
         // reverse
-        if (curClicks[ctlrIdxLeft] && !prevClicks[ctlrIdxLeft]) intakeState = IntakeState::BACK;
+        if (curClicks[ctlrIdxLeft] && !prevClicks[ctlrIdxLeft]) {
+            isBeforeBack = intakeState;
+            intakeState = IntakeState::BACK;
+        }
+        if (!curClicks[ctlrIdxLeft] && prevClicks[ctlrIdxLeft]) { intakeState = isBeforeBack; }
         // one shot
         if (curClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight]) oneShotReq = true;
         intakeRunning = !oneShotReq;
         if (oneShotReq && !prevOneShotReq) {
             intakeRunning = false;
-            pidIntakeInit(intakeOneShotTicks, 100);
+            pidIntakeInit(isBtmBallIn() ? intakeOneShotTicksTop : intakeOneShotTicks, 100);
         }
         prevOneShotReq = oneShotReq;
         if (intakeRunning) {
