@@ -30,19 +30,19 @@ double Odometry_t::getA() {
     mtxA.give();
     return d;
 }
-void Odometry_t::setA(double a) {
+void Odometry_t::setA(double newA) {
     mtxA.take(50);
-    this->a = a;
+    a = newA;
     mtxA.give();
 }
-void Odometry_t::setX(double x) {
+void Odometry_t::setX(double newX) {
     mtxX.take(50);
-    this->x = x;
+    x = newX;
     mtxX.give();
 }
-void Odometry_t::setY(double y) {
+void Odometry_t::setY(double newY) {
     mtxY.take(50);
-    this->y = y;
+    y = newY;
     mtxY.give();
 }
 Point Odometry_t::getPos() { return Point(getX(), getY()); }

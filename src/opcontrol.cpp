@@ -51,32 +51,36 @@ void opcontrol() {
         }
         return;
     }
-    if (0) {
-        pidIntakeInit(intakeOneShotTicks, 99999);
-        while (1) {
-            printf("%d/%d\n", (int)lround(intakePid.sensVal), (int)lround(intakePid.target));
-            pidIntake();
-            delay(10);
-        }
-        while (0) {
-            printf("%d %d\n", (int)(getDL() + 0.5), (int)(getDR() + 0.5));
-            delay(10);
-        }
+    if (1) {
+        // setDriveSlew(true);
+        // odometry.reset();
         // odometry.setA(-PI / 2);
         // odometry.setX(0);
         // odometry.setY(0);
-        // odometry.reset();
         // while (1) {
         //     printf("%d %d %d %.2f %.2f %.2f\n", (int)getDL(), (int)getDR(), (int)getDS(), odometry.getX(), odometry.getY(), odometry.getA());
         //     delay(20);
         // }
-        // odometry.setA(0);
-        // pidTurnInit(0.2, 9999);
-        // while (1) {
-        //     pidTurn();
-        //     printDrivePidValues();
-        //     delay(10);
+        // for (int i = 0; i < 3; ++i) {
+        //     int wait = 400;
+        //     pidDriveLineInit(Point(0, 0), Point(0, 28), true, 0.1, wait);
+        //     while (1) {
+        //         // printf("{ %+5d }  ", (int)lround(DLSlew.update(12000, getDLVel())));
+        //         setDrfb(-1500);
+        //         if (pidDriveLine()) break;
+        //         printDrivePidValues();
+        //         delay(10);
+        //     }
+        //     pidDriveLineInit(Point(0, 28), Point(0, 0), false, 0.1, wait);
+        //     while (1) {
+        //         // printf("{ %+5d }  ", (int)lround(DLSlew.update(12000, getDLVel())));
+        //         setDrfb(-1500);
+        //         if (pidDriveLine()) break;
+        //         printDrivePidValues();
+        //         delay(10);
+        //     }
         // }
+        // stopMotorsBlock();
         // testDriveMtrs();
         // while (!ctlr.get_digital(DIGITAL_B)) delay(10);
         // setDriveSlew(true);

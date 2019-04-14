@@ -1,14 +1,17 @@
 #ifndef PID_H
 #define PID_H
 #include <stdbool.h>
+#include <deque>
 #include "Point.hpp"
 
 class Slew_t {
    public:
-    double slewRate, output;
+    double vMax, breakMin, breakMax, slewRate, output;
     int prevTime;
+    std::deque<double> vels;
     Slew_t();
-    double update(double in);
+    Slew_t(int bMin, int bMax, double v);
+    double update(double in, double vel);
 };
 class Pid_t {
    public:

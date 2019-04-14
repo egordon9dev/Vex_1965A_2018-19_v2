@@ -24,267 +24,6 @@ using std::cout;
 using std::endl;
 
 /*
-   ###    ##     ## ########  #######  ##    ##     #######
-  ## ##   ##     ##    ##    ##     ## ###   ##    ##     ##
- ##   ##  ##     ##    ##    ##     ## ####  ##           ##
-##     ## ##     ##    ##    ##     ## ## ## ##     #######
-######### ##     ##    ##    ##     ## ##  ####           ##
-##     ## ##     ##    ##    ##     ## ##   ###    ##     ##
-##     ##  #######     ##     #######  ##    ##     #######
-align fwd/bwd: to tile edge (ignore tabs)
-align left/right: 1 finger(3 segments tip to 3rd joint/wrinkle) far from the platform
-
-13 pts
-Flag Side: 3 flag + 1 cap auton
-*/
-void auton3(bool leftSide) {
-    printf("\n\n\n--------------------   Auton 3 ---------------------\n\n\n");
-    int sideSign = leftSide ? 1 : -1;
-    int i = 0;
-    int k = 0;
-    double targetAngle = -PI / 2;
-    const int driveT = 150, driveTBeforeShoot = 500;
-    IntakeState is = IntakeState::NONE;
-    double arcRadius;
-    int t0 = BIL, t02 = BIL;
-    int prevI = 0;
-    int lastT = 0;
-    bool drfbPidRunning = false, clawPidRunning = false, intakeRunning = true;
-    int prevITime = millis();
-    int timeBetweenI = 4500;
-    drivePid.doneTime = BIL;
-    turnPid.doneTime = BIL;
-    const int autonT0 = millis();
-    bool printing = true;
-
-    // tuning setpoints
-    Point ptBeforeCap1;
-    Point ptAfterCap1;
-    Point ptPivot1;
-    Point ptShoot1;
-    Point ptShoot2;
-    Point ptAfterCap2;
-    Point ptPivotBeforeBtmFlag;
-    Point ptAfterBtmFlag;
-
-    /*************************************************
-    ***********     Left (Red) Side     ************
-    **************************************************/
-    if (leftSide) {
-        ptBeforeCap1 = Point(0, 26);
-        ptAfterCap1 = Point(0, 34.5);
-        ptPivot1 = Point(0, 0.25);
-        ptShoot1 = Point(-5.25 * sideSign, 0.5);
-        ptShoot2 = Point(-26.6 * sideSign, 1);
-        ptAfterCap2 = Point(-24.5 * sideSign, 10);
-        ptPivotBeforeBtmFlag = Point(-23.5 * sideSign, -4);
-        ptAfterBtmFlag = Point(-52 * sideSign, -5);
-    }
-
-    /*************************************************
-    ***********     Right (Blue) Side     ************
-    **************************************************/
-    else {
-        ptBeforeCap1 = Point(0, 34.5);
-        ptAfterCap1 = Point(0, 37.5);
-        ptPivot1 = Point(0, -0.1);
-        ptShoot1 = Point(-0.5 * sideSign, -0.1);
-        ptShoot2 = Point(-24.3 * sideSign, -0.1);
-        ptAfterCap2 = Point(-25 * sideSign, 11);
-        ptPivotBeforeBtmFlag = Point(-24 * sideSign, -4);
-        ptAfterBtmFlag = Point(-50 * sideSign, -9.5);
-    }
-    Point origin = Point(0, -4);
-    odometry.setA(-PI / 2);
-    odometry.setX(origin.x);
-    odometry.setY(origin.y);
-    odometry.reset();
-
-    // initialize
-    t0 = millis();
-    pidFlywheelInit(sShotSpeed, 0.1, 500);
-    pidDriveLineInit(origin, ptBeforeCap1, true, 0.1, 0);  //<--- keep this 0 wait!!
-    setDriveSlew(true);
-    while (!ctlr.get_digital(DIGITAL_B)) {
-        printf("%.2f ", (millis() - autonT0) / 1000.0);
-        pros::lcd::print(8, "Time: %d ms", millis() - autonT0);
-        if (i != prevI) printf("\n--------------------------------------------\n||||||||>     I has been incremented    <||||||||||\n--------------------------------------------\n\n");
-        if (millis() - autonT0 > 15000 && i != 99999) i = 12345;
-        if (i != prevI) { prevITime = millis(); }
-        prevI = i;
-        if (millis() - prevITime > timeBetweenI) {
-            printf("\ntimeBetweenI exceeded breaking out of auton3....\n");
-            break;
-        }
-        int j = 0;
-        if (i == j++) {  // grab ball from under cap 1
-            printf("drv twd cap 1 ");
-            printDrivePidValues();
-            drfbPidRunning = true;
-            drfbPid.target = drfbPos0;
-            clawPidRunning = true;
-            clawPid.target = 0;
-            is = IntakeState::FRONT;
-            if (odometry.getY() > ptBeforeCap1.y - 8) {
-                DLSlew.slewRate = DRSlew.slewRate = 40;
-                setMaxAErr(9999);
-            }
-            if (k == 0) {
-                if (pidDriveLine()) {
-                    t0 = millis();
-                    k++;
-                }
-            } else if (k == 1) {
-                setDL(-12000);
-                setDR(-12000);
-            }
-            if (odometry.getY() > ptAfterCap1.y) {
-                pidDriveLineInit(ptAfterCap1, ptPivot1, false, 9999, driveT);
-                timeBetweenI = 4500;
-                driveLim = 4000;
-                t0 = millis();
-                i++;
-            }
-        } else if (i == j++) {  // drive back
-            printf("drive back ");
-            printDrivePidValues();
-            if (millis() - t0 > 1800) is = IntakeState::ALTERNATE;
-            if (odometry.getY() < ptAfterCap1.y - 6) {
-                setMaxAErr(0.1);
-                driveLim = 12000;
-                setDriveSlew(true);
-            }
-            if (pidDriveLine()) {
-                is = IntakeState::ALTERNATE;
-                pidDriveLineInit(ptPivot1, ptShoot1, true, 0.08, driveTBeforeShoot);
-                timeBetweenI = 3500;
-                i++;
-            }
-        } else if (i == j++) {  // go to pos 1
-            printf("go to pos 1 ");
-            printDrivePidValues();
-            if (pidDriveLine()) {
-                timeBetweenI = 4500;
-                t0 = millis();
-                i++;
-            }
-        } else if (i == j++) {  // load 1
-            printf("load 1 ");
-            printPidValues();
-            pidDrive();
-            if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 1000) {  // typical: 10ms
-                intakeRunning = false;
-                pidIntakeInit(999777000, 80);
-                i++;
-            }
-        } else if (i == j++) {  // shoot 1
-            printf("shoot 1 ");
-            printPidValues();
-            pidDrive();
-            if (pidIntake()) {
-                intakeRunning = true;
-                is = IntakeState::ALTERNATE;
-                pidFlywheelInit(sShotSpeed, 0.1, 500);
-                pidDriveLineInit(ptShoot1, ptShoot2, true, 0.08, driveTBeforeShoot);
-                timeBetweenI = 4000;
-                i++;
-            }
-        } else if (i == j++) {  // drive to pos 2
-            printf("drive to shoot pos 2 ");
-            printDrivePidValues();
-            if (pidDrive()) {
-                t0 = millis();
-                timeBetweenI = 4500;
-                i++;
-            }
-        } else if (i == j++) {  // load 2
-            printf("load 2 ");
-            printPidValues();
-            pidDrive();
-            if ((isBallIn() && isPidFlywheelDone()) || millis() - t0 > 1900) {  // typical: 1400ms
-                intakeRunning = false;
-                pidIntakeInit(999777000, 80);
-                i++;
-            }
-        } else if (i == j++) {  // shoot 2
-            printf("shoot 2 ");
-            printPidValues();
-            pidDrive();
-            if (pidIntake()) {
-                intakeRunning = true;
-                pidFlywheelInit(1.5, 0.1, 9999);
-                is = IntakeState::FRONT;
-                timeBetweenI = 4500;
-                pidDriveLineInit(ptShoot2, ptAfterCap2, false, 0.08, driveT);
-                i++;
-            }
-        } else if (i == j++) {  // drive twd cap
-            printf("drive twd cap 2 ");
-            printDrivePidValues();
-            drfbPidRunning = false;
-            setDrfb(-12000);
-            printf("<%.2f / %.2f>", getDrfb(), drfbPid.target);
-            if (pidDriveLine()) {
-                k = 0;
-                i++;
-            }
-        } else if (i == j++) {  // flip cap
-            int o = 0;
-            if (k == o++) {
-                printf("flip cap ");
-                printPidValues();
-                drfbPidRunning = false;
-                // drfbPid.target = drfb18Max;
-                setDrfb(12000);
-                if (getDrfb() > drfbMinClaw0 - 100) {
-                    drfbPid.target = drfb18Max;
-                    drfbPidRunning = true;
-                    k++;
-                }
-            } else if (k == o++) {
-                clawPid.target = claw180;
-                printPidValues();
-                if (getClaw() > claw180 * 0.55) {
-                    pidDriveLineInit(ptAfterCap2, ptPivotBeforeBtmFlag, true, 0.1, driveT);
-                    k++;
-                }
-            } else if (k == o++) {
-                setDrfb(-12000);
-                printf("drive twd ptPivotBeforeBtmFlag ");
-                printDrivePidValues();
-                if (pidDriveLine()) {
-                    pidDriveLineInit(ptPivotBeforeBtmFlag, ptAfterBtmFlag, true, 0.08, driveT);
-                    timeBetweenI = 3000;
-                    t0 = millis();
-                    i++;
-                }
-            }
-        } else if (i == j++) {  // knock btm flag
-            if (millis() - t0 < 1200) {
-                drfbPidRunning = false;
-                setDrfb(-12000);
-            } else {
-                drfbPidRunning = true;
-                drfbPid.target = drfbPos0;
-            }
-            printf("pivot + knock bottom flag");
-            printDrivePidValues();
-            if (pidDrive()) { i++; }
-        } else {
-            printing = false;
-            if (i == 12345) printf("\n\nAUTON TIMEOUT\n");
-            i = 99999;
-            stopMotors();
-        }
-        if (clawPidRunning) pidClaw();
-        pidFlywheel();
-        if (drfbPidRunning) pidDrfb();
-        if (intakeRunning) setIntake(is);
-        delay(10);
-    }
-    stopMotorsBlock();
-}
-/*
     ###    ##     ## ########  #######  ##    ##    ##
    ## ##   ##     ##    ##    ##     ## ###   ##    ##    ##
   ##   ##  ##     ##    ##    ##     ## ####  ##    ##    ##
@@ -304,7 +43,7 @@ void auton4(bool leftSide) {
     int i = 0;
     int k = 0;
     double targetAngle = -PI / 2;
-    const int driveT = 150;
+    const int driveT = 10;
     IntakeState is = IntakeState::NONE;
     double arcRadius;
     int t0 = BIL, t02 = BIL, t03 = BIL;
@@ -312,15 +51,15 @@ void auton4(bool leftSide) {
     int lastT = 0;
     bool drfbPidRunning = false, clawPidRunning = false, intakeRunning = true;
     int prevITime = millis();
-    int timeBetweenI = 4500;
+    int timeBetweenI = 7000;
     drivePid.doneTime = BIL;
     turnPid.doneTime = BIL;
     const int autonT0 = millis();
     bool printing = true;
 
     // tuning setpoints
-    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot;
-
+    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot, pivotBeforeC2, ptC2, ptAfterC2, ptAfterC22, ptBalls, ptShoot2, ptPost2;
+    double turnAfterC2;
     /*************************************************
     ***********     Left (Red) Side     ************
     **************************************************/
@@ -332,20 +71,28 @@ void auton4(bool leftSide) {
     ***********     Right (Blue) Side     ************
     **************************************************/
     else {
-        ptBeforeC1 = Point(0, 25);
-        ptC1 = Point(0, 34);
-        ptBeforeShoot = Point(0, 15);
-        ptShoot = ptBeforeShoot + polarToRect(6, PI * 0.25);
+        ptBeforeC1 = Point(0, 30);
+        ptC1 = Point(0, 45);
+        ptBeforeShoot = Point(-4, 0);
+        ptShoot = Point(6, 0.5);
+        pivotBeforeC2 = Point(-18, 12);
+        ptC2 = Point(-19, 41);
+        ptAfterC2 = Point(-19, 35);
+        ptAfterC22 = Point(-19, 12);
+        turnAfterC2 = -PI;
+        ptBalls = Point(-19, 39);
+        ptShoot2 = Point(20, 0);
+        ptPost2 = Point(100, 48);
     }
     Point pt0(0, 0);
+    odometry.reset();
     odometry.setA(targetAngle);
-    odometry.setX(0);
-    odometry.setY(0);
+    odometry.setX(pt0.x);
+    odometry.setY(pt0.y);
 
     // initialize
     t0 = millis();
     pidFlywheelInit(3.0, 0.1, 500);
-    odometry.reset();
     pidDriveLineInit(pt0, ptBeforeC1, true, 0.1, 0);
     setDriveSlew(true);
 
@@ -367,8 +114,8 @@ void auton4(bool leftSide) {
             clawPidRunning = true;
             clawPid.target = 0;
             drfbPidRunning = true;
-            drfbPid.target = drfbPosCloseIntake;
-            if (millis() - t0 > 300) is = IntakeState::FRONT;
+            drfbPid.target = drfbPosCloseIntake + 100;
+            if (getDrfb() > drfbPosCloseIntake - 70) is = IntakeState::FRONT;
             bool driveDone = false;
             if (k == 0) {
                 if (pidDriveLine()) {
@@ -384,7 +131,7 @@ void auton4(bool leftSide) {
                 i++;
             }
         } else if (i == j++) {
-            printf("drive twd ptBeforeShoot");
+            printf("drive twd ptBeforeShoot ");
             printDrivePidValues();
             if (isTopBallIn() && isBtmBallIn() && t0 > millis()) t0 = millis();
             if (millis() - t0 > 300) is = IntakeState::FRONT_HOLD;
@@ -395,12 +142,11 @@ void auton4(bool leftSide) {
                 i++;
             }
         } else if (i == j++) {
-            printf("drive twd ptShoot");
+            printf("drive twd ptShoot ");
             printDrivePidValues();
-            if (isTopBallIn() && isBtmBallIn() && t0 > millis()) t0 = millis();
-            if (millis() - t0 > 300) { is = IntakeState::FRONT_HOLD; }
             bool driveDone = pidDriveLine();
             drfbPidRunning = false;
+            if (getDrfb() > drfbPos0 + 50) t02 = millis();
             setDrfb(millis() - t02 < 500 ? -12000 : -1500);
             if (driveDone) {
                 if (k == 0) {
@@ -408,16 +154,100 @@ void auton4(bool leftSide) {
                     t03 = millis();
                     k++;
                 } else if (k == 1) {
-                    if (millis() - t03 > 1000) {
-                        is = IntakeState::NONE;
+                    if (millis() - t03 > 2000) {
+                        pidDriveLineInit(ptShoot, pivotBeforeC2, false, 0.1, 1);
+                        k = 0;
                         i++;
                     }
                 }
+            } else {
+                if (isTopBallIn() && isBtmBallIn() && t0 > millis()) t0 = millis();
+                if (millis() - t0 > 300) { is = IntakeState::FRONT_HOLD; }
             }
         } else if (i == j++) {
-            i = 12345;
+            printf("drive twd C2 ");
+            printDrivePidValues();
+            is = IntakeState::NONE;
+            drfbPidRunning = true;
+            if (k == 0) {
+                drfbPid.target = drfb18Max - 30;
+                if (pidDriveLine()) {
+                    pidDriveLineInit(pivotBeforeC2, ptC2, false, 0.1, driveT);
+                    k++;
+                }
+            } else if (k == 1) {
+                drfbPid.target = 500;
+                if (pidDriveLine()) {
+                    pidDriveLineInit(ptC2, ptAfterC2, true, 0.1, driveT);
+                    k = 0;
+                    i++;
+                }
+            }
         } else if (i == j++) {
+            printf("scrape balls off C2 ");
+            printPidValues();
+            if (k == 0) {
+                drfbPidRunning = false;
+                if (getDrfb() < drfbPosScrape) {
+                    if (pidDriveLine()) {
+                        setDrfb(-1500);
+                        pidDriveLineInit(ptAfterC2, ptAfterC22, true, 0.1, 0);
+                        k++;
+                    }
+                } else {
+                    setDL(0);
+                    setDR(0);
+                    setDrfb(-12000);
+                }
+            } else if (k == 1) {
+                drfbPidRunning = true;
+                drfbPid.target = drfbPosCloseIntake;
+                if (pidDriveLine()) {
+                    pidTurnInit(odometry.getA() + turnAfterC2, 0);
+                    k = 0;
+                    i++;
+                }
+            }
         } else if (i == j++) {
+            printf("grab Balls ");
+            printDrivePidValues();
+            if (k == 0) {
+                printf("Turn ");
+                if (pidTurn()) {
+                    pidDriveLineInit(odometry.getPos(), ptBalls, true, 0.1, 0);
+                    k++;
+                }
+            } else if (k == 1) {
+                printf("Drive ");
+                is = IntakeState::FRONT;
+                if (pidDriveLine()) {
+                    pidDriveLineInit(ptBalls, ptShoot2, true, 0.1, driveT);
+                    t0 = BIL;
+                    i++;
+                }
+            }
+        } else if (i == j++) {
+            printf("drive twd ptShoot2 ");
+            printDrivePidValues();
+            if (isTopBallIn() && isBtmBallIn() && t0 > millis()) t0 = millis();
+            if (millis() - t0 > 300) { is = IntakeState::FRONT_HOLD; }
+            if (pidDriveLine()) {
+                pidFaceInit(ptPost2, true, 300);
+                t0 = BIL;
+                t02 = millis();
+                i++;
+            }
+        } else if (i == j++) {
+            printf("face post 2 ");
+            printDrivePidValues();
+            drfbPidRunning = false;
+            if (getDrfb() > drfbPos0 + 50) t02 = millis();
+            setDrfb(millis() - t02 > 500 ? -1500 : -12000);
+            if (pidFace()) {
+                t0 = millis();
+                is = IntakeState::FRONT;
+            }
+            if (millis() - t0 > 2000) { i++; }
         } else if (i == j++) {
             if (i == 12345) printf("\n\nAUTON TIMEOUT\n");
             stopMotors();
@@ -543,7 +373,7 @@ void auton5(bool leftSide) {
             clawPid.target = 0;
             is = IntakeState::FRONT;
             if (odometry.getY() > ptBeforeCap1.y - 14) {
-                DLSlew.slewRate = DRSlew.slewRate = 40;
+                // DLSlew.slewRate = DRSlew.slewRate = 40;
                 setMaxAErr(9999);
             }
             if (k == 0) {
@@ -766,9 +596,9 @@ void autonomous() {
     if (autoSel_nAuton == 0) {
         while (1) { delay(10); }
     } else if (autoSel_nAuton == 1) {
-        auton3(autoSel_leftSide);
+        // auton3(autoSel_leftSide);
     } else if (autoSel_nAuton == 2) {
-        auton5(autoSel_leftSide);
+        // auton5(autoSel_leftSide);
     }
     stopMotorsBlock();
 }

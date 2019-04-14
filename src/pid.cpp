@@ -3,7 +3,7 @@
 #include "setup.hpp"
 using std::cout;
 Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid, intakePid, curveVelPid, sTurnPid;
-Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
+Slew_t flywheelSlew, drfbSlew(4000, 8000, 0.5), DLSlew(300, 800, 0.3), DRSlew(300, 800, 0.3), clawSlew(4000, 8000, 1), intakeSlew(4000, 8000, 0.5);
 /*
  ########  #### ########           ######  ##       ######## ##      ##
  ##     ##  ##  ##     ##         ##    ## ##       ##       ##  ##  ##
@@ -14,9 +14,20 @@ Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
  ##        #### ########  ##       ######  ######## ########  ###  ###
 */
 Slew_t::Slew_t() {
-    slewRate = 100.0;
-    output = 0;
+    breakMin = 6000;
+    breakMax = 12000;
+    slewRate = 9999999;
     prevTime = millis();
+    vMax = 1;
+    output = 0;
+}
+Slew_t::Slew_t(int bMin, int bMax, double v) {
+    breakMin = bMin;
+    breakMax = bMax;
+    slewRate = 999999;
+    prevTime = millis();
+    vMax = v;
+    output = 0;
 }
 Pid_t::Pid_t() {
     doneTime = BIL;
@@ -29,7 +40,27 @@ Pid_t::Pid_t() {
 /*
   in: input voltage
 */
-double Slew_t::update(double in) {
+double Slew_t::update(double in, double vel) {
+    vels.push_front(vel);
+    if (vels.size() > 2) vels.pop_back();
+    double sum = 0;
+    for (const auto& v : vels) { sum += v; }
+    vel = sum / vels.size();
+
+    int breakPwr = 0;
+    if (vMax == 3.1) vMax = 3.099999;
+    if (fabs(vel) >= vMax) breakPwr = breakMin + (breakMax - breakMin) * clamp(1 - (fabs(vel) - vMax) / (3.1 - vMax), 0.0, 1.0);
+    double o = 0;
+    if (vel > vMax) {
+        o = clamp(in, (double)(-breakPwr), 12000.0);
+    } else if (vel < -vMax) {
+        o = clamp(in, -12000.0, (double)breakPwr);
+    } else {
+        o = in;
+    }
+
+    in = o;
+
     int dt = millis() - prevTime;
     if (dt > 1000) dt = 0;
     prevTime = millis();
@@ -196,10 +227,10 @@ bool pidSweep() {
     using sweep::tL;
     using sweep::tR;
     using sweep::wait;
-    DLPid.sensVal = getDL() - sweep::dl0;
-    DRPid.sensVal = getDR() - sweep::dr0;
-    DLPid.target = tL * ticksPerInchADI;
-    DRPid.target = tR * ticksPerInchADI;
+    DLPid.sensVal = (getDL() - sweep::dl0) / ticksPerInchADI;
+    DRPid.sensVal = (getDR() - sweep::dr0) / ticksPerInchADI;
+    DLPid.target = tL;
+    DRPid.target = tR;
     if (DLPid.target == 0.0) DLPid.target = 0.000001;
     if (DRPid.target == 0.0) DRPid.target = 0.000001;
     double powerL = clamp(DLPid.update(), -12000.0, 12000.0);
@@ -222,116 +253,6 @@ bool pidSweep() {
     if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) return true;
     return false;
 }
-/*
-    ###    ########   ######
-   ## ##   ##     ## ##    ##
-  ##   ##  ##     ## ##
- ##     ## ########  ##
- ######### ##   ##   ##
- ##     ## ##    ##  ##    ##
- ##     ## ##     ##  ######
-*/
-/*
-namespace arcData {
-Point center, target, start;
-double rMag;
-int rotDir;
-int wait;
-bool followArc;
-bool flip;
-int prevT;
-double prevA;
-double prevArcPos;
-int drivePwr;
-double curvePwr;
-int doneT;
-const int driveMaxPwr = 7500;
-void init(Point s, Point t, double r, int rd, bool f, bool fa, int w) {
-    s.noZeroes();
-    t.noZeroes();
-    start = s;
-    target = t;
-    rMag = r;
-    rotDir = rd;
-    flip = f;
-    followArc = fa;
-    wait = w;
-    doneT = BIL;
-
-    Point deltaPos = target - start;
-    Point midPt((start.x + target.x) / 2.0, (start.y + target.y) / 2.0);
-    double altAngle = atan2(deltaPos.y, deltaPos.x) + (PI / 2) * rotDir;
-    double altMag = sqrt(clamp(pow(rMag, 2) - pow(deltaPos.mag() / 2, 2), 0.0, 999999999.9));
-    center = midPt + polarToRect(altMag, altAngle);
-
-    drivePwr = driveMaxPwr;
-    curvePwr = 0.0;
-    prevA = prevArcPos = 0;
-    prevT = -BIL;
-}
-// estimate the distance remaining for the drive
-double getArcPos() {
-    Point pos = odometry.getPos() - center;
-    Point tgt = target - center;
-    Point st = start - center;
-    double a = pos.angleBetween(tgt);
-    if (rotDir == 1) {
-        if (pos < tgt) a *= -1;
-    } else {
-        if (pos > tgt) a *= -1;
-    }
-    return a * pos.mag();
-}
-}  // namespace arcData
-
-void pidDriveArcInit(Point start, Point target, double rMag, int rotDir, bool flip, int wait) { arcData::init(start, target, rMag, rotDir, flip, false, wait); }
-void pidFollowArcInit(Point start, Point target, double rMag, int rotDir, bool flip, int wait) { arcData::init(start, target, rMag, rotDir, flip, true, wait); }
-bool pidDriveArc() {
-    using arcData::curvePwr;
-    using arcData::doneT;
-    using arcData::driveMaxPwr;
-    using arcData::drivePwr;
-    using arcData::flip;
-    using arcData::followArc;
-    using arcData::prevA;
-    using arcData::prevArcPos;
-    using arcData::prevT;
-    double arcPos = arcData::getArcPos();
-    int curT = millis();
-    int dt = curT - prevT;
-    double curA = odometry.getA();
-    if (dt < 500) {
-        if (dt > 29) {
-            double vel = (arcPos - prevArcPos) / dt;
-            curveVelPid.sensVal = (curA - prevA) / dt;
-            curveVelPid.target = vel / arcData::rMag * arcData::rotDir;
-            curvePwr += curveVelPid.update();
-            curvePwr = clamp(curvePwr, -12000.0, 12000.0);
-            prevT = curT;
-            prevArcPos = arcPos;
-            prevA = curA;
-        }
-    } else {
-        prevT = curT;
-        prevArcPos = arcPos;
-        prevA = curA;
-    }
-    if (!followArc) {
-        drivePid.sensVal = arcPos;
-        drivePid.target = 0;
-        drivePwr = clamp((int)drivePid.update(), -driveMaxPwr, driveMaxPwr);
-    }
-    setDL(drivePwr * (flip ? -1 : 1) - curvePwr);
-    setDR(drivePwr * (flip ? -1 : 1) + curvePwr);
-    using arcData::center;
-    if ((arcData::target - center).angleBetween(odometry.getPos() - center) < 0.2 && doneT > millis()) doneT = millis();
-    return millis() - doneT > arcData::wait;
-}
-
-void printArcData() {
-    printf("%.1f DL%d DR%d drive %3.1f/%3.1f curve %2.3f/%2.3f R %.1f/%.1f x %3.1f/%3.1f y %3.1f/%3.1f a %.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, curvePid.sensVal, curvePid.target, (odometry.getPos() - arcData::center).mag(), arcData::rMag, odometry.getX(), arcData::target.x, odometry.getY(), arcData::target.y, odometry.getA());
-    std::cout << std::endl;
-}*/
 /*
  ########  ########  #### ##     ## ########
  ##     ## ##     ##  ##  ##     ## ##
@@ -365,6 +286,15 @@ void pidDriveLineInit(Point start, Point target, bool flip, double maxAErr, cons
     drivePid.doneTime = BIL;
     curvePid.doneTime = BIL;
     driveData::init(start, target, flip, maxAErr, wait);
+    if (flip) {
+        drivePid.kp = 850;
+        drivePid.ki = 3;
+        drivePid.kd = 65000;
+    } else {
+        drivePid.kp = 950;
+        drivePid.ki = 3;
+        drivePid.kd = 70000;
+    }
 }
 bool pidDriveLine() {
     using driveData::doneT;
@@ -384,21 +314,16 @@ bool pidDriveLine() {
     if (driveDir == -1) { aErr = PI - aErr; }
     if (dirOrientation < targetDir) aErr *= -driveDir;
     if (dirOrientation > targetDir) aErr *= driveDir;
-
     // error correction
     double curA = odometry.getA();
     drivePid.target = 0.0;
     drivePid.sensVal = (target - pos) * targetDir.unit();
-    int drivePMax = 10000;
+    int drivePMax = driveDir == -1 ? 12000 : 12000;
     double drivePwr = drivePid.update();
     if (fabs(aErr) > maxAErr) drivePwr = 0.0;
+    if (fabs(getDriveVel()) < 0.2 && drivePwr * driveDir > 0 && fabs(drivePid.sensVal) > (target - start).mag() * 0.5) drivePwr = clamp(drivePwr, -2500.0, 2500.0);
     // by updating both pids, we keep the derivative and integral terms updated so they don't get intermitent data
-    bool useTurnPid = (pos - start).mag() < 0.75 || (pos - target).mag() < 0.75 || fabs(drivePwr) < 0.001 /* || fabs(getDriveVel()) < 50*/;
-    bool useSTurnPid = (pos - target).mag() < 1 && aErr < 0.05;
-
-    sTurnPid.target = 0;
-    sTurnPid.sensVal = aErr;
-    double sTurnPidOutput = sTurnPid.update();
+    bool useTurnPid = fabs(getDriveVel()) < 0.1 || fabs(aErr) > maxAErr;
     turnPid.target = 0;
     turnPid.sensVal = aErr;
     double turnPidOutput = turnPid.update();
@@ -406,19 +331,19 @@ bool pidDriveLine() {
     curvePid.sensVal = aErr;
     double curvePidOutput = curvePid.update();
     if (!useTurnPid) turnPid.errTot = 0;
-    if (!useSTurnPid) sTurnPid.errTot = 0;
-    int rotPwr = clamp(lround(useSTurnPid ? sTurnPidOutput : (useTurnPid ? turnPidOutput : curvePidOutput)), -8000, 8000);
     drivePwr = clamp((int)drivePwr, -drivePMax, drivePMax);
-    // prevent turn saturation
-    // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);
+    double curveInfluence = 1.5;
+    int maxCurvePwr = lround(curveInfluence * fabs(drivePwr));
+    int rotPwr = useTurnPid ? clamp(lround(turnPidOutput), -12000, 12000) : clamp(lround(curvePidOutput), -maxCurvePwr, maxCurvePwr);
+    // if (fabs(drivePid.sensVal) < 6) rotPwr = 0;
+    // printf("{%+5d %+5d %s}", (int)lround(drivePwr), (int)lround(rotPwr), useTurnPid ? "turnPid" : "curvePid");
     int dlOut = -drivePwr * driveDir - rotPwr;
     int drOut = -drivePwr * driveDir + rotPwr;
     setDL(dlOut);
     setDR(drOut);
-    // printf("%d %d ", dlOut, drOut);
 
     static Point prevPos(0, 0);
-    if (fabs(drivePid.sensVal) < 0.5 && ((pos - prevPos).mag() < 0.01 || wait == 0)) {
+    if (fabs(drivePid.sensVal) < 0.5 && fabs(getDriveVel()) < 0.2) {
         if (doneT > millis()) doneT = millis();
     }
     prevPos = pos;

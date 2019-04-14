@@ -9,16 +9,16 @@ pros::Motor mtr2(8);   // DR bottom
 pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 double getDL() {
-    /*DLMtx.take(50);
-    double d = (mtr4.get_position()) + DLEncBias;
-    DLMtx.give();*/
-    return DLEnc->get_value();  // d;
+    DLMtx.take(50);
+    double d = DLEnc->get_value() + DLEncBias;
+    DLMtx.give();
+    return d;
 }
 double getDR() {
-    /*DRMtx.take(50);
-    double d = (-mtr1.get_position()) + DREncBias;
-    DRMtx.give();*/
-    return DREnc->get_value();  // d;
+    DRMtx.take(50);
+    double d = DREnc->get_value() + DREncBias;
+    DRMtx.give();
+    return d;
 }
 double getDS() {
     DSMtx.take(50);
@@ -28,13 +28,13 @@ double getDS() {
 }
 double getDLVel() {
     DLMtx.take(50);
-    double d = mtr4.get_actual_velocity();
+    double d = mtr4.get_actual_velocity() * 3.1 / 200.0;
     DLMtx.give();
     return d;
 }
 double getDRVel() {
     DRMtx.take(50);
-    double d = -mtr1.get_actual_velocity();
+    double d = -mtr1.get_actual_velocity() * 3.1 / 200.0;
     DRMtx.give();
     return d;
 }
@@ -55,8 +55,8 @@ void zeroDriveEncs() {
 int DL_requested_voltage = 0, DR_requested_voltage = 0, driveLim = 12000;
 void setDR(int n) {
     n = clamp(n, -driveLim, driveLim);
-    n = DRSlew.update(n);
-    n = drSaver.getPwr(n, getDR());
+    n = DRSlew.update(n, getDRVel());
+    // n = drSaver.getPwr(n, getDR());
     DRMtx.take(50);
     mtr1.move_voltage(-n);
     mtr2.move_voltage(n);
@@ -65,8 +65,8 @@ void setDR(int n) {
 }
 void setDL(int n) {
     n = clamp(n, -driveLim, driveLim);
-    n = DLSlew.update(n);
-    n = dlSaver.getPwr(n, getDL());
+    n = DLSlew.update(n, getDLVel());
+    // n = dlSaver.getPwr(n, getDL());
     DLMtx.take(50);
     mtr4.move_voltage(n);
     mtr5.move_voltage(-n);

@@ -43,7 +43,7 @@ pros::ADIEncoder* DREnc;
 const int driveTurnLim = 9000;
 
 const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1250 - 50, drfbPos1Plus = 1470 - 50, drfbPos2 = 1800, drfbPos2Plus = 2270;
-const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200;
+const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200, drfbPosScrape = 300;
 const int drfbHoldPwr = -1500;
 
 double sShotSpeed = 3.0;
@@ -53,7 +53,7 @@ double fw_a4_sideFlag = 3.0;
 const int intakeOneShotTicks = 600, intakeOneShotTicksTop = 450;
 
 const int dblClickTime = 450, claw180 = 1370;
-const double /*ticksPerInch = 52.746, */ ticksPerInchADI = /*35.2426*/ 52.746, ticksPerRadian = 368.309;
+const double /*ticksPerInch = 52.746, */ ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
 
@@ -81,12 +81,13 @@ void init(double tgt, int w) {
 }  // namespace intake
 void pidIntakeInit(double target, int wait) { intake::init(target, wait); }
 double getIntakePos() { return mtr3.get_position() + intake::posBias; }
+double getIntakeVel() { return mtr3.get_actual_velocity() * (3.1 / 200.0); }
 bool pidIntake() {
     using intake::target;
     using intake::wait;
     intakePid.sensVal = getIntakePos();
     intakePid.target = target;
-    setIntake(lround(intakeSlew.update(intakePid.update())));
+    setIntake(lround(intakeSlew.update(intakePid.update(), getIntakeVel())));
     return millis() - intakePid.doneTime > wait;
 }
 void setIntake(int n) {  // +: front, -: back
@@ -144,13 +145,13 @@ void setDrfb(int n) {
     n = clamp(n, -drfbFullRangePowerLimit, drfbFullRangePowerLimit);
     if (getDrfb() < drfbMinPos + 150 && n < -drfbPowerLimit) n = -drfbPowerLimit;
     if (getDrfb() > drfbMaxPos - 150 && n > drfbPowerLimit) n = drfbPowerLimit;
-    n = drfbSlew.update(n);
+    n = drfbSlew.update(n, getDrfbVel());
     n = drfbSaver.getPwr(n, getDrfb());
     mtr7.move_voltage(n);
     drfb_requested_voltage = n;
 }
 void setDrfbDull(int n) {
-    n = drfbSlew.update(n);
+    n = drfbSlew.update(n, getDrfbVel());
     mtr7.move_voltage(n);
     drfb_requested_voltage = n;
 }
@@ -160,6 +161,7 @@ void setDrfbDumb(int n) {
 }
 double drfbIMEBias = 0;
 double getDrfb() { return drfbIMEBias + mtr7.get_position(); }
+double getDrfbVel() { return mtr7.get_actual_velocity() * (3.1 / 200.0); }
 int getDrfbVoltage() { return drfb_requested_voltage; }
 int getDrfbCurrent() { return mtr7.get_current_draw(); }
 int drfbPidBias = 0;
@@ -195,7 +197,7 @@ void setClaw(int n, bool limit) {
     // if (getClaw() < 80 && n < -maxPwr) n = -maxPwr;
     // if (getClaw() > claw180 - 80 && n > maxPwr) n = maxPwr;
     n = clawSaver.getPwr(n, mtr8.get_position());
-    n = clawSlew.update(n);
+    n = clawSlew.update(n, getClawVel());
     mtr8.move_voltage(n);
     claw_requested_voltage = n;
 }
@@ -206,6 +208,7 @@ void setClawDumb(int n) {
 }
 void setClawPosition(double pos) { clawOpctl::bias += pos - getClaw(); };
 double getClaw() { return mtr8.get_position() + clawOpctl::bias; }
+double getClawVel() { return mtr8.get_actual_velocity() * (3.1 / 200.0); }
 int getClawVoltage() { return claw_requested_voltage; }
 bool pidClaw(double a, int wait) {
     clawPid.target = a;
@@ -438,15 +441,9 @@ void stopMotorsBlock() {
         delay(10);
     }
 }
-void printPidValues() {
-    printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f claw%2d %4d/%4d intake%2d %4d/%4d ballsens %d %d\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target), (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, (int)getBallSensL(), (int)getBallSensR());
-    std::cout << std::endl;
-}
 extern Point g_target;
-void printDrivePidValues() {
-    printf("DL%d DR%d (%d %d %d) vel %f drive %3.2f/%3.2f turn %2.2f/%2.2f curve %2.2f/%2.2f x %3.2f/%3.2f y %3.2f/%3.2f a %.2f\n", (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), (int)getDL(), (int)getDR(), (int)getDS(), getDriveVel(), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
-    std::cout << std::endl;
-}
+void printPidValues() { printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f clw%2d %4d/%4d intk%2d %4d/%4d ball %d %d  vel %+1.1f drv %+3.2f/%+3.1f trn %+2.2f/%+2.1f x %+3.2f/%+3.1f y %+3.2f/%+3.1f a %+1.2f\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target), (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, (int)getBallSensL(), (int)getBallSensR(), getDriveVel(), getDrfb(), drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
+void printDrivePidValues() { printf("DL%+5d DR%+5d (%+5d %+5d %+5d) vel %+1.3f drive %+3.2f/%+3.2f turn %+2.2f/%+2.2f curve %+2.2f/%+2.2f x %+3.2f/%+3.2f y %+3.2f/%+3.2f a %+1.2f\n", getDLVoltage(), getDRVoltage(), (int)getDL(), (int)getDR(), (int)getDS(), getDriveVel(), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
 void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", getDLVoltage, DLPid.sensVal, DLPid.target, getDRVoltage, DRPid.sensVal, DRPid.target); }
 void odoTaskRun(void* param) {
     while (true) {
@@ -462,12 +459,11 @@ void startOdoTask() {
 void opctlDrive(int driveDir) {
     int trn = lround(ctlr.get_analog(ANALOG_RIGHT_X));
     int drv = lround(driveDir * ctlr.get_analog(ANALOG_LEFT_Y));
-    if (abs(drv) < 10) drv = 0;
-    if (abs(trn) < 10) trn = 0;
+    if (abs(drv) < 5) drv = 0;
+    if (abs(trn) < 5) trn = 0;
     drv = lround(drv * 12000.0 / 127.0);
     trn = lround(trn * 12000.0 / 127.0);
     if (abs(drv) < 4000) trn = clamp(trn, -driveTurnLim, driveTurnLim);
-    drv = clamp(drv, -11500, 11500);
     setDL(drv + trn);
     setDR(drv - trn);
 }
@@ -499,7 +495,7 @@ void setDriveSlew(bool auton) {
     if (auton) {
         DLSlew.slewRate = DRSlew.slewRate = 120;
     } else {
-        DLSlew.slewRate = DRSlew.slewRate = 50;
+        DLSlew.slewRate = DRSlew.slewRate = 120;
     }
 }
 void setup() {
@@ -510,7 +506,6 @@ void setup() {
     } else {
         printf("setting up...\n");
     }
-    flywheelSlew.slewRate = 999999;  // 60;
     // 2 fw + mesh,rubber bands: kp=2000 kd=700k:     2.9-2.43  2.12-1.73
     // 2 fw + rubber bands:                             2.9-2.54  2.492-2.203
     // 1 fw: kp=700 kd=180k
@@ -526,7 +521,6 @@ void setup() {
     intakePid.kd = 5000;
     intakePid.maxIntegral = 4000;
     intakePid.iActiveZone = 300;
-    intakeSlew.slewRate = 200;
     intakePid.unwind = 0;
     intakePid.DONE_ZONE = 50;
     intakeSaver.setConstants(.15, 0.3, 0.05, 0.2);
@@ -537,10 +531,8 @@ void setup() {
     clawPid.iActiveZone = 300;
     clawPid.maxIntegral = 4000;
     clawPid.unwind = 0;
-    clawSlew.slewRate = 200;
     clawSaver.setConstants(0.5, .3, 0.3, .15);
 
-    drfbSlew.slewRate = 99999;
     setDrfbParams(true);
     drfbSaver.setConstants(0.15, 0.6, 0.01, 0.1);
     drfbPid.DONE_ZONE = 100;
@@ -550,22 +542,15 @@ void setup() {
     dlSaver.setConstants(1, 1, 0, 0);
     drSaver.setConstants(1, 1, 0, 0);
 
-    drivePid.kp = 1650;
-    drivePid.ki = 3;
+    drivePid.kp = 850;    // 1100
+    drivePid.ki = 3;      // 3
+    drivePid.kd = 45000;  // 80k
     drivePid.iActiveZone = 2;
     drivePid.maxIntegral = 5000;
-    drivePid.kd = 110000;
     drivePid.DONE_ZONE = 1.0;
+    DRPid = DLPid = drivePid;
 
-    DLPid.kp = 2000 / ticksPerInchADI;
-    DLPid.ki = 8 / ticksPerInchADI;
-    DLPid.kd = 110000 / ticksPerInchADI;
-    DLPid.iActiveZone = 2 * ticksPerInchADI;
-    DLPid.maxIntegral = 5000;
-    DLPid.DONE_ZONE = ticksPerInchADI;
-    DRPid = DLPid;
-
-    turnPid.kp = 26000;
+    turnPid.kp = 18000;
     turnPid.ki = 250;
     turnPid.kd = 2000000;
     turnPid.iActiveZone = 0.1;
@@ -581,7 +566,7 @@ void setup() {
     sTurnPid.maxIntegral = 5000;
     sTurnPid.DONE_ZONE = PI / 20;
 
-    curvePid.kp = 55000;
+    curvePid.kp = 70000;
 
     curveVelPid.kp = 10000000;
 
