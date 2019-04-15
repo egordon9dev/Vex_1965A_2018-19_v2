@@ -432,12 +432,7 @@ void stopMotors() {
 }
 void stopMotorsBlock() {
     while (1) {
-        setDrfb(0);
-        setDL(0);
-        setDR(0);
-        setClaw(0);
-        setFlywheel(0);
-        setIntake(0);
+        stopMotors();
         delay(10);
     }
 }
@@ -580,8 +575,6 @@ void setup() {
     DLEnc = new pros::ADIEncoder(1, 2, false);
     DREnc = new pros::ADIEncoder(5, 6, false);
 
-    // ballSensL->calibrate(); fix this: calibrate in a seperate thread
-    // ballSensR->calibrate();
     int t0 = millis();
     // while (millis() - t0 < 800) { int n = getDL() + getDR() + getDS();delay(10); }
     first = false;
@@ -648,11 +641,11 @@ void autoSel_update() {
     }
     pros::lcd::print(1, " AUTON SELECT ");
     if (autoSel_nAuton == 0) {
-        pros::lcd::print(2, " ---- NONE ----");
+        pros::lcd::print(2, "0)  NONE");
     } else if (autoSel_nAuton == 1) {
-        pros::lcd::print(2, " Flag Side Auton (3)");
+        pros::lcd::print(2, "1)  Near Middle");
     } else if (autoSel_nAuton == 2) {
-        pros::lcd::print(2, "Cap Side Auton (5)");
+        pros::lcd::print(2, "2)  Middle Far");
     }
     if (autoSel_nAuton == 0) {
         pros::lcd::clear_line(3);
