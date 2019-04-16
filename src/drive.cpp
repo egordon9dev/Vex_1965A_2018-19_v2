@@ -55,7 +55,7 @@ void zeroDriveEncs() {
 int DL_requested_voltage = 0, DR_requested_voltage = 0, driveLim = 12000;
 void setDR(int n) {
     n = clamp(n, -driveLim, driveLim);
-    n = DRSlew.update(n, getDRVel());
+    n = DRSlew.update(n);
     // n = drSaver.getPwr(n, getDR());
     DRMtx.take(50);
     mtr1.move_voltage(-n);
@@ -65,7 +65,7 @@ void setDR(int n) {
 }
 void setDL(int n) {
     n = clamp(n, -driveLim, driveLim);
-    n = DLSlew.update(n, getDLVel());
+    n = DLSlew.update(n);
     // n = dlSaver.getPwr(n, getDL());
     DLMtx.take(50);
     mtr4.move_voltage(n);

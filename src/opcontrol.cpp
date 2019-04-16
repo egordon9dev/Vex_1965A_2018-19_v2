@@ -52,35 +52,33 @@ void opcontrol() {
         return;
     }
     if (1) {
-        // setDriveSlew(true);
-        // odometry.reset();
-        // odometry.setA(-PI / 2);
-        // odometry.setX(0);
-        // odometry.setY(0);
+        setDriveSlew(true);
+        odometry.reset();
+        odometry.setA(-PI / 2);
+        odometry.setX(0);
+        odometry.setY(0);
         // while (1) {
         //     printf("%d %d %d %.2f %.2f %.2f\n", (int)getDL(), (int)getDR(), (int)getDS(), odometry.getX(), odometry.getY(), odometry.getA());
         //     delay(20);
         // }
-        // for (int i = 0; i < 3; ++i) {
-        //     int wait = 400;
-        //     pidDriveLineInit(Point(0, 0), Point(0, 28), true, 0.1, wait);
-        //     while (1) {
-        //         // printf("{ %+5d }  ", (int)lround(DLSlew.update(12000, getDLVel())));
-        //         setDrfb(-1500);
-        //         if (pidDriveLine()) break;
-        //         printDrivePidValues();
-        //         delay(10);
-        //     }
-        //     pidDriveLineInit(Point(0, 28), Point(0, 0), false, 0.1, wait);
-        //     while (1) {
-        //         // printf("{ %+5d }  ", (int)lround(DLSlew.update(12000, getDLVel())));
-        //         setDrfb(-1500);
-        //         if (pidDriveLine()) break;
-        //         printDrivePidValues();
-        //         delay(10);
-        //     }
-        // }
-        // stopMotorsBlock();
+        for (int i = 0; i < 3; ++i) {
+            int wait = 400;
+            pidDriveLineInit(Point(0, 0), Point(0, 28), true, 0.3, wait);
+            while (1) {
+                setDrfb(-1500);
+                if (pidDriveLine()) break;
+                printDrivePidValues();
+                delay(10);
+            }
+            pidDriveLineInit(Point(0, 28), Point(0, 0), false, 0.3, wait);
+            while (1) {
+                setDrfb(-1500);
+                if (pidDriveLine()) break;
+                printDrivePidValues();
+                delay(10);
+            }
+        }
+        stopMotorsBlock();
         // testDriveMtrs();
         // while (!ctlr.get_digital(DIGITAL_B)) delay(10);
         // setDriveSlew(true);

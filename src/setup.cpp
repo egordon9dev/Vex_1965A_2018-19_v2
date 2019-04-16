@@ -87,7 +87,7 @@ bool pidIntake() {
     using intake::wait;
     intakePid.sensVal = getIntakePos();
     intakePid.target = target;
-    setIntake(lround(intakeSlew.update(intakePid.update(), getIntakeVel())));
+    setIntake(lround(intakeSlew.update(intakePid.update())));
     return millis() - intakePid.doneTime > wait;
 }
 void setIntake(int n) {  // +: front, -: back
@@ -145,13 +145,13 @@ void setDrfb(int n) {
     n = clamp(n, -drfbFullRangePowerLimit, drfbFullRangePowerLimit);
     if (getDrfb() < drfbMinPos + 150 && n < -drfbPowerLimit) n = -drfbPowerLimit;
     if (getDrfb() > drfbMaxPos - 150 && n > drfbPowerLimit) n = drfbPowerLimit;
-    n = drfbSlew.update(n, getDrfbVel());
+    n = drfbSlew.update(n);
     n = drfbSaver.getPwr(n, getDrfb());
     mtr7.move_voltage(n);
     drfb_requested_voltage = n;
 }
 void setDrfbDull(int n) {
-    n = drfbSlew.update(n, getDrfbVel());
+    n = drfbSlew.update(n);
     mtr7.move_voltage(n);
     drfb_requested_voltage = n;
 }
@@ -197,7 +197,7 @@ void setClaw(int n, bool limit) {
     // if (getClaw() < 80 && n < -maxPwr) n = -maxPwr;
     // if (getClaw() > claw180 - 80 && n > maxPwr) n = maxPwr;
     n = clawSaver.getPwr(n, mtr8.get_position());
-    n = clawSlew.update(n, getClawVel());
+    n = clawSlew.update(n);
     mtr8.move_voltage(n);
     claw_requested_voltage = n;
 }
@@ -537,11 +537,11 @@ void setup() {
     dlSaver.setConstants(1, 1, 0, 0);
     drSaver.setConstants(1, 1, 0, 0);
 
-    drivePid.kp = 850;    // 1100
+    drivePid.kp = 900;    // 1100
     drivePid.ki = 3;      // 3
-    drivePid.kd = 45000;  // 80k
-    drivePid.iActiveZone = 2;
-    drivePid.maxIntegral = 5000;
+    drivePid.kd = 70000;  // 80k
+    drivePid.iActiveZone = 3;
+    drivePid.maxIntegral = 4000;
     drivePid.DONE_ZONE = 1.0;
     DRPid = DLPid = drivePid;
 
@@ -561,7 +561,7 @@ void setup() {
     sTurnPid.maxIntegral = 5000;
     sTurnPid.DONE_ZONE = PI / 20;
 
-    curvePid.kp = 70000;
+    curvePid.kp = 55000;
 
     curveVelPid.kp = 10000000;
 

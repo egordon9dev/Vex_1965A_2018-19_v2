@@ -5,12 +5,10 @@
 #include "Point.hpp"
 
 class Slew_t {
-   private:
-    double output, rate;
-
    public:
+    double output, slewRate;
+    int prevTime;
     Slew_t();
-    Slew_t(double r);
     double update(double in);
 };
 class Pid_t {

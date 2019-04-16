@@ -14,16 +14,9 @@ Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
  ##        #### ########  ##       ######  ######## ########  ###  ###
 */
 Slew_t::Slew_t() {
-    rate = 120;
+    slewRate = 100.0;
     output = 0;
-}
-Slew_t::Slew_t() {
-    output = 0;
-    rate = 300;
-}
-Slew_t::Slew_t(double r) {
-    output = 0;
-    rate = r;
+    prevTime = millis();
 }
 Pid_t::Pid_t() {
     doneTime = BIL;
@@ -36,27 +29,7 @@ Pid_t::Pid_t() {
 /*
   in: input voltage
 */
-double Slew_t::update(double in, double vel) {
-    vels.push_front(vel);
-    if (vels.size() > 2) vels.pop_back();
-    double sum = 0;
-    for (const auto& v : vels) { sum += v; }
-    vel = sum / vels.size();
-
-    int breakPwr = 0;
-    if (vMax == 3.1) vMax = 3.099999;
-    if (fabs(vel) >= vMax) breakPwr = breakMin + (breakMax - breakMin) * clamp(1 - (fabs(vel) - vMax) / (3.1 - vMax), 0.0, 1.0);
-    double o = 0;
-    if (vel > vMax) {
-        o = clamp(in, (double)(-breakPwr), 12000.0);
-    } else if (vel < -vMax) {
-        o = clamp(in, -12000.0, (double)breakPwr);
-    } else {
-        o = in;
-    }
-
-    in = o;
-
+double Slew_t::update(double in) {
     int dt = millis() - prevTime;
     if (dt > 1000) dt = 0;
     prevTime = millis();
@@ -282,16 +255,15 @@ void pidDriveLineInit(Point start, Point target, bool flip, double maxAErr, cons
     drivePid.doneTime = BIL;
     curvePid.doneTime = BIL;
     driveData::init(start, target, flip, maxAErr, wait);
-    if (flip) {
-        drivePid.kp = 850;
-        drivePid.ki = 3;
-        drivePid.kd = 65000;
-    } else {
-        drivePid.kp = 950;
-        drivePid.ki = 3;
-        drivePid.kd = 70000;
-    }
-    // dreadnought: kp=1065.6, kd=199.8
+    // if (flip) {
+    //     drivePid.kp = 1000;
+    //     drivePid.ki = 7;
+    //     drivePid.kd = 80000;
+    // } else {
+    //     drivePid.kp = 1100;
+    //     drivePid.ki = 3;
+    //     drivePid.kd = 80000;
+    // }
 }
 bool pidDriveLine() {
     using driveData::doneT;
