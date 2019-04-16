@@ -5,13 +5,13 @@
 #include "Point.hpp"
 
 class Slew_t {
+   private:
+    double output, rate;
+
    public:
-    double vMax, breakMin, breakMax, slewRate, output;
-    int prevTime;
-    std::deque<double> vels;
     Slew_t();
-    Slew_t(int bMin, int bMax, double v);
-    double update(double in, double vel);
+    Slew_t(double r);
+    double update(double in);
 };
 class Pid_t {
    public:

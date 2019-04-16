@@ -3,7 +3,7 @@
 #include "setup.hpp"
 using std::cout;
 Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, curvePid, intakePid, curveVelPid, sTurnPid;
-Slew_t flywheelSlew, drfbSlew(4000, 8000, 0.5), DLSlew(300, 800, 0.3), DRSlew(300, 800, 0.3), clawSlew(4000, 8000, 1), intakeSlew(4000, 8000, 0.5);
+Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
 /*
  ########  #### ########           ######  ##       ######## ##      ##
  ##     ##  ##  ##     ##         ##    ## ##       ##       ##  ##  ##
@@ -14,20 +14,16 @@ Slew_t flywheelSlew, drfbSlew(4000, 8000, 0.5), DLSlew(300, 800, 0.3), DRSlew(30
  ##        #### ########  ##       ######  ######## ########  ###  ###
 */
 Slew_t::Slew_t() {
-    breakMin = 6000;
-    breakMax = 12000;
-    slewRate = 9999999;
-    prevTime = millis();
-    vMax = 1;
+    rate = 120;
     output = 0;
 }
-Slew_t::Slew_t(int bMin, int bMax, double v) {
-    breakMin = bMin;
-    breakMax = bMax;
-    slewRate = 999999;
-    prevTime = millis();
-    vMax = v;
+Slew_t::Slew_t() {
     output = 0;
+    rate = 300;
+}
+Slew_t::Slew_t(double r) {
+    output = 0;
+    rate = r;
 }
 Pid_t::Pid_t() {
     doneTime = BIL;
@@ -295,6 +291,7 @@ void pidDriveLineInit(Point start, Point target, bool flip, double maxAErr, cons
         drivePid.ki = 3;
         drivePid.kd = 70000;
     }
+    // dreadnought: kp=1065.6, kd=199.8
 }
 bool pidDriveLine() {
     using driveData::doneT;
