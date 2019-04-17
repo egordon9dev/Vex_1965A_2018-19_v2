@@ -35,9 +35,10 @@ using pros::delay;
 // sensors
 pros::ADILineSensor* ballSensL;
 pros::ADILineSensor* ballSensR;
-pros::ADIEncoder* perpindicularWheelEnc;
+// pros::ADIEncoder* perpindicularWheelEnc;
 pros::ADIEncoder* DLEnc;
 pros::ADIEncoder* DREnc;
+pros::ADIGyro* gyro;
 
 //----------- Constants ----------------
 const int driveTurnLim = 9000;
@@ -46,7 +47,7 @@ const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1250 -
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200, drfbPosScrape = 300;
 const int drfbHoldPwr = -1500;
 
-double sShotSpeed = 3.0;
+double sShotSpeed = 2.94;
 double fw_a4_middleFlag = 3.0;
 double fw_a4_sideFlag = 3.0;
 
@@ -56,6 +57,8 @@ const int dblClickTime = 450, claw180 = 1370;
 const double /*ticksPerInch = 52.746, */ ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
+
+double getGyro() { return -gyro->get_value() / 10.0 * (PI / 180.0); }
 
 /*
  #### ##    ## ########    ###    ##    ## ########
@@ -135,7 +138,7 @@ int getBallSensL() { return ballSensL->get_value(); }
 int getBallSensR() { return ballSensR->get_value(); }
 bool isBallIn() { return false; }
 bool isTopBallIn() { return getBallSensL() < 1000; }
-bool isBtmBallIn() { return getBallSensR() < 1100; }
+bool isBtmBallIn() { return getBallSensR() < 1340; }
 
 //----------- DRFB functions ---------
 int drfb_requested_voltage = 0;
@@ -251,7 +254,7 @@ double getFlywheel() { return mtr6.get_position(); }
 double getFlywheelFromMotor() { return 3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 
-double FWSpeeds[][2] = {{0, 0}, {2.8, 11000}, {2.9, 11000}, {3.0, 10800}, {3.06, 11600}};
+double FWSpeeds[][2] = {{0, 0}, {2.8, 11000}, {2.9, 11000}, {2.94, 11150}, {3.0, 10800}, {3.06, 11600}};
 void pidFlywheelInit(double speed, double pidZone, int wait) { flywheel::init(speed, pidZone, wait); }
 bool pidFlywheel() {
     static std::deque<int> pwrs;
@@ -545,9 +548,9 @@ void setup() {
     drivePid.DONE_ZONE = 1.0;
     DRPid = DLPid = drivePid;
 
-    turnPid.kp = 18000;
+    turnPid.kp = 15000;
     turnPid.ki = 250;
-    turnPid.kd = 2000000;
+    turnPid.kd = 1600000;
     turnPid.iActiveZone = 0.1;
     turnPid.unwind = 0.003;
     turnPid.maxIntegral = 5000;
@@ -561,7 +564,8 @@ void setup() {
     sTurnPid.maxIntegral = 5000;
     sTurnPid.DONE_ZONE = PI / 20;
 
-    curvePid.kp = 55000;
+    curvePid.kp = 50000;
+    curvePid.kd = 5500000;
 
     curveVelPid.kp = 10000000;
 
@@ -571,9 +575,10 @@ void setup() {
 
     ballSensL = new pros::ADILineSensor(7);
     ballSensR = new pros::ADILineSensor(8);
-    perpindicularWheelEnc = new pros::ADIEncoder(3, 4, false);
+    // perpindicularWheelEnc = new pros::ADIEncoder(3, 4, false);
     DLEnc = new pros::ADIEncoder(1, 2, false);
     DREnc = new pros::ADIEncoder(5, 6, false);
+    gyro = new pros::ADIGyro(3, 1);
 
     int t0 = millis();
     // while (millis() - t0 < 800) { int n = getDL() + getDR() + getDS();delay(10); }
@@ -611,7 +616,7 @@ void morningRoutine() {
         if (fabs(getDL() - prevDL) > 0.001) initDL = true;
         if (fabs(getDR() - prevDR) > 0.001) initDR = true;
         if (fabs(getDS() - prevDS) > 0.001) initDS = true;
-        if (initDL && initDR && initDS) break;
+        if (initDL && initDR) break;
         prevDL = getDL();
         prevDR = getDR();
         prevDS = getDS();

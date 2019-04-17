@@ -22,9 +22,9 @@ double getDR() {
 }
 double getDS() {
     DSMtx.take(50);
-    double d = (perpindicularWheelEnc->get_value()) + DSEncBias;
+    // double d = (perpindicularWheelEnc->get_value()) + DSEncBias;
     DSMtx.give();
-    return d;
+    return 0;  // d;
 }
 double getDLVel() {
     DLMtx.take(50);

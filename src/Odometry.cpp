@@ -48,18 +48,26 @@ void Odometry_t::setY(double newY) {
 Point Odometry_t::getPos() { return Point(getX(), getY()); }
 
 void Odometry_t::update() {
+    static double prevGyro = 0;
     odoUpdateMtx.take(50);
     double curDL = getDL(), curDR = getDR(), curDS = getDS();
     double pdl = prevDL, pdr = prevDR, pds = prevDS;
     double deltaDL = (curDL - pdl) / ticksPerInchADI, deltaDR = (curDR - pdr) / ticksPerInchADI, deltaDS = (curDS - pds) / ticksPerInchADI;
-    double deltaA = (deltaDR - deltaDL) / (2.0 * L);
+    double curGyro = getGyro();
+    if (curGyro < prevGyro - PI) {
+        curGyro += 2 * PI;
+    } else if (curGyro > prevGyro + PI) {
+        curGyro -= 2 * PI;
+    }
+    double deltaA = curGyro - prevGyro;  //(deltaDR - deltaDL) / (2.0 * L);
+    prevGyro = curGyro;
     double chordLen = (deltaDL + deltaDR) / 2.0;
     if (!((deltaDL < -0.0001 && deltaDR > 0.0001) || (deltaDL > 0.0001 && deltaDR < -0.0001))) {  // not turning
-        setX(getX() + deltaDS * cos(a + deltaA / 2.0 - PI / 2.0));
-        setY(getY() + deltaDS * sin(a + deltaA / 2.0 - PI / 2.0));
+        setX(getX() + deltaDS * cos(getA() + deltaA / 2.0 - PI / 2.0));
+        setY(getY() + deltaDS * sin(getA() + deltaA / 2.0 - PI / 2.0));
     }
-    setX(getX() + chordLen * cos(a + deltaA / 2.0));
-    setY(getY() + chordLen * sin(a + deltaA / 2.0));
+    setX(getX() + chordLen * cos(getA() + deltaA / 2.0));
+    setY(getY() + chordLen * sin(getA() + deltaA / 2.0));
     setA(getA() + deltaA);
     prevDL = curDL;
     prevDR = curDR;
