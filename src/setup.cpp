@@ -244,6 +244,8 @@ void init(double t, double pz, int w) {
 }
 }  // namespace flywheel
 void setFlywheel(int n) {
+    // add some flicker to wakeup the motor
+    n = n + (int)(3 * sin(millis() * 2 * PI / 250));
     n = clamp(n, 0, 12000);
     // n = flywheelSlew.update(n);
     // n = flySaver.getPwr(n, getFlywheel());
@@ -253,6 +255,7 @@ void setFlywheel(int n) {
 double getFlywheel() { return mtr6.get_position(); }
 double getFlywheelFromMotor() { return 3.1 / 200.0 * mtr6.get_actual_velocity(); }
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
+int getFlywheelMeasuredVoltage() { return mtr6.get_voltage(); }
 
 double FWSpeeds[][2] = {{0, 0}, {2.8, 11000}, {2.9, 11000}, {2.94, 11150}, {3.0, 10800}, {3.06, 11600}};
 void pidFlywheelInit(double speed, double pidZone, int wait) { flywheel::init(speed, pidZone, wait); }
@@ -309,7 +312,7 @@ bool pidFlywheel() {
         if (crossedTarget) {
             // printf("{fw1 cur: %1.3f, prev: %1.3f}\n", flywheelPid.sensVal, prevSensVal);
             // after shooting a ball, the flywheel slows down a lot
-            if (flywheelPid.sensVal < prevSensVal - 0.1) {
+            if (flywheelPid.sensVal < prevSensVal - 0.1 || flywheelPid.sensVal < flywheelPid.target - 0.3) {
                 dir = 1;
                 output = 0.0;
                 crossedTarget = false;
@@ -357,7 +360,7 @@ bool pidFlywheel() {
                     int curPwr = bias + lround(output);
                     setFlywheel(curPwr);
                     pwrs.push_back(curPwr);
-                    if (pwrs.size() > 10) pwrs.pop_front();
+                    while (pwrs.size() > 10) pwrs.pop_front();
                 }
             }
             // printf("{ flywheelPid, output: %d, crossedTarget: %s, prevSensVal: %1.3f } ", lround(output), crossedTarget ? "True" : "False", prevSensVal);
@@ -545,7 +548,7 @@ void setup() {
     drivePid.kd = 70000;  // 80k
     drivePid.iActiveZone = 3;
     drivePid.maxIntegral = 4000;
-    drivePid.DONE_ZONE = 1.0;
+    drivePid.DONE_ZONE = 1;
     DRPid = DLPid = drivePid;
 
     turnPid.kp = 15000;
@@ -554,7 +557,7 @@ void setup() {
     turnPid.iActiveZone = 0.1;
     turnPid.unwind = 0.003;
     turnPid.maxIntegral = 5000;
-    turnPid.DONE_ZONE = PI / 20;
+    turnPid.DONE_ZONE = 0.15;
 
     sTurnPid.kp = 59000;
     sTurnPid.ki = 500;

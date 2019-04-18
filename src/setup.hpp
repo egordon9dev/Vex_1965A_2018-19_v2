@@ -109,6 +109,7 @@ void pidClaw();
 void setFlywheel(int n);
 double getFlywheel();
 int getFlywheelVoltage();
+int getFlywheelMeasuredVoltage();
 bool pidFlywheel();
 void pidFlywheelInit(double speed, double pidZone, int wait);
 bool isPidFlywheelDone();

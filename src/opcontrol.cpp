@@ -128,7 +128,6 @@ void opcontrol() {
     int autoFlipH;
     int prevCtlrUpdateT = 0;
     bool prevIsBallIn = false;
-    bool intakeToggle = false;
     bool fwPidRunning = false;
     int fwPwr = 7000;
     int prevNotHoldingT = -9999;
@@ -140,7 +139,8 @@ void opcontrol() {
     while (true) {
         pros::lcd::print(0, "%1.2f %1.2f %1.2f", odometry.getX(), odometry.getY(), odometry.getA());
         pros::lcd::print(1, "L%3d R%3d S%3d", (int)lround(getDL()), (int)lround(getDR()), (int)lround(getDS()));
-        pros::lcd::print(5, "fw %1.3f/%1.3f", flywheelPid.sensVal, flywheelPid.target);
+        pros::lcd::print(4, "fw %1.3f/%1.3f", flywheelPid.sensVal, flywheelPid.target);
+        pros::lcd::print(3, "%d", getFlywheelMeasuredVoltage());
         pros::lcd::print(6, "%d %5d e%1.3f", fwPidRunning ? 1 : 0, getFlywheelVoltage(), fabs(flywheelPid.sensVal - flywheelPid.target));
         pros::lcd::print(7, "drfb(%d)%2d %d", drfbPidRunning, getDrfbVoltage() / 1000, lround(getDrfb()));
 
@@ -347,14 +347,18 @@ void opcontrol() {
             }
         }
         // auto-off
-        if (isTopBallIn() && isBtmBallIn() && millis() - prevL1T > 800) { intakeState = IntakeState::FRONT_HOLD; }
+        if (isTopBallIn() && isBtmBallIn() && millis() - prevL1T > 800) {
+            if (intakeState != IntakeState::BACK) intakeState = IntakeState::FRONT_HOLD;
+        }
         // toggle
-        if (curClicks[ctlrIdxL1] && !prevClicks[ctlrIdxL1]) {
-            if (intakeState == IntakeState::FRONT_HOLD || intakeState == IntakeState::BACK) {
-                intakeState = IntakeState::FRONT;
-            } else if (intakeState == IntakeState::FRONT) {
-                intakeState = IntakeState::FRONT_HOLD;
-            }
+        if (dblClicks[ctlrIdxL1]) {
+            intakeState = IntakeState::FRONT_HOLD;
+        } else if (curClicks[ctlrIdxL1]) {
+            // /if (intakeState == IntakeState::FRONT_HOLD || intakeState == IntakeState::BACK) {
+            intakeState = IntakeState::FRONT;
+            //} else if (intakeState == IntakeState::FRONT) {
+            //    intakeState = IntakeState::FRONT_HOLD;
+            //}
         }
         // reverse
         if (curClicks[ctlrIdxLeft] && !prevClicks[ctlrIdxLeft]) {
