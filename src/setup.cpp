@@ -96,7 +96,7 @@ bool pidIntake() {
 void setIntake(int n) {  // +: front, -: back
     n = clamp(n, -12000, 12000);
     // n = intakeSlew.update(n);
-    n = intakeSaver.getPwr(n, mtr3.get_position());
+    n = intakeSaver.getPwr(n, getIntakeVel());
     mtr3.move_voltage(n);
     intake::requestedVoltage = n;
 }
@@ -110,7 +110,7 @@ void setIntake(IntakeState is) {
     } else if (is == IntakeState::FRONT_HOLD) {
         setIntake(500);
     } else if (is == IntakeState::BACK) {
-        setIntake(-12000);
+        setIntake(-6000);
     } else if (is == IntakeState::BACK_SLOW) {
         setIntake(-2000);
     } else if (is == IntakeState::ALTERNATE) {
@@ -149,7 +149,7 @@ void setDrfb(int n) {
     if (getDrfb() < drfbMinPos + 150 && n < -drfbPowerLimit) n = -drfbPowerLimit;
     if (getDrfb() > drfbMaxPos - 150 && n > drfbPowerLimit) n = drfbPowerLimit;
     n = drfbSlew.update(n);
-    n = drfbSaver.getPwr(n, getDrfb());
+    n = drfbSaver.getPwr(n, getDrfbVel());
     mtr7.move_voltage(n);
     drfb_requested_voltage = n;
 }
@@ -199,7 +199,7 @@ void setClaw(int n, bool limit) {
     // int maxPwr = 1200;
     // if (getClaw() < 80 && n < -maxPwr) n = -maxPwr;
     // if (getClaw() > claw180 - 80 && n > maxPwr) n = maxPwr;
-    n = clawSaver.getPwr(n, mtr8.get_position());
+    n = clawSaver.getPwr(n, getClawVel());
     n = clawSlew.update(n);
     mtr8.move_voltage(n);
     claw_requested_voltage = n;
@@ -458,15 +458,77 @@ void startOdoTask() {
 }
 
 void opctlDrive(int driveDir) {
+    static bool prevStopped = false;
+    static int stopT = 0;
+    const int nVels = 2;
+    static std::deque<double> dlVels, drVels;
+    dlVels.push_back(getDLVel());
+    while (dlVels.size() > nVels) { dlVels.pop_front(); }
+    drVels.push_back(getDRVel());
+    while (drVels.size() > nVels) { drVels.pop_front(); }
+    double dlVelAvg = 0, drVelAvg = 0;
+    for (const auto& v : dlVels) { dlVelAvg += v; }
+    for (const auto& v : drVels) { drVelAvg += v; }
+    dlVelAvg /= nVels;
+    drVelAvg /= nVels;
+    static double dlOut = 0, drOut = 0;
     int trn = lround(ctlr.get_analog(ANALOG_RIGHT_X));
     int drv = lround(driveDir * ctlr.get_analog(ANALOG_LEFT_Y));
-    if (abs(drv) < 5) drv = 0;
-    if (abs(trn) < 5) trn = 0;
+    if (abs(drv) < 12) drv = 0;
+    if (abs(trn) < 12) trn = 0;
     drv = lround(drv * 12000.0 / 127.0);
     trn = lround(trn * 12000.0 / 127.0);
     if (abs(drv) < 4000) trn = clamp(trn, -driveTurnLim, driveTurnLim);
-    setDL(drv + trn);
-    setDR(drv - trn);
+    bool stopped = drv == 0 && trn == 0;
+    if (stopped && !prevStopped) {
+        Point pos = odometry.getPos();
+        dlOut = drOut = 0;
+        stopT = millis();
+    }
+    if (stopped) {
+        const int breakPwr = 3000;
+        driveLim = breakPwr;
+        if (millis() - stopT < 500) {
+            double k = 1000;
+            dlOut = -k * getDLVel();
+            drOut = -k * getDRVel();
+        } else {
+            //---------------   antipush   ------------------
+            double pushVel = 0.35, breakCutoffVel = 0.05;
+            // positive push
+            if (dlVelAvg > pushVel && dlOut <= 0) {
+                printf("+ break ON\n");
+                dlOut = -breakPwr;
+            } else if (dlVelAvg < -breakCutoffVel && dlOut < -500) {
+                printf("+ break OFF\n");
+                dlOut = 500;
+            }
+            if (drVelAvg > pushVel && drOut <= 0) {
+                drOut = -breakPwr;
+            } else if (drVelAvg < -breakCutoffVel && drOut < -500) {
+                drOut = 500;
+            }
+            // negative push
+            if (dlVelAvg < -pushVel && dlOut >= 0) {
+                printf("- break ON\n");
+                dlOut = breakPwr;
+            } else if (dlVelAvg > breakCutoffVel && dlOut > 500) {
+                printf("- break OFF\n");
+                dlOut = -500;
+            }
+            if (drVelAvg < -pushVel && drOut >= 0) {
+                drOut = breakPwr;
+            } else if (drVelAvg > breakCutoffVel && drOut > 500) {
+                drOut = -500;
+            }
+        }
+        setDL(dlOut);
+        setDR(drOut);
+    } else {
+        setDL(drv + trn);
+        setDR(drv - trn);
+    }
+    prevStopped = stopped;
 }
 /*
   ######  ######## ######## ##     ## ########
@@ -515,7 +577,6 @@ void setup() {
     flywheelPid.ki = 0;
     flywheelPid.kd = 150000;  // 150k
     flywheelPid.DONE_ZONE = 0.1;
-    flySaver.setConstants(1, 1, 0, 0);
 
     intakePid.kp = 100;
     intakePid.ki = 0.05;
@@ -524,7 +585,7 @@ void setup() {
     intakePid.iActiveZone = 300;
     intakePid.unwind = 0;
     intakePid.DONE_ZONE = 50;
-    intakeSaver.setConstants(.15, 0.3, 0.05, 0.2);
+    intakeSaver.setConstants(6000, 3500, 0.5, 0.2);
 
     clawPid.kp = 90.0;
     clawPid.ki = 0.03;
@@ -532,16 +593,17 @@ void setup() {
     clawPid.iActiveZone = 300;
     clawPid.maxIntegral = 4000;
     clawPid.unwind = 0;
-    clawSaver.setConstants(0.5, .3, 0.3, .15);
+    clawSaver.setConstants(6000, 3500, 0.5, 0.2);
 
     setDrfbParams(true);
-    drfbSaver.setConstants(0.15, 0.6, 0.01, 0.1);
+    dlSaver.setConstants(6000, 3500, 0.5, 0.2);
+    drSaver.setConstants(6000, 3500, 0.5, 0.2);
     drfbPid.DONE_ZONE = 100;
     drfbPid.target = drfbPos0;
 
     setDriveSlew(false);
-    dlSaver.setConstants(1, 1, 0, 0);
-    drSaver.setConstants(1, 1, 0, 0);
+    dlSaver.setConstants(6000, 3500, 0.5, 0.2);
+    drSaver.setConstants(6000, 3500, 0.5, 0.2);
 
     drivePid.kp = 900;    // 1100
     drivePid.ki = 3;      // 3

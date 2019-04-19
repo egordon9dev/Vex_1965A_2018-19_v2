@@ -51,7 +51,7 @@ void opcontrol() {
         }
         return;
     }
-    if (1) {
+    if (0) {
         // setDriveSlew(true);
         // odometry.reset();
         // odometry.setA(-PI / 2);
@@ -139,6 +139,7 @@ void opcontrol() {
     while (true) {
         pros::lcd::print(0, "%1.2f %1.2f %1.2f", odometry.getX(), odometry.getY(), odometry.getA());
         pros::lcd::print(1, "L%3d R%3d S%3d", (int)lround(getDL()), (int)lround(getDR()), (int)lround(getDS()));
+        pros::lcd::print(2, "L%5d R%5d", getDLVoltage(), getDRVoltage());
         pros::lcd::print(4, "fw %1.3f/%1.3f", flywheelPid.sensVal, flywheelPid.target);
         pros::lcd::print(3, "%d", getFlywheelMeasuredVoltage());
         pros::lcd::print(6, "%d %5d e%1.3f", fwPidRunning ? 1 : 0, getFlywheelVoltage(), fabs(flywheelPid.sensVal - flywheelPid.target));
@@ -154,7 +155,10 @@ void opcontrol() {
             dblClicks[i] = allClicks[2][i];
         }
 
-        if (curClicks[ctlrIdxB] && !prevClicks[ctlrIdxB]) { driveDir *= -1; }
+        if (curClicks[ctlrIdxB] && !prevClicks[ctlrIdxB]) {
+            if (driveDir == -1) intakeState = IntakeState::NONE;
+            driveDir *= -1;
+        }
         // DRIVE
         driveLim = (getDrfb() > 0.5 * (drfb18Max + drfbPos1)) ? 8500 : 12000;
         opctlDrive(driveDir);

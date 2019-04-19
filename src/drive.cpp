@@ -56,7 +56,7 @@ int DL_requested_voltage = 0, DR_requested_voltage = 0, driveLim = 12000;
 void setDR(int n) {
     n = clamp(n, -driveLim, driveLim);
     n = DRSlew.update(n);
-    // n = drSaver.getPwr(n, getDR());
+    n = drSaver.getPwr(n, getDRVel());
     DRMtx.take(50);
     mtr1.move_voltage(-n);
     mtr2.move_voltage(n);
@@ -66,7 +66,7 @@ void setDR(int n) {
 void setDL(int n) {
     n = clamp(n, -driveLim, driveLim);
     n = DLSlew.update(n);
-    // n = dlSaver.getPwr(n, getDL());
+    n = dlSaver.getPwr(n, getDLVel());
     DLMtx.take(50);
     mtr4.move_voltage(n);
     mtr5.move_voltage(-n);
