@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <deque>
 #include "Point.hpp"
+#include "main.h"
 
 class Slew_t {
    public:
@@ -20,7 +21,11 @@ class Pid_t {
 };
 class Odometry_t {
    private:
-    double x, y, a, perpL, L, prevDL, prevDR, prevDS;
+    pros::Mutex mtxX, mtxY, mtxA, mtxScaleL, mtxScaleR;
+    pros::Mutex odoUpdateMtx;
+    double x, y, a, perpL, L, prevDL, prevDR, prevDS, prevGyro, scaleL, scaleR;
+    void setScaleL(double scL);
+    void setScaleR(double scR);
 
    public:
     Odometry_t(double L, double perpL);
@@ -31,9 +36,21 @@ class Odometry_t {
     void setA(double a);
     void setX(double x);
     void setY(double y);
+    double getScaleL();
+    double getScaleR();
+    void setScales(double scL, double scR);
     void reset();
     Point getPos();
 };
+namespace driveData {
+extern Point start;
+extern Point target;
+extern int wait;
+extern int doneT;
+extern double maxAErr;
+extern bool flip;
+void init(Point s, Point t, bool f, double mae, int w);
+}  // namespace driveData
 
 void pidDriveInit(Point target, const int wait);
 bool pidDrive();
@@ -45,16 +62,17 @@ bool bangTurn(double a);
 void pidFaceInit(const Point& p, bool flip, const int wait);
 double getFaceA(const Point& p, bool flip);
 bool pidFace();
-void pidSweepInit(double tL, double tR, int wait);
+void pidSweepInit(double tL, double tR, int bias, int wait);
 bool pidSweep();
 void pidDriveArcInit(Point start, Point target, double rMag, int rotDir, bool flip, int wait);
 void pidFollowArcInit(Point start, Point target, double rMag, int rotDir, bool flip, int wait);
 bool pidDriveArc();
 void printArcData();
 
+extern Point start;
 extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, drivePid, turnPid, sTurnPid, curvePid, intakePid, curveVelPid;
 extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew, intakeSlew;
-extern Odometry_t odometry;
+extern Odometry_t odometry, bentOdo;
 extern int g_pidTurnLimit;
 
 #endif

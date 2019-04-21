@@ -27,6 +27,9 @@ A, Y        flip  cap
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
+#define SIG_1 1
+
+pros::Vision vision_sensor(7);
 using pros::delay;
 using std::cout;
 using std::endl;
@@ -52,32 +55,60 @@ void opcontrol() {
         return;
     }
     if (0) {
+        while (1) { printf("top %d    btm %d\n", getBallSensL(), getBallSensR()); }
+        printf("starting....");
+        // vex::vision::signature SIG_1(1, -2379, -2025, -2202, 4005, 5441, 4723, 7, 0);
+        // vex::vision::signature SIG_2 (2, 7265, 7861, 7563, -1967, -941, -1454, 7, 0);
+
+        /*
+        pros::vision_signature_s_t sig2 = vision_sensor.get_signature(2);
+        printf("sig2: %d %d %d %d %d %d %d %d %d ", sig2.id, sig2.u_min, sig2.u_max, sig2.u_mean, sig2.v_min, sig2.v_max, sig2.v_mean, sig2.range, sig2.type);
+        while (true) {
+            int n = vision_sensor.get_object_count();
+            pros::lcd::print(0, "%d ", n);
+
+            if (n > 0) {
+                pros::vision_object_s_t obj = vision_sensor.get_by_sig(0, 2);
+                pros::lcd::print(1, "x: %3d y: %3d", obj.x_middle_coord, obj.y_middle_coord);
+                pros::lcd::print(2, "w: %3d h: %3d", obj.width, obj.height);
+            } else {
+                pros::lcd::print(1, "no objects");
+                pros::lcd::print(2, "          ");
+            }
+
+            pros::delay(20);
+        }*/
+
         // setDriveSlew(true);
-        // odometry.reset();
-        // odometry.setA(-PI / 2);
-        // odometry.setX(0);
-        // odometry.setY(0);
+        // while (!ctlr.get_digital(DIGITAL_A)) delay(10);
+        // pidSweepInit(43.2, 24, 2.0, 9999);
+        // while (!ctlr.get_digital(DIGITAL_B)) {
+        //     printPidValues();
+        //     pidSweep();
+        //     delay(10);
+        // }
         // while (1) {
         //     printf("%d %d %d %.2f %.2f %.2f\n", (int)getDL(), (int)getDR(), (int)getDS(), odometry.getX(), odometry.getY(), odometry.getA());
         //     delay(20);
         // }
         // for (int i = 0; i < 3; ++i) {
         //     int wait = 400;
-        //     pidDriveLineInit(Point(0, 0), Point(0, 28), true, 0.3, wait);
+        //     pidTurnInit(-PI / 2 + 1.5, wait);
         //     while (1) {
         //         setDrfb(-1500);
-        //         if (pidDriveLine()) break;
+        //         if (pidTurn()) break;
         //         printDrivePidValues();
         //         delay(10);
         //     }
-        //     pidDriveLineInit(Point(0, 28), Point(0, 0), false, 0.3, wait);
+        //     pidTurnInit(-PI / 2, wait);
         //     while (1) {
         //         setDrfb(-1500);
-        //         if (pidDriveLine()) break;
+        //         if (pidTurn()) break;
         //         printDrivePidValues();
         //         delay(10);
         //     }
         // }
+        // stopMotorsBlock();
         // stopMotorsBlock();
         // testDriveMtrs();
         // while (!ctlr.get_digital(DIGITAL_B)) delay(10);
@@ -95,7 +126,7 @@ void opcontrol() {
         //	while(1) {
         //	printf("%.2f\n", getDrfb());
         //}
-        autonNearMid(false);
+        autonMainBack(false);
         // int tttt = millis();
         // flywheelPid.target = 1.5;
         // while (millis() - tttt < 800) pidFlywheel();
@@ -406,3 +437,28 @@ void opcontrol() {
     delete DLEnc;
     delete DREnc;
 }
+
+/*
+#define SIG_1 1
+
+pros::Vision vision_sensor(6);
+void opcontrol() {
+printf("starting....");
+while (true) {
+   int n = vision_sensor.get_object_count();
+   pros::lcd::print(0, "%d ", n);
+
+   if (n > 0) {
+       pros::vision_object_s_t obj = vision_sensor.get_by_sig(0, SIG_1);
+       pros::lcd::print(1, "x: %3d y: %3d", obj.x_middle_coord, obj.y_middle_coord);
+       pros::lcd::print(2, "w: %3d h: %3d", obj.width, obj.height);
+   } else {
+       pros::lcd::print(1, "no objects");
+       pros::lcd::print(2, "          ");
+   }
+
+   pros::delay(20);
+}
+}
+
+*/

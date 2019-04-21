@@ -9,8 +9,17 @@
  */
 void initialize() {
     pros::lcd::initialize();
-    pros::lcd::set_text(1, "Unplug the joystick!");
+    pros::lcd::set_text(1, "Initializing");
+    pros::lcd::set_text(2, "Stand Back");
+    pros::lcd::set_text(3, "Don't move");
+    pros::lcd::set_text(4, "I'm prepin stuff");
+    pros::lcd::set_text(5, "so we win");
+    pros::lcd::set_text(6, "...");
+    pros::lcd::set_text(7, "...");
+    printf("initializing...\n");
     setup();
+    printf("Ready\n");
+    for (int i = 1; i < 8; i++) { pros::lcd::set_text(i, ""); }
 }
 
 /**

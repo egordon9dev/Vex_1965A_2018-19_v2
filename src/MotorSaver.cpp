@@ -22,8 +22,10 @@ int MotorSaver::getPwr(int inputPwr, double vel) {
     for (const auto& s : speeds) { avgSpeed += s; }
     avgSpeed /= speedsLen;
     avgPwr /= speedsLen;
-    if (avgSpeed < spd1 && avgPwr > pwr1 || avgSpeed > -spd1 && avgPwr < -pwr1) { inputPwr = clamp(inputPwr, -pwr1, pwr1); }
-    if (avgSpeed < spd2 && avgPwr > pwr2 || avgSpeed > -spd2 && avgPwr < -pwr2) { inputPwr = clamp(inputPwr, -pwr2, pwr2); }
+    if (pros::competition::is_autonomous() || getDrfb() < drfb18Max + 80) {
+        if (avgSpeed < spd1 && avgPwr > pwr1 || avgSpeed > -spd1 && avgPwr < -pwr1) { inputPwr = clamp(inputPwr, -pwr1, pwr1); }
+        if (avgSpeed < spd2 && avgPwr > pwr2 || avgSpeed > -spd2 && avgPwr < -pwr2) { inputPwr = clamp(inputPwr, -pwr2, pwr2); }
+    }
     return clamp(inputPwr, -12000, 12000);
 }
 void MotorSaver::reset() {

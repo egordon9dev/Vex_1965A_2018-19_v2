@@ -10,7 +10,7 @@
 // motors
 pros::Motor mtr3(19);  // intake
 pros::Motor mtr6(17);  // flywheel
-pros::Motor mtr7(11);  // drfb
+pros::Motor mtr7(14);  // drfb
 pros::Motor mtr8(16);  // claw
 /* bad ports:
 5,
@@ -18,6 +18,7 @@ pros::Motor mtr8(16);  // claw
 18(flywheel: during practice),
 13(claw: during practice),
 12 (claw: first time turning on the robot in the morning)
+11 (drfb)
 */
 // bad ports: 11, 12, 14, 15, 1, 2, 3, 4, 5, 6, 7
 
@@ -39,6 +40,7 @@ pros::ADILineSensor* ballSensR;
 pros::ADIEncoder* DLEnc;
 pros::ADIEncoder* DREnc;
 pros::ADIGyro* gyro;
+// pros::Vision* vision;
 
 //----------- Constants ----------------
 const int driveTurnLim = 9000;
@@ -47,7 +49,7 @@ const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1250 -
 const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200, drfbPosScrape = 300;
 const int drfbHoldPwr = -1500;
 
-double sShotSpeed = 2.94;
+double sShotSpeed = 2.97;
 double fw_a4_middleFlag = 3.0;
 double fw_a4_sideFlag = 3.0;
 
@@ -138,7 +140,7 @@ int getBallSensL() { return ballSensL->get_value(); }
 int getBallSensR() { return ballSensR->get_value(); }
 bool isBallIn() { return false; }
 bool isTopBallIn() { return getBallSensL() < 1000; }
-bool isBtmBallIn() { return getBallSensR() < 1340; }
+bool isBtmBallIn() { return getBallSensR() < 1150; }
 
 //----------- DRFB functions ---------
 int drfb_requested_voltage = 0;
@@ -443,12 +445,13 @@ void stopMotorsBlock() {
     }
 }
 extern Point g_target;
-void printPidValues() { printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f clw%2d %4d/%4d intk%2d %4d/%4d ball %d %d  vel %+1.1f drv %+3.2f/%+3.1f trn %+2.2f/%+2.1f x %+3.2f/%+3.1f y %+3.2f/%+3.1f a %+1.2f\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target), (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, (int)getBallSensL(), (int)getBallSensR(), getDriveVel(), getDrfb(), drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
-void printDrivePidValues() { printf("DL%+5d DR%+5d (%+5d %+5d %+5d) vel %+1.3f drive %+3.2f/%+3.2f turn %+2.2f/%+2.2f curve %+2.2f/%+2.2f x %+3.2f/%+3.2f y %+3.2f/%+3.2f a %+1.2f\n", getDLVoltage(), getDRVoltage(), (int)getDL(), (int)getDR(), (int)getDS(), getDriveVel(), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
+void printPidValues() { printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f clw%2d %4d/%4d intk%2d %4d/%4d ball %d %d  vel %+1.1f drv %+3.2f/%+3.1f DL%+5d %+2.1f/%+2.1f DR%+5d %+2.1f/%+2.1f trn %+2.2f/%+2.1f x %+3.2f/%+3.1f y %+3.2f/%+3.1f a %+1.2f\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target), (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, isBtmBallIn() ? 1 : 0, isTopBallIn() ? 1 : 0, getDriveVel(), drivePid.sensVal, drivePid.target, getDLVoltage(), DLPid.sensVal, DLPid.target, getDRVoltage(), DRPid.sensVal, DRPid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
+void printDrivePidValues() { printf("DL%+5d DR%+5d (%+5d %+5d %+5d) vel %+1.3f drive %+3.2f/%+3.2f DL %+2.1f/%+2.1f DR %+2.1f/%+2.1f turn %+2.2f/%+2.2f curve %+2.2f/%+2.2f x %+3.2f/%+3.2f y %+3.2f/%+3.2f a %+1.2f\n", getDLVoltage(), getDRVoltage(), (int)getDL(), (int)getDR(), (int)getDS(), getDriveVel(), drivePid.sensVal, drivePid.target, DLPid.sensVal, DLPid.target, DRPid.sensVal, DRPid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
 void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", getDLVoltage, DLPid.sensVal, DLPid.target, getDRVoltage, DRPid.sensVal, DRPid.target); }
 void odoTaskRun(void* param) {
     while (true) {
         odometry.update();
+        bentOdo.update();
         delay(3);
     }
 }
@@ -494,32 +497,36 @@ void opctlDrive(int driveDir) {
             drOut = -k * getDRVel();
         } else {
             //---------------   antipush   ------------------
-            double pushVel = 0.35, breakCutoffVel = 0.05;
-            // positive push
-            if (dlVelAvg > pushVel && dlOut <= 0) {
-                printf("+ break ON\n");
-                dlOut = -breakPwr;
-            } else if (dlVelAvg < -breakCutoffVel && dlOut < -500) {
-                printf("+ break OFF\n");
-                dlOut = 500;
-            }
-            if (drVelAvg > pushVel && drOut <= 0) {
-                drOut = -breakPwr;
-            } else if (drVelAvg < -breakCutoffVel && drOut < -500) {
-                drOut = 500;
-            }
-            // negative push
-            if (dlVelAvg < -pushVel && dlOut >= 0) {
-                printf("- break ON\n");
-                dlOut = breakPwr;
-            } else if (dlVelAvg > breakCutoffVel && dlOut > 500) {
-                printf("- break OFF\n");
-                dlOut = -500;
-            }
-            if (drVelAvg < -pushVel && drOut >= 0) {
-                drOut = breakPwr;
-            } else if (drVelAvg > breakCutoffVel && drOut > 500) {
-                drOut = -500;
+            if (getDrfb() < drfb18Max + 50) {
+                double pushVel = 0.35, breakCutoffVel = 0.05;
+                // positive push
+                if (dlVelAvg > pushVel && dlOut <= 0) {
+                    printf("+ break ON\n");
+                    dlOut = -breakPwr;
+                } else if (dlVelAvg < -breakCutoffVel && dlOut < -500) {
+                    printf("+ break OFF\n");
+                    dlOut = 500;
+                }
+                if (drVelAvg > pushVel && drOut <= 0) {
+                    drOut = -breakPwr;
+                } else if (drVelAvg < -breakCutoffVel && drOut < -500) {
+                    drOut = 500;
+                }
+                // negative push
+                if (dlVelAvg < -pushVel && dlOut >= 0) {
+                    printf("- break ON\n");
+                    dlOut = breakPwr;
+                } else if (dlVelAvg > breakCutoffVel && dlOut > 500) {
+                    printf("- break OFF\n");
+                    dlOut = -500;
+                }
+                if (drVelAvg < -pushVel && drOut >= 0) {
+                    drOut = breakPwr;
+                } else if (drVelAvg > breakCutoffVel && drOut > 500) {
+                    drOut = -500;
+                }
+            } else {
+                dlOut = drOut = 0;
             }
         }
         setDL(dlOut);
@@ -530,6 +537,13 @@ void opctlDrive(int driveDir) {
     }
     prevStopped = stopped;
 }
+/*
+double getCapX(bool red) {
+    static double capX = 156;
+    pros::vision_object_s_t obj = vision->get_by_sig(0, red ? 2 : 1);
+    capX = obj.left_coord + obj.width / 2;
+    return capX;
+}*/
 /*
   ######  ######## ######## ##     ## ########
  ##    ## ##          ##    ##     ## ##     ##
@@ -613,11 +627,11 @@ void setup() {
     drivePid.DONE_ZONE = 1;
     DRPid = DLPid = drivePid;
 
-    turnPid.kp = 15000;
-    turnPid.ki = 250;
-    turnPid.kd = 1600000;
-    turnPid.iActiveZone = 0.1;
-    turnPid.unwind = 0.003;
+    turnPid.kp = 12000;
+    turnPid.ki = 80;
+    turnPid.kd = 2000000;
+    turnPid.iActiveZone = 0.25;
+    turnPid.unwind = 0.0;
     turnPid.maxIntegral = 5000;
     turnPid.DONE_ZONE = 0.15;
 
@@ -644,7 +658,9 @@ void setup() {
     DLEnc = new pros::ADIEncoder(1, 2, false);
     DREnc = new pros::ADIEncoder(5, 6, false);
     gyro = new pros::ADIGyro(3, 1);
-
+    // vision = new pros::Vision(vision_port);
+    // vex::vision::signature SIG_1 (1, -2379, -2025, -2202, 4005, 5441, 4723, 7, 0);
+    // vex::vision::signature SIG_2 (2, 7265, 7861, 7563, -1967, -941, -1454, 7, 0);
     int t0 = millis();
     // while (millis() - t0 < 800) { int n = getDL() + getDR() + getDS();delay(10); }
     first = false;

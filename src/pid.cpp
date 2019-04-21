@@ -137,7 +137,7 @@ bool pidTurn() {
     setDR(pwr);
     static double prevA = turnPid.sensVal;
     // printf("%f %f\n", fabs(turnPid.sensVal - turnPid.target), fabs(turnPid.sensVal - prevA));
-    if (fabs(turnPid.sensVal - turnPid.target) < 0.1 && fabs(turnPid.sensVal - prevA) < 0.001) {
+    if (fabs(turnPid.sensVal - turnPid.target) < 0.1 && fabs(getDLVel()) < 0.1 && fabs(getDRVel()) < 0.1) {
         if (doneT > millis()) doneT = millis();
     } else {
         doneT = BIL;
@@ -179,48 +179,93 @@ bool bangTurn(double a) {
   ######   ###  ###  ######## ######## ##
 */
 namespace sweep {
-int dl0, dr0;
-double tL, tR;
-int wait;
-void init(double tL, double tR, int wait) {
-    sweep::tL = tL;
-    sweep::tR = tR;
+Point start, target;
+int wait, doneT;
+double biasL, biasR;
+double maxAErr;
+void init(double tL, double tR, double bias, int wait) {
+    double r = fabs(tL / tR);
+    if (bias == 0) bias = 0.000001;
+    double tgt = 0.0;
+    if (r > 1.0) {
+        tgt = tR;
+        biasL = bias;
+        biasR = 1 / bias;
+        bentOdo.setScales(1 / r, 1.0);
+    } else {
+        tgt = tL;
+        biasL = 1 / bias;
+        biasR = bias;
+        bentOdo.setScales(1.0, r);
+    }
+    bentOdo.reset();
+    bentOdo.setX(0);
+    bentOdo.setY(0);
+    bentOdo.setA(PI / 2);
     sweep::wait = wait;
-    DLPid.doneTime = DRPid.doneTime = BIL;
-    dl0 = getDL();
-    dr0 = getDR();
+    sweep::doneT = BIL;
+    sweep::start = Point(0, 0);
+    sweep::target = Point(0, tgt);
+    sweep::maxAErr = 0.2;
 }
 }  // namespace sweep
-void pidSweepInit(double tL, double tR, int wait) { sweep::init(tL, tR, wait); }
+void pidSweepInit(double tL, double tR, int bias, int wait) { sweep::init(tL, tR, bias, wait); }
 bool pidSweep() {
-    using sweep::tL;
-    using sweep::tR;
+    Point pos = bentOdo.getPos();
+    using sweep::doneT;
+    using sweep::maxAErr;
+    using sweep::start;
+    using sweep::target;
     using sweep::wait;
-    DLPid.sensVal = (getDL() - sweep::dl0) / ticksPerInchADI;
-    DRPid.sensVal = (getDR() - sweep::dr0) / ticksPerInchADI;
-    DLPid.target = tL;
-    DRPid.target = tR;
-    if (DLPid.target == 0.0) DLPid.target = 0.000001;
-    if (DRPid.target == 0.0) DRPid.target = 0.000001;
-    double powerL = clamp(DLPid.update(), -12000.0, 12000.0);
-    double powerR = clamp(DRPid.update(), -12000.0, 12000.0);
-    double curve = 0;
-    curvePid.sensVal = DRPid.sensVal - DLPid.sensVal * ((double)tR / (double)tL);
-    curvePid.target = 0.0;
-    // curve is scaled down as the motion progresses
-    curve = curvePid.update() * 0.5 * (fabs((DLPid.target - DLPid.sensVal) / DLPid.target) + fabs((DRPid.target - DRPid.sensVal) / DRPid.target));
-    double curveInfluence = 0.75;
-    if (fabs(powerR) > fabs(powerL)) {
-        curve = clamp(curve, -fabs(powerL) * curveInfluence, fabs(powerL) * curveInfluence);
-    } else {
-        curve = clamp(curve, -fabs(powerR) * curveInfluence, fabs(powerR) * curveInfluence);
+
+    //---- Do math as if we were driving straight because we bent space wooooOOOoohooo
+
+    Point targetDir = target - pos;
+    if (targetDir * (target - start).unit() < 4) targetDir = target - start;
+    // error detection
+    Point dirOrientation = polarToRect(1, bentOdo.getA());
+    double aErr = dirOrientation.angleBetween(targetDir);
+    // allow for driving backwards
+    int driveDir = target.y < 0 ? -1 : 1;
+    if (driveDir == -1) { aErr = PI - aErr; }
+    if (dirOrientation < targetDir) aErr *= -driveDir;
+    if (dirOrientation > targetDir) aErr *= driveDir;
+    // error correction
+    double curA = bentOdo.getA();
+    drivePid.target = 0.0;
+    drivePid.sensVal = (target - pos) * targetDir.unit();
+    int drivePMax = 10000;
+    double drivePwr = drivePid.update();
+    if (fabs(aErr) > maxAErr) drivePwr = 0.0;
+    if (fabs(getDriveVel()) < 0.2 && drivePwr * driveDir > 0 && fabs(drivePid.sensVal) > (target - start).mag() * 0.5) drivePwr = clamp(drivePwr, -2500.0, 2500.0);
+    // by updating both pids, we keep the derivative and integral terms updated so they don't get intermitent data
+    bool useTurnPid = fabs(getDriveVel()) < 0.15 || fabs(aErr) > maxAErr;
+    turnPid.target = 0;
+    turnPid.sensVal = aErr;
+    double turnPidOutput = turnPid.update();
+    curvePid.target = 0;
+    curvePid.sensVal = aErr;
+    double curvePidOutput = curvePid.update();
+    if (!useTurnPid) turnPid.errTot = 0;
+    drivePwr = clamp((int)drivePwr, -drivePMax, drivePMax);
+    double curveInfluence = 1.5;
+    int maxCurvePwr = lround(curveInfluence * fabs(drivePwr));
+    int rotPwr = useTurnPid ? clamp(lround(turnPidOutput), -12000, 12000) : clamp(lround(curvePidOutput), -maxCurvePwr, maxCurvePwr);
+    // if (fabs(drivePid.sensVal) < 6) rotPwr = 0;
+    // printf("{%+5d %+5d %s}", (int)lround(drivePwr), (int)lround(rotPwr), useTurnPid ? "turnPid" : "curvePid");
+    int dlOut = -drivePwr * driveDir - rotPwr;
+    int drOut = -drivePwr * driveDir + rotPwr;
+    setDL(sweep::biasL * dlOut);
+    setDR(sweep::biasR * drOut);
+
+    static Point prevPos(0, 0);
+    if (fabs(drivePid.sensVal) < 0.5 && fabs(getDriveVel()) < 0.2) {
+        if (doneT > millis()) doneT = millis();
     }
-    powerL -= curve;
-    powerR += curve;
-    setDL(powerL);
-    setDR(powerR);
-    if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) return true;
-    return false;
+    prevPos = pos;
+    bool ret = doneT + wait < millis();
+    if (ret) printf("* DONE * ");
+    return ret;
 }
 /*
  ########  ########  #### ##     ## ########
@@ -232,13 +277,11 @@ bool pidSweep() {
  ########  ##     ## ####    ###    ########
 */
 Point g_target;
-namespace driveData {
-Point start, target;
-int wait;
-int doneT;
-double maxAErr;
-bool flip;
-void init(Point s, Point t, bool f, double mae, int w) {
+Point driveData::start, driveData::target;
+int driveData::wait, driveData::doneT;
+double driveData::maxAErr;
+bool driveData::flip;
+void driveData::init(Point s, Point t, bool f, double mae, int w) {
     start = s;
     target = t;
     wait = w;
@@ -246,7 +289,6 @@ void init(Point s, Point t, bool f, double mae, int w) {
     maxAErr = mae;
     flip = f;
 }
-}  // namespace driveData
 void setMaxAErr(double mae) { driveData::maxAErr = mae; }
 void pidDriveLineInit(Point start, Point target, bool flip, double maxAErr, const int wait) {
     // prevent div by 0 errors
@@ -292,7 +334,7 @@ bool pidDriveLine() {
     if (fabs(aErr) > maxAErr) drivePwr = 0.0;
     if (fabs(getDriveVel()) < 0.2 && drivePwr * driveDir > 0 && fabs(drivePid.sensVal) > (target - start).mag() * 0.5) drivePwr = clamp(drivePwr, -2500.0, 2500.0);
     // by updating both pids, we keep the derivative and integral terms updated so they don't get intermitent data
-    bool useTurnPid = fabs(getDriveVel()) < 0.1 || fabs(aErr) > maxAErr;
+    bool useTurnPid = fabs(getDriveVel()) < 0.15 || fabs(aErr) > maxAErr;
     turnPid.target = 0;
     turnPid.sensVal = aErr;
     double turnPidOutput = turnPid.update();

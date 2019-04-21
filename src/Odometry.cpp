@@ -1,9 +1,8 @@
 #include "main.h"
 #include "pid.hpp"
 #include "setup.hpp"
-pros::Mutex mtxX, mtxY, mtxA;
-pros::Mutex odoUpdateMtx;
 Odometry_t odometry(6.982698, 1.0);
+Odometry_t bentOdo(6.982698, 1.0);
 Odometry_t::Odometry_t(double L, double perpL) {
     this->L = L;
     this->perpL = perpL;
@@ -11,6 +10,36 @@ Odometry_t::Odometry_t(double L, double perpL) {
     this->x = 0;
     this->y = 0;
     this->prevDL = this->prevDR = this->prevDS = 0.0;
+    this->prevGyro = 0;
+    this->scaleL = 1.0;
+    this->scaleR = 1.0;
+}
+// bending space WooOOoooHoo
+void Odometry_t::setScaleL(double scL) {
+    mtxScaleL.take(50);
+    scaleL = scL;
+    mtxScaleL.give();
+}
+void Odometry_t::setScaleR(double scR) {
+    mtxScaleR.take(50);
+    scaleR = scR;
+    mtxScaleR.give();
+}
+void Odometry_t::setScales(double scL, double scR) {
+    setScaleL(scL);
+    setScaleR(scR);
+}
+double Odometry_t::getScaleL() {
+    mtxScaleL.take(50);
+    double d = scaleL;
+    mtxScaleL.give();
+    return d;
+}
+double Odometry_t::getScaleR() {
+    mtxScaleR.take(50);
+    double d = scaleR;
+    mtxScaleR.give();
+    return d;
 }
 double Odometry_t::getX() {
     mtxX.take(50);
@@ -48,18 +77,22 @@ void Odometry_t::setY(double newY) {
 Point Odometry_t::getPos() { return Point(getX(), getY()); }
 
 void Odometry_t::update() {
-    static double prevGyro = 0;
     odoUpdateMtx.take(50);
     double curDL = getDL(), curDR = getDR(), curDS = getDS();
     double pdl = prevDL, pdr = prevDR, pds = prevDS;
-    double deltaDL = (curDL - pdl) / ticksPerInchADI, deltaDR = (curDR - pdr) / ticksPerInchADI, deltaDS = (curDS - pds) / ticksPerInchADI;
+    double deltaDL = (curDL - pdl) * getScaleL() / ticksPerInchADI, deltaDR = (curDR - pdr) * getScaleR() / ticksPerInchADI, deltaDS = (curDS - pds) / ticksPerInchADI;
     double curGyro = getGyro();
     if (curGyro < prevGyro - PI) {
         curGyro += 2 * PI;
     } else if (curGyro > prevGyro + PI) {
         curGyro -= 2 * PI;
     }
-    double deltaA = curGyro - prevGyro;  //(deltaDR - deltaDL) / (2.0 * L);
+    double deltaA = 0.0;
+    if (fabs(getScaleL() - getScaleR()) < 0.001) {
+        deltaA = curGyro - prevGyro;
+    } else {
+        deltaA = (deltaDR - deltaDL) / (2.0 * L);
+    }
     prevGyro = curGyro;
     double chordLen = (deltaDL + deltaDR) / 2.0;
     if (!((deltaDL < -0.0001 && deltaDR > 0.0001) || (deltaDL > 0.0001 && deltaDR < -0.0001))) {  // not turning
@@ -75,10 +108,10 @@ void Odometry_t::update() {
     odoUpdateMtx.give();
 }
 
-void zeroDriveEncs();
 void Odometry_t::reset() {
     odoUpdateMtx.take(50);
-    zeroDriveEncs();
-    prevDL = prevDR = prevDS = 0.0;
+    prevDL = getDL();
+    prevDR = getDR();
+    prevDS = getDS();
     odoUpdateMtx.give();
 }

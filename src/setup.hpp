@@ -12,6 +12,7 @@ extern pros::ADILineSensor* ballSensR;
 extern pros::ADIEncoder* DLEnc;
 extern pros::ADIEncoder* DREnc;
 extern pros::ADIGyro* gyro;
+// extern pros::Vision* vision;
 extern const int driveTurnLim;
 extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1Plus, drfbPos2Plus, drfbMinClaw0, drfbMaxClaw0, drfbMinClaw1, drfb18Max, drfbPosCloseIntake, drfbPosScrape;
 extern const int drfbHoldPwr;
@@ -114,5 +115,6 @@ bool pidFlywheel();
 void pidFlywheelInit(double speed, double pidZone, int wait);
 bool isPidFlywheelDone();
 
+double getCapX(bool red);
 void testDriveMtrs();
 #endif
