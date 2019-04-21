@@ -116,31 +116,14 @@ void setIntake(IntakeState is) {
     } else if (is == IntakeState::BACK_SLOW) {
         setIntake(-2000);
     } else if (is == IntakeState::ALTERNATE) {
-        if (isBallIn()) {
-            setIntake(1000);
-        } else {
-            if (prev != IntakeState::ALTERNATE) intake::altT0 = millis();
-            if (((millis() - intake::altT0) / 400) % 3 < 2) {
-                setIntake(-12000);
-            } else {
-                setIntake(12000);
-            }
-        }
+        setIntake(0);
     }
     prev = is;
 }
-IntakeState getISLoad() {
-    if (isBallIn()) {
-        return IntakeState::NONE;
-    } else {
-        return IntakeState::ALTERNATE;
-    }
-}
-int getBallSensL() { return ballSensL->get_value(); }
-int getBallSensR() { return ballSensR->get_value(); }
-bool isBallIn() { return false; }
-bool isTopBallIn() { return getBallSensL() < 1000; }
-bool isBtmBallIn() { return getBallSensR() < 1150; }
+int getBallSensTop() { return ballSensL->get_value(); }
+int getBallSensBtm() { return ballSensR->get_value(); }
+bool isTopBallIn() { return getBallSensTop() < 1000; }
+bool isBtmBallIn() { return getBallSensBtm() < 1220; }
 
 //----------- DRFB functions ---------
 int drfb_requested_voltage = 0;
@@ -658,6 +641,7 @@ void setup() {
     DLEnc = new pros::ADIEncoder(1, 2, false);
     DREnc = new pros::ADIEncoder(5, 6, false);
     gyro = new pros::ADIGyro(3, 1);
+    vision = new pros::Vision(7);
     // vision = new pros::Vision(vision_port);
     // vex::vision::signature SIG_1 (1, -2379, -2025, -2202, 4005, 5441, 4723, 7, 0);
     // vex::vision::signature SIG_2 (2, 7265, 7861, 7563, -1967, -941, -1454, 7, 0);
@@ -693,7 +677,7 @@ void morningRoutine() {
     double prevDL = 0.0, prevDR = 0.0, prevDS = 0.0;
     bool initDL = false, initDR = false, initDS = false;
     while (1) {
-        // printf("%d %d %d %d %d <%d %d>\n", (int)getDL(), (int)getDR(), (int)getDS(), getBallSensL(), getBallSensR(), (int)mtr1.get_position(), (int)mtr4.get_position());
+        // printf("%d %d %d %d %d <%d %d>\n", (int)getDL(), (int)getDR(), (int)getDS(), getBallSensTop(), getBallSensBtm(), (int)mtr1.get_position(), (int)mtr4.get_position());
         if (fabs(getDL() - prevDL) > 0.001) initDL = true;
         if (fabs(getDR() - prevDR) > 0.001) initDR = true;
         if (fabs(getDS() - prevDS) > 0.001) initDS = true;

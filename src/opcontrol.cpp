@@ -27,14 +27,12 @@ A, Y        flip  cap
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
-#define SIG_1 1
 
-pros::Vision vision_sensor(7);
 using pros::delay;
 using std::cout;
 using std::endl;
 void testAuton();
-bool robotInit = false;
+bool robotInit = true;
 void opcontrol() {
     if (!robotInit) {
         morningRoutine();
@@ -54,30 +52,27 @@ void opcontrol() {
         }
         return;
     }
-    if (0) {
-        while (1) { printf("top %d    btm %d\n", getBallSensL(), getBallSensR()); }
-        printf("starting....");
-        // vex::vision::signature SIG_1(1, -2379, -2025, -2202, 4005, 5441, 4723, 7, 0);
-        // vex::vision::signature SIG_2 (2, 7265, 7861, 7563, -1967, -941, -1454, 7, 0);
+    if (1) {
+        // while (1) {
+        // printf("top %d    btm %d\n", getBallSensTop(), getBallSensBtm());
+        // delay(10);
+        // }
 
-        /*
-        pros::vision_signature_s_t sig2 = vision_sensor.get_signature(2);
-        printf("sig2: %d %d %d %d %d %d %d %d %d ", sig2.id, sig2.u_min, sig2.u_max, sig2.u_mean, sig2.v_min, sig2.v_max, sig2.v_mean, sig2.range, sig2.type);
-        while (true) {
-            int n = vision_sensor.get_object_count();
-            pros::lcd::print(0, "%d ", n);
-
-            if (n > 0) {
-                pros::vision_object_s_t obj = vision_sensor.get_by_sig(0, 2);
-                pros::lcd::print(1, "x: %3d y: %3d", obj.x_middle_coord, obj.y_middle_coord);
-                pros::lcd::print(2, "w: %3d h: %3d", obj.width, obj.height);
-            } else {
-                pros::lcd::print(1, "no objects");
-                pros::lcd::print(2, "          ");
-            }
-
-            pros::delay(20);
-        }*/
+        printf("starting....\n");
+        pros::Vision::print_signature(vision->get_signature(1));
+        printf("\n");
+        while (1) {
+            pros::vision_object_s_t objs[1];
+            int nObjs = vision->read_by_sig(0, 1, 1, objs);
+            double x = objs[0].left_coord, y = objs[0].top_coord, w = objs[0].width, h = objs[0].height;
+            x += w / 2;
+            y += h / 2;
+            turnPid.target = 0;
+            turnPid.sensVal = (x - 175) * 0.0045;
+            int out = clamp(lround(turnPid.update()), -12000, 12000);
+            // printf("%.1f %.1f\n", x, y);
+            delay(10);
+        }
 
         // setDriveSlew(true);
         // while (!ctlr.get_digital(DIGITAL_A)) delay(10);
@@ -434,6 +429,7 @@ void opcontrol() {
     delete ballSensR;
     // delete perpindicularWheelEnc;
     delete gyro;
+    delete vision;
     delete DLEnc;
     delete DREnc;
 }
