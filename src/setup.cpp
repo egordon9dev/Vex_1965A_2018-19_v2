@@ -50,7 +50,7 @@ pros::Vision* vision;
 const int driveTurnLim = 9000;
 
 const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1180, drfbPos1Plus = 1400, drfbPos2 = 1780, drfbPos2Plus = 2250;
-const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200, drfbPosScrape = 300, drfbPosAboveScrape = 400;
+const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200, drfbPosScrape = 300, drfbPosAboveScrape = 450;
 const int drfbHoldPwr = -1500;
 
 double sShotSpeed = 2.97;
@@ -433,7 +433,7 @@ void stopMotorsBlock() {
     }
 }
 extern Point g_target;
-void printPidValues() { printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f clw%2d %4d/%4d intk%2d %4d/%4d ball b %d %d t %d %d  vel %+1.1f drv %+3.2f/%+3.1f DL%+5d %+2.1f/%+2.1f DR%+5d %+2.1f/%+2.1f trn %+2.2f/%+2.1f x %+3.2f/%+3.1f y %+3.2f/%+3.1f a %+1.2f\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target), (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, isBtmBallIn() ? 1 : 0, getBallSensBtm(), isTopBallIn() ? 1 : 0, getBallSensTop(), getDriveVel(), drivePid.sensVal, drivePid.target, getDLVoltage(), DLPid.sensVal, DLPid.target, getDRVoltage(), DRPid.sensVal, DRPid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
+void printPidValues() { printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f clw%2d %4d/%4d intk%2d %4d/%4d ball b %d %d t %d %d  vel %+1.1f drv %+3.2f/%+3.1f DL%+5d %+2.1f/%+2.1f DR%+5d %+2.1f/%+2.1f trn %+2.2f/%+2.1f x %+3.2f/%+3.1f y %+3.2f/%+3.1f a %+1.2f\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)getDrfb(), (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target), (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, isBtmBallIn() ? 1 : 0, getBallSensBtm(), isTopBallIn() ? 1 : 0, getBallSensTop(), getDriveVel(), drivePid.sensVal, drivePid.target, getDLVoltage(), DLPid.sensVal, DLPid.target, getDRVoltage(), DRPid.sensVal, DRPid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
 void printDrivePidValues() { printf("DL%+5d DR%+5d (%+5d %+5d %+5d) vel %+1.3f drive %+3.2f/%+3.2f DL %+2.1f/%+2.1f DR %+2.1f/%+2.1f turn %+2.2f/%+2.2f curve %+2.2f/%+2.2f x %+3.2f/%+3.2f y %+3.2f/%+3.2f a %+1.2f\n", getDLVoltage(), getDRVoltage(), (int)getDL(), (int)getDR(), (int)getDS(), getDriveVel(), drivePid.sensVal, drivePid.target, DLPid.sensVal, DLPid.target, DRPid.sensVal, DRPid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
 void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", getDLVoltage, DLPid.sensVal, DLPid.target, getDRVoltage, DRPid.sensVal, DRPid.target); }
 void odoTaskRun(void* param) {
@@ -537,14 +537,18 @@ void driveToCap(bool red, int pwr = 6000) {
             x += w / 2;
             y += h / 2;
             double dist = sqrt(pow(x - 175, 2) + pow(170 - y, 2));
-            double pos = clamp((x - 175) * 0.0045, -PI / 4, PI / 4);
+            double pos = clamp((x - 173.5) * 0.0045, -PI / 4, PI / 4);
             if (dist < smallestDist) {
                 smallestDist = dist;
                 turnPid.sensVal = pos;
             }
         }
         out = turnPid.update();
-        if (pwr >= 6000) out += turnPid.prop * 0.1;
+        if (pwr >= 6000) {
+            out *= 1.7;
+        } else if (pwr >= 4000) {
+            out *= 1.3;
+        }
     } else {
         out = 0;
     }
@@ -621,6 +625,7 @@ void setup() {
     drSaver.setConstants(6000, 3500, 0.5, 0.2);
     drfbPid.DONE_ZONE = 100;
     drfbPid.target = drfbPos0;
+    drfbSlew.slewRate = 200;
 
     setDriveSlew(false);
     dlSaver.setConstants(6000, 3500, 0.5, 0.2);

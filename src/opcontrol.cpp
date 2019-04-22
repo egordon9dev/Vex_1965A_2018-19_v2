@@ -169,13 +169,15 @@ void opcontrol() {
             if (driveDir == -1) intakeState = IntakeState::NONE;
             driveDir *= -1;
         }
+
+        const double curDrfb = getDrfb();
         // DRIVE
-        driveLim = (getDrfb() > 0.5 * (drfb18Max + drfbPos1)) ? 8500 : 12000;
+        driveLim = (curDrfb > 0.5 * (drfb18Max + drfbPos1)) ? 8500 : 12000;
         opctlDrive(driveDir);
         // FLYWHEEL
         if (dblClicks[ctlrIdxDown]) {
-            fwPidRunning = true;
-            pidFlywheelInit(0, 0.1, 999);
+            fwPidRunning = false;
+            fwPwr = 0;
         } else if (curClicks[ctlrIdxDown] && !prevClicks[ctlrIdxDown]) {
             fwPidRunning = false;
             fwPwr = 7000;
@@ -190,21 +192,25 @@ void opcontrol() {
             setFlywheel(fwPwr);
         }
         // drfb
-        double drfbPos = getDrfb();
         /* ------ Drfb Controls ------
         **       R1: Manual Up
         **       R2: Manual Down
         **       Y: Low Post
         **       A: High Post
         */
-        if (curClicks[ctlrIdxR1] && getDrfb() < drfbPos2Plus) {
+        bool drfbDown = curDrfb < drfbPosCloseIntake - 0.001;
+        bool drfbTgtDown = drfbPid.target < drfbPosCloseIntake - 0.001;
+        if (curClicks[ctlrIdxR1] && curDrfb < drfbPos2Plus) {
+            printf("mu ");
             atDrfbSetp = false;
             drfbPidRunning = false;
             drfbFullRangePowerLimit = 12000;
             autoFlipI = -1;
             tDrfbOff = millis();
             setDrfb(12000);
-        } else if (curClicks[ctlrIdxR2] && getDrfb() >= drfbPosCloseIntake) {
+            // prevent lift lock-out
+        } else if (curClicks[ctlrIdxR2] && (!drfbDown || (drfbPidRunning && !drfbTgtDown))) {
+            printf("md ");
             atDrfbSetp = false;
             drfbPidRunning = false;
             drfbFullRangePowerLimit = 12000;
@@ -222,7 +228,7 @@ void opcontrol() {
         } else if (curClicks[ctlrIdxA]) {
             atDrfbSetp = true;
             drfbPidRunning = true;
-            drfbFullRangePowerLimit = (getDrfb() > drfbPos2 + 50) ? 5000 : 12000;
+            drfbFullRangePowerLimit = (curDrfb > drfbPos2 + 50) ? 5000 : 12000;
             autoFlipI = -1;
             drfbPidBias = 0;
             drfbPid.target = drfbPos2;
@@ -239,11 +245,11 @@ void opcontrol() {
         } else if (autoFlipI > -1) {
             if (autoFlipI == 0) {
                 printf("auto flip step 0 ");
-                if (getDrfb() < drfbMinClaw0) {
+                if (curDrfb < drfbMinClaw0) {
                     autoFlipH = 0;
-                } else if (fabs(getDrfb() - drfbPos1) < 100) {
+                } else if (fabs(curDrfb - drfbPos1) < 100) {
                     autoFlipH = 1;
-                } else if (fabs(getDrfb() - drfbPos2) < 100) {
+                } else if (fabs(curDrfb - drfbPos2) < 100) {
                     autoFlipH = 2;
                 } else {
                     autoFlipH = -1;
@@ -269,13 +275,13 @@ void opcontrol() {
                 }
             } else if (autoFlipI == 1) {
                 printf("auto flip step 1 ");
-                if (getDrfb() > drfbPid.target - 100) {
+                if (curDrfb > drfbPid.target - 100) {
                     clawFlipRequest = true;
                     autoFlipI++;
                 }
             } else if (autoFlipI == 2) {
                 printf("auto flip step 2 ");
-                if (getDrfb() > drfbPid.target) drfbPidBias = 0;
+                if (curDrfb > drfbPid.target) drfbPidBias = 0;
                 if (!clawFlipRequest && fabs(getClaw() - clawPid.target) < claw180 * (autoFlipH == 2 ? 0.3 : autoFlipH == 1 ? 0.37 : 0.45)) {
                     drfbPidBias = 0;
                     if (autoFlipH == 0) {
@@ -294,13 +300,13 @@ void opcontrol() {
                 }
             } else if (autoFlipI == 3) {
                 printf("auto flip step 3 ");
-                if (fabs(getDrfb() - drfbPid.target) < 100) autoFlipI = -1;
+                if (fabs(curDrfb - drfbPid.target) < 100) autoFlipI = -1;
             }
-        } else if ((millis() - tDrfbOff > 130 && millis() - opcontrolT0 > 300) || getDrfb() < drfbPosCloseIntake) {
+        } else if ((millis() - tDrfbOff > 200 && millis() - opcontrolT0 > 300) || drfbDown) {
             if (!drfbPidRunning) {
                 drfbPidBias = 0;
                 drfbPidRunning = true;
-                drfbPid.target = getDrfb();
+                drfbPid.target = curDrfb;
                 setDrfbParams(false);
             }
         } else if (!drfbPidRunning) {
@@ -310,10 +316,10 @@ void opcontrol() {
         bool isDrfbHolding = false;
         if (drfbPidRunning) {
             // protect against lift sag locking us out of moving the lift
-            if (getDrfb() < drfbPosCloseIntake && drfbPid.target > drfbPosCloseIntake + 0.001 && drfbPid.target < drfbPosCloseIntake + 200) { drfbPid.target = drfbPos0; }
+            /*if (curDrfb < drfbPosCloseIntake && drfbPid.target > drfbPosCloseIntake + 0.001 && drfbPid.target < drfbPosCloseIntake + 200) { drfbPid.target = drfbPos0; }*/
             // hold lift down
-            if (drfbPid.target < drfbPosCloseIntake) {
-                setDrfbDull(getDrfb() < drfbPos0 || millis() - prevNotHoldingT > 400 ? drfbHoldPwr : -12000);
+            if (drfbTgtDown) {
+                setDrfbDull(curDrfb < drfbPos0 || millis() - prevNotHoldingT > 400 ? drfbHoldPwr : -12000);
                 isDrfbHolding = true;
             }
             // pid lift
@@ -324,7 +330,7 @@ void opcontrol() {
         if (!isDrfbHolding) prevNotHoldingT = millis();
         // CLAW
         if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && autoFlipI == -1) {
-            if (atDrfbSetp && (fabs(getDrfb() - drfbPos1) < 100 || fabs(getDrfb() - drfbPos2) < 100) || getDrfb() < drfbMinClaw0) {
+            if (atDrfbSetp && (fabs(curDrfb - drfbPos1) < 100 || fabs(curDrfb - drfbPos2) < 100) || curDrfb < drfbMinClaw0) {
                 // request an auto-flip
                 autoFlipI = 0;
             } else {
@@ -333,14 +339,14 @@ void opcontrol() {
         }
         if (clawFlipRequest && millis() - opcontrolT0 > 300) {
             // move the drfb to within an acceptable range
-            if (getDrfb() > drfbMaxClaw0 && getDrfb() < drfbMinClaw1) {
+            if (curDrfb > drfbMaxClaw0 && curDrfb < drfbMinClaw1) {
                 drfbPidRunning = true;
                 drfbPidBias = 0;
                 setDrfbParams(true);
                 drfbPid.target = drfbMinClaw1 + 120;
             }
             // fullfill the request if the drfb is within an acceptable range
-            if (getDrfb() > drfbMinClaw0 && getDrfb() < drfbMaxClaw0 || getDrfb() > drfbMinClaw1) {
+            if (curDrfb > drfbMinClaw0 && curDrfb < drfbMaxClaw0 || curDrfb > drfbMinClaw1) {
                 clawFlipped = !clawFlipped;
                 clawFlipRequest = false;
             }
