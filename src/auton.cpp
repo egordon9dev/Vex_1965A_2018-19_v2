@@ -69,7 +69,7 @@ void autonMainBack(bool leftSide) {
         // ptAfterC22 = Point(-15, 10);
         sweepAfterC2 = Point(-33, -10);
         turnAfterC2 = PI;
-        sweepBalls = Point(-23, -44);
+        sweepBalls = Point(-20.7, -39.6);
         // ptBalls = Point(-14, 44);
         pivotBeforeShoot2 = Point(-8, 33);
         ptShoot2 = pivotBeforeShoot2 + polarToRect(24, 0.585);
@@ -146,7 +146,7 @@ void autonMainBack(bool leftSide) {
                 } else if (k == 1) {
                     if (millis() - t03 > 450) {  // 300 minimum
                         pidSweepInit(sweepBeforeC2.x, sweepBeforeC2.y, 2.0, 0);
-                        pidFlywheelInit(3.02, 0.1, 500);
+                        pidFlywheelInit(3.07, 0.1, 500);
                         k = 0;
                         i++;
                     }
@@ -184,7 +184,7 @@ void autonMainBack(bool leftSide) {
                 }
                 if (fabs(ptBeyondC2.y - odometry.getY()) < 3) {
                     driveLim = 12000;
-                    pidDriveLineInit(ptBeyondC2, ptAfterC2, true, 99999, 100);
+                    pidDriveLineInit(ptBeyondC2, ptAfterC2, true, 99999, 180);
                     k = 0;
                     i++;
                 }
