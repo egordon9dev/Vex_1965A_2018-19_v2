@@ -58,16 +58,16 @@ void autonMainBack(bool leftSide) {
     else {
         ptBeforeC1 = Point(0, 30);
         ptC1 = Point(0, 40);
-        ptBeforeShoot = Point(-2, -2);
-        ptShoot = Point(7, -2.05);  // near post
+        ptBeforeShoot = Point(0, -2);
+        ptShoot = Point(7, -2.015);  // near post
         // pivotBeforeC2 = Point(-20, 29);
         sweepBeforeC2 = Point(54, 26.4);
         ptC2 = Point(-13, 30);
         ptBeyondC2 = Point(-13, 45);
-        ptAfterC2 = Point(-13, 30);
+        ptAfterC2 = Point(-13, 37);
         // ptAfterC22 = Point(-15, 10);
-        sweepAfterC2 = Point(-18.2, -12.6);
-        turnAfterC2 = PI;
+        sweepAfterC2 = Point(-22, -12);
+        turnAfterC2 = -PI;
         // sweepBalls = Point(-15, -30);
         ptBalls = Point(-16, 41);
         pivotBeforeShoot2 = Point(-8, 24);
@@ -81,7 +81,7 @@ void autonMainBack(bool leftSide) {
 
     // initialize
     t0 = millis();
-    pidFlywheelInit(2.95, 0.1, 500);
+    pidFlywheelInit(sShotSpeed, 0.1, 500);
     pidDriveLineInit(pt0, ptBeforeC1, true, 0.1, 0);
     setDriveSlew(true);
 
@@ -100,7 +100,7 @@ void autonMainBack(bool leftSide) {
         if (i == j++) {  // grab ball from under cap 1
             printf("drv to cap 1 ");
             clawPidRunning = true;
-            clawPid.target = 0;
+            clawPid.target = claw0;
             drfbPidRunning = true;
             drfbPid.target = 300;
             if (getDrfb() > drfbPosCloseIntake - 70) is = IntakeState::FRONT;
@@ -156,29 +156,26 @@ void autonMainBack(bool leftSide) {
             is = IntakeState::NONE;
             drfbPidRunning = true;
             if (k == 0) {
-                drfbPid.target = drfb18Max - 30;
+                printf("sweep ");
+                drfbPid.target = drfbPosAboveScrape;
                 pidSweep();
                 if (fabs(drivePid.target - drivePid.sensVal) < 8) {
                     pidDriveLineInit(odometry.getPos(), ptC2, false, 0.1, driveT);
-                    drfbPid.target = 500;
                     k++;
                 }
             } else if (k == 1) {
-                if (pidDriveLine() || ((odometry.getPos() - ptC2).mag() < 4 && (ptC2 - driveData::start).angleBetween(polarToRect(1, odometry.getA() + PI)) < 0.1)) {
-                    pidDriveLineInit(ptC2, ptBeyondC2 + Point(0, 4), false, 0.2, 0);
-                    driveLim = 4000;
-                    k++;
-                }
-            } else if (k == 2) {
-                pidDriveLine();
-                if (fabs(ptBeyondC2.y - odometry.getY()) < 5) {
-                    drfbPidRunning = false;
-                    setDrfb(getDrfb() < drfbPosScrape + 80 ? -1500 : -8000);
+                printf("vision ");
+                // pidDriveLine();
+                if (odometry.getY() > ptC2.y) {
+                    setDL(4500);
+                    setDR(4500);
                 } else {
-                    drfbPidRunning = true;
-                    drfbPid.target = 500;
+                    drivePid.target = -(odometry.getPos() - (ptC2 + Point(0, 3))).mag();
+                    drivePid.sensVal = 0;
+                    bool isRedCap = !leftSide;
+                    driveToCap(isRedCap, lround(drivePid.update()));
                 }
-                if (odometry.getY() > ptBeyondC2.y - 0.5) {
+                if (fabs(ptBeyondC2.y - odometry.getY()) < 3) {
                     driveLim = 12000;
                     pidDriveLineInit(ptBeyondC2, ptAfterC2, true, 0.1, driveT);
                     k = 0;
@@ -189,11 +186,13 @@ void autonMainBack(bool leftSide) {
             printf("scrape balls off C2 ");
             if (k == 0) {
                 if (getDrfb() < drfbPosScrape + 80) {
+                    printf("scrape ");
                     drfbPidRunning = false;
                     setDrfb(-1500);
                     if (pidDriveLine()) {
                         pidSweepInit(sweepAfterC2.x, sweepAfterC2.y, 1.5, 0);
                         // pidDriveLineInit(ptAfterC2, ptAfterC22, true, 0.1, 0);
+                        t0 = millis();
                         k++;
                     }
                 } else {
@@ -203,10 +202,20 @@ void autonMainBack(bool leftSide) {
                     setDrfb(-12000);
                 }
             } else if (k == 1) {
-                drfbPidRunning = true;
-                drfbPidBias = 1000;
-                drfbPid.target = drfbPosCloseIntake;
-                if (fabs(DLPid.target - DLPid.sensVal < 2 && fabs(DRPid.target - DRPid.sensVal) < 2)) {
+                printf(" sweep ");
+                bool sweeping = false;
+                if (millis() - t0 < 80) {
+                    drfbPidRunning = false;
+                    setDrfb(12000);
+                    setDL(1000);
+                    setDR(1000);
+                } else {
+                    sweeping = true;
+                    drfbPidRunning = true;
+                    drfbPid.target = drfbPosCloseIntake;
+                    pidSweep();
+                }
+                if (sweeping && fabs(drivePid.target - drivePid.sensVal) < 2) {
                     pidTurnInit(odometry.getA() + turnAfterC2, 100);
                     k = 0;
                     i++;
@@ -368,7 +377,7 @@ void autonMidFar(bool leftSide) {
             printf("drv to cap 1 ");
             printDrivePidValues();
             clawPidRunning = true;
-            clawPid.target = 0;
+            clawPid.target = claw0;
             drfbPidRunning = true;
             drfbPid.target = 300;
             if (getDrfb() > drfbPosCloseIntake - 70) is = IntakeState::FRONT;

@@ -5,7 +5,7 @@ pros::Mutex DLMtx, DRMtx, DSMtx;
 // these are shared between tasks
 double DLEncBias = 0.0, DREncBias = 0.0, DSEncBias = 0.0;
 pros::Motor mtr1(20);  // DR top
-pros::Motor mtr2(8);   // DR bottom
+pros::Motor mtr2(7);   // DR bottom
 pros::Motor mtr4(10);  // DL top
 pros::Motor mtr5(9);   // DL bottom
 double getDL() {

@@ -32,7 +32,8 @@ using pros::delay;
 using std::cout;
 using std::endl;
 void testAuton();
-bool robotInit = true;
+bool robotInit = false;
+bool clawFlipped = false;
 void opcontrol() {
     if (!robotInit) {
         morningRoutine();
@@ -52,28 +53,12 @@ void opcontrol() {
         }
         return;
     }
-    if (1) {
+    if (0) {
+        setDrfbParams(true);
         // while (1) {
         // printf("top %d    btm %d\n", getBallSensTop(), getBallSensBtm());
         // delay(10);
         // }
-
-        printf("starting....\n");
-        pros::Vision::print_signature(vision->get_signature(1));
-        printf("\n");
-        while (1) {
-            pros::vision_object_s_t objs[1];
-            int nObjs = vision->read_by_sig(0, 1, 1, objs);
-            double x = objs[0].left_coord, y = objs[0].top_coord, w = objs[0].width, h = objs[0].height;
-            x += w / 2;
-            y += h / 2;
-            turnPid.target = 0;
-            turnPid.sensVal = (x - 175) * 0.0045;
-            int out = clamp(lround(turnPid.update()), -12000, 12000);
-            // printf("%.1f %.1f\n", x, y);
-            delay(10);
-        }
-
         // setDriveSlew(true);
         // while (!ctlr.get_digital(DIGITAL_A)) delay(10);
         // pidSweepInit(43.2, 24, 2.0, 9999);
@@ -142,7 +127,6 @@ void opcontrol() {
     bool prevDY = false, prevDA = false, prevR1 = false, prevR2 = false, prevL1 = false, prevL2 = false, prevX = false, prevB = false;
     int tDrfbOff = 0;
     bool drfbPidRunning = false;
-    bool clawFlipped = false;
     IntakeState intakeState = IntakeState::FRONT_HOLD, isBeforeBack = IntakeState::NONE;
     int driveDir = 1;
     bool clawFlipRequest = false;
@@ -361,7 +345,7 @@ void opcontrol() {
                 clawFlipRequest = false;
             }
         }
-        clawPid.target = clawFlipped ? claw180 : 0;
+        clawPid.target = clawFlipped ? claw180 : claw0;
         clawPid.sensVal = getClaw();
         setClaw(clamp(clawPid.update(), -12000.0, 12000.0));
 
@@ -433,28 +417,3 @@ void opcontrol() {
     delete DLEnc;
     delete DREnc;
 }
-
-/*
-#define SIG_1 1
-
-pros::Vision vision_sensor(6);
-void opcontrol() {
-printf("starting....");
-while (true) {
-   int n = vision_sensor.get_object_count();
-   pros::lcd::print(0, "%d ", n);
-
-   if (n > 0) {
-       pros::vision_object_s_t obj = vision_sensor.get_by_sig(0, SIG_1);
-       pros::lcd::print(1, "x: %3d y: %3d", obj.x_middle_coord, obj.y_middle_coord);
-       pros::lcd::print(2, "w: %3d h: %3d", obj.width, obj.height);
-   } else {
-       pros::lcd::print(1, "no objects");
-       pros::lcd::print(2, "          ");
-   }
-
-   pros::delay(20);
-}
-}
-
-*/

@@ -11,14 +11,18 @@
 pros::Motor mtr3(19);  // intake
 pros::Motor mtr6(17);  // flywheel
 pros::Motor mtr7(14);  // drfb
-pros::Motor mtr8(16);  // claw
+pros::Motor mtr8(4);   // claw
+// gnd: 8
 /* bad ports:
 5,
-15(claw),
+15(claw)
 18(flywheel: during practice),
 13(claw: during practice),
 12 (claw: first time turning on the robot in the morning)
+
+1.0.7 update
 11 (drfb)
+16
 */
 // bad ports: 11, 12, 14, 15, 1, 2, 3, 4, 5, 6, 7
 
@@ -40,22 +44,22 @@ pros::ADILineSensor* ballSensR;
 pros::ADIEncoder* DLEnc;
 pros::ADIEncoder* DREnc;
 pros::ADIGyro* gyro;
-// pros::Vision* vision;
+pros::Vision* vision;
 
 //----------- Constants ----------------
 const int driveTurnLim = 9000;
 
-const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1250 - 50, drfbPos1Plus = 1470 - 50, drfbPos2 = 1800, drfbPos2Plus = 2270;
-const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200, drfbPosScrape = 300;
+const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1180, drfbPos1Plus = 1400, drfbPos2 = 1780, drfbPos2Plus = 2250;
+const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200, drfbPosScrape = 300, drfbPosAboveScrape = 400;
 const int drfbHoldPwr = -1500;
 
 double sShotSpeed = 2.97;
 double fw_a4_middleFlag = 3.0;
 double fw_a4_sideFlag = 3.0;
 
-const int intakeOneShotTicks = 600, intakeOneShotTicksTop = 450;
+const int intakeOneShotTicks = 600, intakeOneShotTicksTop = 350;
 
-const int dblClickTime = 450, claw180 = 1370;
+const int dblClickTime = 450, claw0 = -10, claw180 = 1360;
 const double /*ticksPerInch = 52.746, */ ticksPerInchADI = 35.2426, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
@@ -110,7 +114,7 @@ void setIntake(IntakeState is) {
     } else if (is == IntakeState::FRONT) {
         setIntake(12000);
     } else if (is == IntakeState::FRONT_HOLD) {
-        setIntake(500);
+        setIntake(100);
     } else if (is == IntakeState::BACK) {
         setIntake(-6000);
     } else if (is == IntakeState::BACK_SLOW) {
@@ -123,7 +127,7 @@ void setIntake(IntakeState is) {
 int getBallSensTop() { return ballSensL->get_value(); }
 int getBallSensBtm() { return ballSensR->get_value(); }
 bool isTopBallIn() { return getBallSensTop() < 1000; }
-bool isBtmBallIn() { return getBallSensBtm() < 1220; }
+bool isBtmBallIn() { return getBallSensBtm() < 1370; }
 
 //----------- DRFB functions ---------
 int drfb_requested_voltage = 0;
@@ -154,6 +158,7 @@ int getDrfbVoltage() { return drfb_requested_voltage; }
 int getDrfbCurrent() { return mtr7.get_current_draw(); }
 int drfbPidBias = 0;
 bool pidDrfb(double pos, int wait) {
+    drfbPid.target = pos;
     drfbPid.sensVal = getDrfb();
     int out = drfbPid.update();
     setDrfb(drfbPidBias + out);
@@ -428,7 +433,7 @@ void stopMotorsBlock() {
     }
 }
 extern Point g_target;
-void printPidValues() { printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f clw%2d %4d/%4d intk%2d %4d/%4d ball %d %d  vel %+1.1f drv %+3.2f/%+3.1f DL%+5d %+2.1f/%+2.1f DR%+5d %+2.1f/%+2.1f trn %+2.2f/%+2.1f x %+3.2f/%+3.1f y %+3.2f/%+3.1f a %+1.2f\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target), (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, isBtmBallIn() ? 1 : 0, isTopBallIn() ? 1 : 0, getDriveVel(), drivePid.sensVal, drivePid.target, getDLVoltage(), DLPid.sensVal, DLPid.target, getDRVoltage(), DRPid.sensVal, DRPid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
+void printPidValues() { printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f clw%2d %4d/%4d intk%2d %4d/%4d ball b %d %d t %d %d  vel %+1.1f drv %+3.2f/%+3.1f DL%+5d %+2.1f/%+2.1f DR%+5d %+2.1f/%+2.1f trn %+2.2f/%+2.1f x %+3.2f/%+3.1f y %+3.2f/%+3.1f a %+1.2f\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target), (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target, (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, isBtmBallIn() ? 1 : 0, getBallSensBtm(), isTopBallIn() ? 1 : 0, getBallSensTop(), getDriveVel(), drivePid.sensVal, drivePid.target, getDLVoltage(), DLPid.sensVal, DLPid.target, getDRVoltage(), DRPid.sensVal, DRPid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
 void printDrivePidValues() { printf("DL%+5d DR%+5d (%+5d %+5d %+5d) vel %+1.3f drive %+3.2f/%+3.2f DL %+2.1f/%+2.1f DR %+2.1f/%+2.1f turn %+2.2f/%+2.2f curve %+2.2f/%+2.2f x %+3.2f/%+3.2f y %+3.2f/%+3.2f a %+1.2f\n", getDLVoltage(), getDRVoltage(), (int)getDL(), (int)getDR(), (int)getDS(), getDriveVel(), drivePid.sensVal, drivePid.target, DLPid.sensVal, DLPid.target, DRPid.sensVal, DRPid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
 void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", getDLVoltage, DLPid.sensVal, DLPid.target, getDRVoltage, DRPid.sensVal, DRPid.target); }
 void odoTaskRun(void* param) {
@@ -520,13 +525,32 @@ void opctlDrive(int driveDir) {
     }
     prevStopped = stopped;
 }
-/*
-double getCapX(bool red) {
-    static double capX = 156;
-    pros::vision_object_s_t obj = vision->get_by_sig(0, red ? 2 : 1);
-    capX = obj.left_coord + obj.width / 2;
-    return capX;
-}*/
+void driveToCap(bool red, int pwr = 6000) {
+    pros::vision_object_s_t objs[10];
+    int nObjs = vision->read_by_sig(0, red ? 1 : 2, 10, objs);
+    int out = 0;
+    turnPid.target = 0;
+    if (nObjs > 0 && nObjs != PROS_ERR) {
+        double smallestDist = BIL;
+        for (int i = 0; i < nObjs; i++) {
+            double x = objs[i].left_coord, y = objs[i].top_coord, w = objs[i].width, h = objs[i].height;
+            x += w / 2;
+            y += h / 2;
+            double dist = sqrt(pow(x - 175, 2) + pow(170 - y, 2));
+            double pos = clamp((x - 175) * 0.0045, -PI / 4, PI / 4);
+            if (dist < smallestDist) {
+                smallestDist = dist;
+                turnPid.sensVal = pos;
+            }
+        }
+        out = turnPid.update();
+        if (pwr >= 6000) out += turnPid.prop * 0.1;
+    } else {
+        out = 0;
+    }
+    setDL(pwr - out);
+    setDR(pwr + out);
+}
 /*
   ######  ######## ######## ##     ## ########
  ##    ## ##          ##    ##     ## ##     ##
@@ -584,7 +608,7 @@ void setup() {
     intakePid.DONE_ZONE = 50;
     intakeSaver.setConstants(6000, 3500, 0.5, 0.2);
 
-    clawPid.kp = 90.0;
+    clawPid.kp = 70.0;
     clawPid.ki = 0.03;
     clawPid.kd = 2500.0;
     clawPid.iActiveZone = 300;
@@ -632,7 +656,7 @@ void setup() {
     curveVelPid.kp = 10000000;
 
     drfbPid.target = drfbPos0;
-    clawPid.target = 0;
+    clawPid.target = claw0;
     flywheelPid.target = 0;
 
     ballSensL = new pros::ADILineSensor(7);
@@ -641,7 +665,8 @@ void setup() {
     DLEnc = new pros::ADIEncoder(1, 2, false);
     DREnc = new pros::ADIEncoder(5, 6, false);
     gyro = new pros::ADIGyro(3, 1);
-    vision = new pros::Vision(7);
+    vision = new pros::Vision(6);
+    vision->set_led(0);
     // vision = new pros::Vision(vision_port);
     // vex::vision::signature SIG_1 (1, -2379, -2025, -2202, 4005, 5441, 4723, 7, 0);
     // vex::vision::signature SIG_2 (2, 7265, 7861, 7563, -1967, -941, -1454, 7, 0);

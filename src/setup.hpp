@@ -13,12 +13,11 @@ extern pros::ADIEncoder* DLEnc;
 extern pros::ADIEncoder* DREnc;
 extern pros::Vision* vision;
 extern pros::ADIGyro* gyro;
-// extern pros::Vision* vision;
 extern const int driveTurnLim;
-extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1Plus, drfbPos2Plus, drfbMinClaw0, drfbMaxClaw0, drfbMinClaw1, drfb18Max, drfbPosCloseIntake, drfbPosScrape;
+extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbPos1Plus, drfbPos2Plus, drfbMinClaw0, drfbMaxClaw0, drfbMinClaw1, drfb18Max, drfbPosCloseIntake, drfbPosScrape, drfbPosAboveScrape;
 extern const int drfbHoldPwr;
 extern double drfbIMEBias;
-extern const int claw180;
+extern const int claw0, claw180;
 extern const int intakeOneShotTicks, intakeOneShotTicksTop;
 extern double sShotSpeed, fw_a4_middleFlag, fw_a4_sideFlag;
 extern const int ctlrIdxLeft, ctlrIdxUp, ctlrIdxRight, ctlrIdxDown, ctlrIdxY, ctlrIdxX, ctlrIdxA, ctlrIdxB, ctlrIdxL1, ctlrIdxL2, ctlrIdxR1, ctlrIdxR2;
@@ -70,6 +69,7 @@ void printDriveEncoders();
 void runMotorTest();
 void setDriveSlew(bool auton);
 void setMaxAErr(double mae);
+void driveToCap(bool red, int pwr);
 
 //----------- Intake ------
 void setIntake(IntakeState is);
