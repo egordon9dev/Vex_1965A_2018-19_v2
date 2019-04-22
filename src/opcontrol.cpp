@@ -53,8 +53,7 @@ void opcontrol() {
         }
         return;
     }
-    if (0) {
-        setDrfbParams(true);
+    if (1) {
         // while (1) {
         // printf("top %d    btm %d\n", getBallSensTop(), getBallSensBtm());
         // delay(10);

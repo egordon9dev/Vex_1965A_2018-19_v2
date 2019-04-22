@@ -69,7 +69,7 @@ void printDriveEncoders();
 void runMotorTest();
 void setDriveSlew(bool auton);
 void setMaxAErr(double mae);
-void driveToCap(bool red, int pwr);
+void driveToCap(bool red, int pwr, double offset);
 
 //----------- Intake ------
 void setIntake(IntakeState is);

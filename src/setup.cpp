@@ -247,7 +247,7 @@ double getFlywheelFromMotor() { return 3.1 / 200.0 * mtr6.get_actual_velocity();
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 int getFlywheelMeasuredVoltage() { return mtr6.get_voltage(); }
 
-double FWSpeeds[][2] = {{0, 0}, {2.8, 11000}, {2.9, 11000}, {2.94, 11150}, {3.0, 10800}, {3.06, 11600}};
+double FWSpeeds[][2] = {{0, 0}, {2.8, 11000}, {2.9, 11000}, {2.94, 11150}, {3.0, 10800}, {3.06, 11600}, {3.1, 11700}};
 void pidFlywheelInit(double speed, double pidZone, int wait) { flywheel::init(speed, pidZone, wait); }
 bool pidFlywheel() {
     static std::deque<int> pwrs;
@@ -525,7 +525,7 @@ void opctlDrive(int driveDir) {
     }
     prevStopped = stopped;
 }
-void driveToCap(bool red, int pwr = 6000) {
+void driveToCap(bool red, int pwr, double offset) {
     pros::vision_object_s_t objs[10];
     int nObjs = vision->read_by_sig(0, red ? 1 : 2, 10, objs);
     int out = 0;
@@ -536,8 +536,8 @@ void driveToCap(bool red, int pwr = 6000) {
             double x = objs[i].left_coord, y = objs[i].top_coord, w = objs[i].width, h = objs[i].height;
             x += w / 2;
             y += h / 2;
-            double dist = sqrt(pow(x - 175, 2) + pow(170 - y, 2));
-            double pos = clamp((x - 173.5) * 0.0045, -PI / 4, PI / 4);
+            double dist = sqrt(pow(x - 175 - offset, 2) + pow(170 - y, 2));
+            double pos = clamp((x - 175 - offset) * 0.0045, -PI / 4, PI / 4);
             if (dist < smallestDist) {
                 smallestDist = dist;
                 turnPid.sensVal = pos;
@@ -546,8 +546,8 @@ void driveToCap(bool red, int pwr = 6000) {
         out = turnPid.update();
         if (pwr >= 6000) {
             out *= 1.7;
-        } else if (pwr >= 4000) {
-            out *= 1.3;
+        } else {
+            out *= 0.9;
         }
     } else {
         out = 0;
@@ -621,8 +621,7 @@ void setup() {
     clawSaver.setConstants(6000, 3500, 0.5, 0.2);
 
     setDrfbParams(true);
-    dlSaver.setConstants(6000, 3500, 0.5, 0.2);
-    drSaver.setConstants(6000, 3500, 0.5, 0.2);
+    drfbSaver.setConstants(6000, 3500, 0.5, 0.2);
     drfbPid.DONE_ZONE = 100;
     drfbPid.target = drfbPos0;
     drfbSlew.slewRate = 200;
@@ -655,7 +654,7 @@ void setup() {
     sTurnPid.maxIntegral = 5000;
     sTurnPid.DONE_ZONE = PI / 20;
 
-    curvePid.kp = 50000;
+    curvePid.kp = 55000;
     curvePid.kd = 5500000;
 
     curveVelPid.kp = 10000000;
@@ -670,7 +669,7 @@ void setup() {
     DLEnc = new pros::ADIEncoder(1, 2, false);
     DREnc = new pros::ADIEncoder(5, 6, false);
     gyro = new pros::ADIGyro(3, 1);
-    vision = new pros::Vision(6);
+    vision = new pros::Vision(3);
     vision->set_led(0);
     // vision = new pros::Vision(vision_port);
     // vex::vision::signature SIG_1 (1, -2379, -2025, -2202, 4005, 5441, 4723, 7, 0);
