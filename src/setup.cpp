@@ -11,7 +11,7 @@
 pros::Motor mtr3(19);  // intake
 pros::Motor mtr6(17);  // flywheel
 pros::Motor mtr7(14);  // drfb
-pros::Motor mtr8(3);   // claw
+pros::Motor mtr8(6);   // claw
 // gnd: 8
 /* bad ports:
 5,
@@ -664,8 +664,7 @@ void setup() {
     DLEnc = new pros::ADIEncoder(1, 2, false);
     DREnc = new pros::ADIEncoder(5, 6, false);
     gyro = new pros::ADIGyro(3, 1);
-    vision = new pros::Vision(2);
-    vision->set_led(0);
+    vision = new pros::Vision(3);
     // vision = new pros::Vision(vision_port);
     // vex::vision::signature SIG_1 (1, -2379, -2025, -2202, 4005, 5441, 4723, 7, 0);
     // vex::vision::signature SIG_2 (2, 7265, 7861, 7563, -1967, -941, -1454, 7, 0);
