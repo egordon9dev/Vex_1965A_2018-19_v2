@@ -28,7 +28,6 @@ extern const double PI; /*
  extern const double ticksPerInch;*/
 extern const double ticksPerInchADI;
 extern int driveLim;
-extern int clawPowerLimit;
 extern int drfbFullRangePowerLimit;
 enum class IntakeState { FRONT, FRONT_HOLD, BACK, BACK_SLOW, ALTERNATE, NONE };
 int clamp(int n, int min, int max);
@@ -99,7 +98,6 @@ void pidDrfb();
 //---------- Claw functions --------
 void setClawPosition(double pos);
 void setClaw(int n);
-void setClaw(int n, bool limit);
 double getClaw();
 double getClawVel();
 int getClawVoltage();

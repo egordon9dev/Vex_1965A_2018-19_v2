@@ -53,7 +53,7 @@ void opcontrol() {
         }
         return;
     }
-    if (1) {
+    if (0) {
         // while (1) {
         // printf("top %d    btm %d\n", getBallSensTop(), getBallSensBtm());
         // delay(10);
@@ -204,6 +204,7 @@ void opcontrol() {
             atDrfbSetp = false;
             drfbPidRunning = false;
             drfbFullRangePowerLimit = 12000;
+            if (autoFlipI == 0 || autoFlipI == 1) clawFlipRequest = true;
             autoFlipI = -1;
             tDrfbOff = millis();
             setDrfb(12000);
@@ -213,6 +214,7 @@ void opcontrol() {
             atDrfbSetp = false;
             drfbPidRunning = false;
             drfbFullRangePowerLimit = 12000;
+            if (autoFlipI == 0 || autoFlipI == 1) clawFlipRequest = true;
             autoFlipI = -1;
             tDrfbOff = millis();
             setDrfb(-12000);
@@ -220,6 +222,7 @@ void opcontrol() {
             atDrfbSetp = true;
             drfbPidRunning = true;
             drfbFullRangePowerLimit = 12000;
+            if (autoFlipI == 0 || autoFlipI == 1) clawFlipRequest = true;
             autoFlipI = -1;
             drfbPidBias = 0;
             drfbPid.target = drfbPos1;
@@ -228,16 +231,16 @@ void opcontrol() {
             atDrfbSetp = true;
             drfbPidRunning = true;
             drfbFullRangePowerLimit = (curDrfb > drfbPos2 + 50) ? 5000 : 12000;
+            if (autoFlipI == 0 || autoFlipI == 1) clawFlipRequest = true;
             autoFlipI = -1;
             drfbPidBias = 0;
             drfbPid.target = drfbPos2;
             setDrfbParams(true);
 
-        } else if (curClicks[ctlrIdxL2]) {
+        } else if (curClicks[ctlrIdxL2] && autoFlipH != -1) {
             atDrfbSetp = false;
             drfbPidRunning = true;
             drfbFullRangePowerLimit = 12000;
-            autoFlipI = -1;
             drfbPidBias = 0;
             drfbPid.target = drfbPosCloseIntake;
             setDrfbParams(true);
@@ -328,12 +331,21 @@ void opcontrol() {
         }
         if (!isDrfbHolding) prevNotHoldingT = millis();
         // CLAW
-        if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && autoFlipI == -1) {
-            if (atDrfbSetp && (fabs(curDrfb - drfbPos1) < 100 || fabs(curDrfb - drfbPos2) < 100) || curDrfb < drfbMinClaw0) {
-                // request an auto-flip
-                autoFlipI = 0;
+        if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX]) {
+            if (autoFlipI == -1) {
+                if (drfbPidRunning && atDrfbSetp && (fabs(drfbPid.target - drfbPos1) < 0.001 && fabs(curDrfb - drfbPos1) < 100) ||  // autoFlipH = 2
+                    drfbPidRunning && atDrfbSetp && (fabs(drfbPid.target - drfbPos2) < 0.001 && fabs(curDrfb - drfbPos2) < 100) ||  // autoFlipH = 1
+                    drfbPidRunning && curDrfb < drfbMinClaw0 && drfbPid.target < drfbMinClaw0) {                                    // autoFlipH = 0
+                    // request an auto-flip
+                    autoFlipI = 0;
+                } else {
+                    // request an ordinary-flip
+                    clawFlipRequest = !clawFlipRequest;
+                }
+            } else if (autoFlipI == 0 || autoFlipI == 1) {
+                autoFlipI = -1;
             } else {
-                clawFlipRequest = true;
+                autoFlipI = 0;
             }
         }
         if (clawFlipRequest && millis() - opcontrolT0 > 300) {
