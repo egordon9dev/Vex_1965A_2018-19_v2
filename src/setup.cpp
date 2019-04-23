@@ -240,7 +240,7 @@ double getFlywheelFromMotor() { return 3.1 / 200.0 * mtr6.get_actual_velocity();
 int getFlywheelVoltage() { return flywheel::requestedVoltage; }
 int getFlywheelMeasuredVoltage() { return mtr6.get_voltage(); }
 
-double FWSpeeds[][2] = {{0, 0}, {2.8, 11000}, {2.9, 11000}, {2.94, 11150}, {3.0, 10800}, {3.06, 11600}, {3.1, 11700}};
+double FWSpeeds[][2] = {{0, 0}, {2.8, 11000}, {2.9, 11000}, {2.94, 11150}, {3.0, 10800}, {3.06, 11300}, {3.1, 11700}};
 void pidFlywheelInit(double speed, double pidZone, int wait) { flywheel::init(speed, pidZone, wait); }
 bool pidFlywheel() {
     static std::deque<int> pwrs;

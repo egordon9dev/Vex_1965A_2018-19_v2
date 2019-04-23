@@ -56,20 +56,20 @@ void autonMainBack(bool leftSide) {
     ***********     Right (Blue) Side     ************
     **************************************************/
     else {
-        ptBeforeC1 = Point(0, 31);
+        ptBeforeC1 = Point(0, 34);
         ptC1 = Point(0, 39);
-        ptBeforeShoot = Point(0, -1.5);
+        ptBeforeShoot = Point(0, -0.75);
         ptShoot = ptBeforeShoot + polarToRect(6, -0.0022);  // near post
         // pivotBeforeC2 = Point(-20, 29);
         sweepBeforeC2 = Point(56, 27);
         ptBeforeC2 = Point(-14, 22);
         ptC2 = Point(-13, 30);
         ptBeyondC2 = Point(-13, 42);
-        ptAfterC2 = Point(-13, 37);
+        ptAfterC2 = Point(-13, 35);
         // ptAfterC22 = Point(-15, 10);
         sweepAfterC2 = Point(-33, -10);
         turnAfterC2 = PI;
-        sweepBalls = Point(-20.7, -39.6);
+        sweepBalls = Point(-19.665, -37.62);
         // ptBalls = Point(-14, 44);
         pivotBeforeShoot2 = Point(-8, 33);
         ptShoot2 = pivotBeforeShoot2 + polarToRect(24, 0.585);
@@ -107,7 +107,7 @@ void autonMainBack(bool leftSide) {
             if (getDrfb() > drfbPosCloseIntake - 70) is = IntakeState::FRONT;
             bool driveDone = false;
             if (k == 0) {
-                if (pidDriveLine() || (odometry.getPos() - ptBeforeC1).mag() < 0.6) { k++; }
+                if (pidDriveLine() || (odometry.getPos() - ptBeforeC1).mag() < 0.5) { k++; }
             } else if (k == 1) {
                 setDL(-4000);
                 setDR(-4000);
@@ -146,7 +146,7 @@ void autonMainBack(bool leftSide) {
                 } else if (k == 1) {
                     if (millis() - t03 > 450) {  // 300 minimum
                         pidSweepInit(sweepBeforeC2.x, sweepBeforeC2.y, 2.0, 0);
-                        pidFlywheelInit(3.07, 0.1, 500);
+                        pidFlywheelInit(3.05, 0.1, 500);
                         k = 0;
                         i++;
                     }
@@ -184,7 +184,7 @@ void autonMainBack(bool leftSide) {
                 }
                 if (fabs(ptBeyondC2.y - odometry.getY()) < 3) {
                     driveLim = 12000;
-                    pidDriveLineInit(ptBeyondC2, ptAfterC2, true, 99999, 180);
+                    pidDriveLineInit(ptBeyondC2, ptAfterC2, true, 99999, 170);
                     k = 0;
                     i++;
                 }
@@ -194,14 +194,17 @@ void autonMainBack(bool leftSide) {
             if (k == 0) {
                 if (getDrfb() < drfbPosScrape + 80) {
                     printf("scrape ");
+                    if (odometry.getY() < ptAfterC2.y + 0.5) drfbPidRunning = true;
+                    drfbPid.target = drfb18Max;
+                } else {
                     drfbPidRunning = false;
                     setDrfb(-2500);
-                    if (pidDriveLine()) {
-                        pidSweepInit(sweepAfterC2.x, sweepAfterC2.y, 1.5, 0);
-                        // pidDriveLineInit(ptAfterC2, ptAfterC22, true, 0.1, 0);
-                        t0 = millis();
-                        k++;
-                    }
+                }
+                if (pidDriveLine()) {
+                    pidSweepInit(sweepAfterC2.x, sweepAfterC2.y, 2.0, 0);
+                    // pidDriveLineInit(ptAfterC2, ptAfterC22, true, 0.1, 0);
+                    t0 = millis();
+                    k++;
                 } else {
                     drfbPidRunning = false;
                     setDL(0);
@@ -219,7 +222,7 @@ void autonMainBack(bool leftSide) {
                 } else {
                     sweeping = true;
                     drfbPidRunning = true;
-                    drfbPid.target = 300;
+                    drfbPid.target = drfb18Max;
                     pidSweep();
                 }
                 if (sweeping && fabs(drivePid.target - drivePid.sensVal) < 2) {
