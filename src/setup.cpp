@@ -363,6 +363,7 @@ bool isPidFlywheelDone() { return millis() - flywheelPid.doneTime > flywheel::wa
  ##     ##  ##  ##    ## ##    ##
  ##     ## ####  ######   ######
 */
+bool g_isAuton = true;
 
 int clamp(int n, int a, int b) { return n < a ? a : (n > b ? b : n); }
 double clamp(double n, double a, double b) { return n < a ? a : (n > b ? b : n); }
@@ -472,7 +473,7 @@ void opctlDrive(int driveDir) {
         stopT = millis();
     }
     if (stopped) {
-        const int breakPwr = 3000;
+        const int breakPwr = 2999;
         driveLim = breakPwr;
         if (millis() - stopT < 500) {
             double k = 1000;
@@ -730,22 +731,24 @@ void autoSel_update() {
         autoSel_leftSide = !autoSel_leftSide;
     } else if (ctlr.get_digital_new_press(DIGITAL_RIGHT)) {
         autoSel_nAuton++;
-        if (autoSel_nAuton > 2) autoSel_nAuton = 0;
+        if (autoSel_nAuton > 3) autoSel_nAuton = 0;
     }
     pros::lcd::print(1, " AUTON SELECT ");
     if (autoSel_nAuton == 0) {
         pros::lcd::print(2, "0)  NONE");
     } else if (autoSel_nAuton == 1) {
-        pros::lcd::print(2, "1)  Near Middle");
+        pros::lcd::print(2, "1)  Main Back");
     } else if (autoSel_nAuton == 2) {
-        pros::lcd::print(2, "2)  Middle Far");
+        pros::lcd::print(2, "2)  Support Back");
+    } else if (autoSel_nAuton == 3) {
+        pros::lcd::print(3, "3)  Flag Side");
     }
     if (autoSel_nAuton == 0) {
-        pros::lcd::clear_line(3);
+        pros::lcd::print(3, "     ----     ");
     } else if (autoSel_leftSide) {
-        pros::lcd::print(3, "Left, Red Side");
+        pros::lcd::print(3, "Left/Red");
     } else {
-        pros::lcd::print(3, "Right, Blue Side");
+        pros::lcd::print(3, "Right/Blue");
     }
     pros::lcd::print(4, "[L/R]  [ ]  [+n]");
 }

@@ -114,4 +114,7 @@ bool isPidFlywheelDone();
 
 double getCapX(bool red);
 void testDriveMtrs();
+
+void startOpctlTask();
+void stopOpctlTask();
 #endif

@@ -34,7 +34,7 @@ using std::endl;
 void testAuton();
 bool robotInit = false;
 bool clawFlipped = false;
-void opcontrol() {
+void opctl(void* params) {
     if (!robotInit) {
         morningRoutine();
         pros::lcd::print(6, "R1 to confirm");
@@ -53,7 +53,7 @@ void opcontrol() {
         }
         return;
     }
-    if (1) {
+    if (0) {
         // while (1) {
         // printf("top %d    btm %d\n", getBallSensTop(), getBallSensBtm());
         // delay(10);
@@ -433,4 +433,22 @@ void opcontrol() {
     delete vision;
     delete DLEnc;
     delete DREnc;
+}
+pros::Task* opctlTask = NULL;
+void stopOpctlTask() {
+    if (opctlTask != NULL) {
+        opctlTask->suspend();
+        opctlTask->remove();
+        delete opctlTask;
+        opctlTask = NULL;
+    }
+}
+void startOpctlTask() {
+    stopOpctlTask();
+    std::string s("param");
+    opctlTask = new pros::Task(opctl, &s);
+}
+void opcontrol() {
+    startOpctlTask();
+    while (1) { delay(1000); }
 }

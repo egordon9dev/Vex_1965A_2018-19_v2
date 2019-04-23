@@ -2,6 +2,6 @@
 #define AUTON_H
 
 void autonMainBack(bool leftSide);
-void autonMidFar(bool leftSide);
-
+void autonSupportBack(bool leftSide);
+void autonFlagSide(bool leftSide);
 #endif
