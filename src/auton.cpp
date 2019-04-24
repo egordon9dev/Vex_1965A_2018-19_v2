@@ -53,12 +53,12 @@ void autonMainBack(bool leftSide) {
         ptBeforeC1 = Point(0, 34);
         ptC1 = Point(0, 37.5);
         ptBeforeShoot = Point(0, -2);
-        ptShoot = ptBeforeShoot + polarToRect(8, PI + 0.006);  // near post
+        ptShoot = ptBeforeShoot + polarToRect(8, PI + 0.095);  // near post
         sweepShoot = Point(-7, -7);
         ptBeforeC2 = Point(13, 33);
-        ptC2 = Point(18, 40);
+        ptC2 = Point(19.5, 43);
         pivotBeforePost = Point(10, 10);
-        ptPost = Point(18, -10);
+        ptPost = Point(10, -10);
         ptAfterC2 = Point(8, 20);
     }
 
@@ -204,6 +204,7 @@ void autonMainBack(bool leftSide) {
                 }
             }
         } else if (i == j++) {
+            drfbPid.target = drfbPos0;
             setClaw(0);
             pidDriveLine();
             if (odometry.getY() < 0 && fabs(getDriveVel()) < 0.3) { i++; }
@@ -212,7 +213,7 @@ void autonMainBack(bool leftSide) {
             drfbPid.target = drfbPos1Plus;
             setDL(-9000);
             setDR(-9000);
-            if (odometry.getY() > 0) {
+            if (odometry.getY() > 5) {
                 pidDriveLineInit(odometry.getPos(), ptPost, false, 0.1, 0);
                 t0 = millis();
                 i++;
@@ -287,11 +288,13 @@ void autonSupportBack(bool leftSide) {
     /*************************************************
     ***********     Left (Red) Side     ************
     **************************************************/
+    // FIIIIIX THEEESE
+
     if (leftSide) {
         ptBeforeC1 = Point(0, 34);
         ptC1 = Point(0, 37.5);
         ptBeforeShoot = Point(0, 3);
-        ptShoot = ptBeforeShoot + polarToRect(1, PI - 0.350);  // center post
+        ptShoot = ptBeforeShoot + polarToRect(1, PI - 0.270);  // center post
         sweepShoot = Point(-15, -15);
         ptBeforeC2 = Point(13, 33);
         ptC2 = Point(19, 42);
@@ -323,7 +326,7 @@ void autonSupportBack(bool leftSide) {
 
     // initialize
     t0 = millis();
-    pidFlywheelInit(3.00, 0.1, 500);
+    pidFlywheelInit(3.10, 0.1, 500);
     pidDriveLineInit(pt0, ptBeforeC1, true, 0.15, 0);
     setDriveSlew(true);
     while (!ctlr.get_digital(DIGITAL_B)) {
@@ -527,14 +530,14 @@ void autonSupCrossBack(bool leftSide) {
     **************************************************/
     if (leftSide) {
         ptBeforeC1 = Point(0, 34);
-        ptC1 = Point(0, 37.5);
+        ptC1 = Point(0, 36.5);
         ptBeforeShoot = Point(5, 25);
-        ptShoot = ptBeforeShoot + polarToRect(1, PI - 0.64);  // far post
+        ptShoot = ptBeforeShoot + polarToRect(1, PI - 0.64 + 0.05);  // far post
         sweepShoot = Point(-5, -5);
         ptBeforeC2 = Point(13, 33);
-        ptC2 = Point(19, 42);
+        ptC2 = Point(19.5, 43);
         pivotBeforePost = Point(10, 10);
-        ptPost = Point(18, -10);
+        ptPost = Point(10, -10);
         ptAfterC2 = Point(8, 20);
     }
 
@@ -543,10 +546,10 @@ void autonSupCrossBack(bool leftSide) {
     **************************************************/
     else {
         ptBeforeC1 = Point(0, 34);
-        ptC1 = Point(0, 37.5);
-        ptBeforeShoot = Point(-5, 25);
-        ptShoot = ptBeforeShoot + polarToRect(1, 0.64);  // far post
-        sweepShoot = Point(-5, -5);
+        ptC1 = Point(0, 36.5);
+        ptBeforeShoot = Point(-5, 30.5);
+        ptShoot = ptBeforeShoot + polarToRect(1, 0.60);  // far post
+        sweepShoot = Point(-6.5, -6.5);
         ptBeforeC2 = Point(-13, 33);
         ptC2 = Point(-19, 42);
         pivotBeforePost = Point(-10, 10);
@@ -593,7 +596,7 @@ void autonSupCrossBack(bool leftSide) {
                 if (odometry.getY() > ptC1.y - 0.5 || isBtmBallIn()) { driveDone = true; }
             }
             if (driveDone) {
-                pidDriveLineInit(ptC1, ptBeforeShoot, false, 0.15, 500);
+                pidDriveLineInit(ptC1, ptBeforeShoot, false, 0.15, 100);
                 t0 = BIL;
                 is = IntakeState::FRONT;
                 i++;
@@ -607,7 +610,7 @@ void autonSupCrossBack(bool leftSide) {
                 is = IntakeState::FRONT_HOLD;
             }
             if (pidDriveLine()) {
-                pidFaceInit(ptShoot, true, 500);
+                pidFaceInit(ptShoot, true, 100);
                 k = 0;
                 t02 = millis();
                 i++;
@@ -625,7 +628,7 @@ void autonSupCrossBack(bool leftSide) {
                     pidSweepInit(sweepShoot.x, sweepShoot.y, 1.0, 0);
                 }
             } else if (k == 1) {
-                if (pidSweep() && millis() - t0 > 5000) {
+                if (pidSweep() && millis() - t0 > 50) {
                     is = IntakeState::FRONT;
                     t03 = millis();
                     k++;
