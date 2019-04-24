@@ -45,12 +45,21 @@ void autonMainBack(bool leftSide) {
     setDrfbParams(true);
 
     // tuning setpoints
-    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot, sweepShoot, sweepBeforeC2, ptBeforeC2, ptC2, ptAfterC2, pivotBeforePost, ptPost;
+    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot, sweepShoot, ptBeforeC2, ptC2, ptAfterC2, pivotBeforePost, ptPost;
     /*************************************************
     ***********     Left (Red) Side     ************
     **************************************************/
     if (leftSide) {
-        return;
+        ptBeforeC1 = Point(0, 34);
+        ptC1 = Point(0, 37.5);
+        ptBeforeShoot = Point(0, -2);
+        ptShoot = ptBeforeShoot + polarToRect(8, PI + 0.006);  // near post
+        sweepShoot = Point(-7, -7);
+        ptBeforeC2 = Point(13, 33);
+        ptC2 = Point(18, 40);
+        pivotBeforePost = Point(10, 10);
+        ptPost = Point(18, -10);
+        ptAfterC2 = Point(8, 20);
     }
 
     /*************************************************
@@ -62,12 +71,10 @@ void autonMainBack(bool leftSide) {
         ptBeforeShoot = Point(0, -2);
         ptShoot = ptBeforeShoot + polarToRect(8, -0.006);  // near post
         sweepShoot = Point(-7, -7);
-        // pivotBeforeC2 = Point(-20, 29);
-        sweepBeforeC2 = 0.6 * Point(58, 25);
         ptBeforeC2 = Point(-13, 33);
         ptC2 = Point(-18, 40);
         pivotBeforePost = Point(-10, 10);
-        ptPost = Point(-5, -10);
+        ptPost = Point(-18, -10);
         ptAfterC2 = Point(-8, 20);
     }
     Point pt0(0, 0);
@@ -276,12 +283,21 @@ void autonSupportBack(bool leftSide) {
     setDrfbParams(true);
 
     // tuning setpoints
-    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot, sweepShoot, sweepBeforeC2, ptBeforeC2, ptC2, ptAfterC2, pivotBeforePost, ptPost;
+    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot, sweepShoot, ptBeforeC2, ptC2, ptAfterC2, pivotBeforePost, ptPost;
     /*************************************************
     ***********     Left (Red) Side     ************
     **************************************************/
     if (leftSide) {
-        return;
+        ptBeforeC1 = Point(0, 34);
+        ptC1 = Point(0, 37.5);
+        ptBeforeShoot = Point(0, 3);
+        ptShoot = ptBeforeShoot + polarToRect(1, PI - 0.350);  // center post
+        sweepShoot = Point(-15, -15);
+        ptBeforeC2 = Point(13, 33);
+        ptC2 = Point(19, 42);
+        pivotBeforePost = Point(10, 10);
+        ptPost = Point(18, -10);
+        ptAfterC2 = Point(8, 20);
     }
 
     /*************************************************
@@ -291,14 +307,12 @@ void autonSupportBack(bool leftSide) {
         ptBeforeC1 = Point(0, 34);
         ptC1 = Point(0, 37.5);
         ptBeforeShoot = Point(0, 3);
-        ptShoot = ptBeforeShoot + polarToRect(1, 0.320);  // center post
+        ptShoot = ptBeforeShoot + polarToRect(1, 0.350);  // center post
         sweepShoot = Point(-15, -15);
-        // pivotBeforeC2 = Point(-20, 29);
-        sweepBeforeC2 = 0.6 * Point(58, 25);
         ptBeforeC2 = Point(-13, 33);
         ptC2 = Point(-19, 42);
         pivotBeforePost = Point(-10, 10);
-        ptPost = Point(-5, -10);
+        ptPost = Point(-18, -10);
         ptAfterC2 = Point(-8, 20);
     }
     Point pt0(0, 0);
@@ -507,12 +521,21 @@ void autonSupCrossBack(bool leftSide) {
     setDrfbParams(true);
 
     // tuning setpoints
-    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot, sweepShoot, sweepBeforeC2, ptBeforeC2, ptC2, ptAfterC2, pivotBeforePost, ptPost;
+    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot, sweepShoot, ptBeforeC2, ptC2, ptAfterC2, pivotBeforePost, ptPost;
     /*************************************************
     ***********     Left (Red) Side     ************
     **************************************************/
     if (leftSide) {
-        return;
+        ptBeforeC1 = Point(0, 34);
+        ptC1 = Point(0, 37.5);
+        ptBeforeShoot = Point(5, 25);
+        ptShoot = ptBeforeShoot + polarToRect(1, PI - 0.64);  // far post
+        sweepShoot = Point(-5, -5);
+        ptBeforeC2 = Point(13, 33);
+        ptC2 = Point(19, 42);
+        pivotBeforePost = Point(10, 10);
+        ptPost = Point(18, -10);
+        ptAfterC2 = Point(8, 20);
     }
 
     /*************************************************
@@ -522,14 +545,12 @@ void autonSupCrossBack(bool leftSide) {
         ptBeforeC1 = Point(0, 34);
         ptC1 = Point(0, 37.5);
         ptBeforeShoot = Point(-5, 25);
-        ptShoot = ptBeforeShoot + polarToRect(1, 0.7);  // far post
+        ptShoot = ptBeforeShoot + polarToRect(1, 0.64);  // far post
         sweepShoot = Point(-5, -5);
-        // pivotBeforeC2 = Point(-20, 29);
-        sweepBeforeC2 = 0.6 * Point(58, 25);
         ptBeforeC2 = Point(-13, 33);
         ptC2 = Point(-19, 42);
         pivotBeforePost = Point(-10, 10);
-        ptPost = Point(-5, -10);
+        ptPost = Point(-18, -10);
         ptAfterC2 = Point(-8, 20);
     }
     Point pt0(0, 0);
