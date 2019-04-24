@@ -731,7 +731,7 @@ void autoSel_update() {
         autoSel_leftSide = !autoSel_leftSide;
     } else if (ctlr.get_digital_new_press(DIGITAL_RIGHT)) {
         autoSel_nAuton++;
-        if (autoSel_nAuton > 3) autoSel_nAuton = 0;
+        if (autoSel_nAuton > 4) autoSel_nAuton = 0;
     }
     pros::lcd::print(1, " AUTON SELECT ");
     if (autoSel_nAuton == 0) {
@@ -741,7 +741,9 @@ void autoSel_update() {
     } else if (autoSel_nAuton == 2) {
         pros::lcd::print(2, "2)  Support Back");
     } else if (autoSel_nAuton == 3) {
-        pros::lcd::print(3, "3)  Flag Side");
+        pros::lcd::print(2, "3)  SupCrossBack");
+    } else if (autoSel_nAuton == 4) {
+        pros::lcd::print(2, "4)  Flag Side");
     }
     if (autoSel_nAuton == 0) {
         pros::lcd::print(3, "     ----     ");
