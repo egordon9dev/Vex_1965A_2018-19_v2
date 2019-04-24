@@ -11,7 +11,7 @@
 pros::Motor mtr3(19);  // intake
 pros::Motor mtr6(17);  // flywheel
 pros::Motor mtr7(14);  // drfb
-pros::Motor mtr8(6);   // claw
+pros::Motor mtr8(4);   // claw
 // gnd: 8
 /* bad ports:
 5,
@@ -49,8 +49,8 @@ pros::Vision* vision;
 //----------- Constants ----------------
 const int driveTurnLim = 9000;
 
-const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1180, drfbPos1Plus = 1400, drfbPos2 = 1780, drfbPos2Plus = 2250;
-const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200, drfbPosScrape = 300, drfbPosAboveScrape = 450;
+const int drfbMaxPos = 2390, drfbPos0 = -60, drfbMinPos = -80, drfbPos1 = 1180, drfbPos1Plus = 1600, drfbPos2 = 1780, drfbPos2Plus = 2300;
+const int drfbMinClaw0 = 350, drfbMaxClaw0 = 640, drfbMinClaw1 = 1087, drfb18Max = 350, drfbPosCloseIntake = 200, drfbPosScrape = 300, drfbPosAboveScrape = 500;
 const int drfbHoldPwr = -1500;
 
 double sShotSpeed = 2.97;

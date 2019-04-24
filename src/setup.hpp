@@ -30,6 +30,8 @@ extern const double ticksPerInchADI;
 extern int driveLim;
 extern int drfbFullRangePowerLimit;
 enum class IntakeState { FRONT, FRONT_HOLD, BACK, BACK_SLOW, ALTERNATE, NONE };
+
+extern bool g_isAuton;
 int clamp(int n, int min, int max);
 double clamp(double n, double min, double max);
 
@@ -114,7 +116,4 @@ bool isPidFlywheelDone();
 
 double getCapX(bool red);
 void testDriveMtrs();
-
-void startOpctlTask();
-void stopOpctlTask();
 #endif

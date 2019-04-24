@@ -34,7 +34,7 @@ using std::endl;
 void testAuton();
 bool robotInit = false;
 bool clawFlipped = false;
-void opctl(void* params) {
+void opcontrol() {
     if (!robotInit) {
         morningRoutine();
         pros::lcd::print(6, "R1 to confirm");
@@ -146,6 +146,15 @@ void opctl(void* params) {
     // int iti = 0;    // iti = Intake Tracker Index
     // int itt = BIL;  // itt = Intake Tracker Time
     while (true) {
+        if (g_isAuton) {
+            if (ctlr.get_digital(DIGITAL_UP)) {
+                g_isAuton = false;
+            } else {
+                delay(20);
+                continue;
+            }
+        }
+
         pros::lcd::print(0, "%1.2f %1.2f %1.2f", odometry.getX(), odometry.getY(), odometry.getA());
         pros::lcd::print(1, "L%3d R%3d S%3d", (int)lround(getDL()), (int)lround(getDR()), (int)lround(getDS()));
         pros::lcd::print(2, "L%5d R%5d", getDLVoltage(), getDRVoltage());
@@ -433,22 +442,4 @@ void opctl(void* params) {
     delete vision;
     delete DLEnc;
     delete DREnc;
-}
-pros::Task* opctlTask = NULL;
-void stopOpctlTask() {
-    if (opctlTask != NULL) {
-        opctlTask->suspend();
-        opctlTask->remove();
-        delete opctlTask;
-        opctlTask = NULL;
-    }
-}
-void startOpctlTask() {
-    stopOpctlTask();
-    std::string s("param");
-    opctlTask = new pros::Task(opctl, &s);
-}
-void opcontrol() {
-    startOpctlTask();
-    while (1) { delay(1000); }
 }
