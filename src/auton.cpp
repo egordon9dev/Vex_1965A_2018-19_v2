@@ -545,11 +545,11 @@ void autonSupCrossBack(bool leftSide) {
     ***********     Right (Blue) Side     ************
     **************************************************/
     else {
-        ptBeforeC1 = Point(0, 34);
-        ptC1 = Point(0, 36.5);
-        ptBeforeShoot = Point(-5, 30.5);
-        ptShoot = ptBeforeShoot + polarToRect(1, 0.60);  // far post
-        sweepShoot = Point(-6.5, -6.5);
+        ptBeforeC1 = Point(0, 33);
+        ptC1 = Point(0, 35.5);
+        ptBeforeShoot = Point(-1, 31);
+        ptShoot = ptBeforeShoot + polarToRect(1, 0.350);  // far post
+        sweepShoot = Point(-4, -4);
         ptBeforeC2 = Point(-13, 33);
         ptC2 = Point(-19, 42);
         pivotBeforePost = Point(-10, 10);
@@ -564,7 +564,7 @@ void autonSupCrossBack(bool leftSide) {
 
     // initialize
     t0 = millis();
-    pidFlywheelInit(3.15, 0.1, 500);
+    pidFlywheelInit(3.13, 0.1, 500);
     pidDriveLineInit(pt0, ptBeforeC1, true, 0.15, 0);
     setDriveSlew(true);
     while (!ctlr.get_digital(DIGITAL_B)) {
@@ -641,6 +641,10 @@ void autonSupCrossBack(bool leftSide) {
                     i++;
                 }
             }
+        } else if (i == j++) {
+            setDL(12000);
+            setDR(12000);
+            if (millis() - t0 > 300) i++;
         } else {
             if (i == 12345) printf("\n\nAUTON TIMEOUT\n");
             stopMotors();
