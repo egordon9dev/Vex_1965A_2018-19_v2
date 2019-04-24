@@ -532,8 +532,8 @@ void driveToCap(bool red, int pwr, double offset) {
             double x = objs[i].left_coord, y = objs[i].top_coord, w = objs[i].width, h = objs[i].height;
             x += w / 2;
             y += h / 2;
-            double dist = sqrt(pow(x - 175 - offset, 2) + pow(170 - y, 2));
-            double pos = clamp((x - 175 - offset) * 0.0045, -PI / 4, PI / 4);
+            double dist = sqrt(pow(x - (175 + offset), 2) + pow(170 - y, 2));
+            double pos = clamp((x - (175 + offset)) * 0.0045, -PI / 4, PI / 4);
             if (dist < smallestDist) {
                 smallestDist = dist;
                 turnPid.sensVal = pos;
@@ -543,7 +543,7 @@ void driveToCap(bool red, int pwr, double offset) {
         if (pwr >= 6000) {
             out *= 1.7;
         } else {
-            out *= 0.9;
+            out *= 1.4;
         }
     } else {
         out = 0;
@@ -634,9 +634,9 @@ void setup() {
     drivePid.DONE_ZONE = 1;
     DRPid = DLPid = drivePid;
 
-    turnPid.kp = 12000;
+    turnPid.kp = 20000;
     turnPid.ki = 80;
-    turnPid.kd = 2000000;
+    turnPid.kd = 1500000;
     turnPid.iActiveZone = 0.25;
     turnPid.unwind = 0.0;
     turnPid.maxIntegral = 5000;

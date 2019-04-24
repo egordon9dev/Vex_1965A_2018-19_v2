@@ -23,7 +23,7 @@ int MotorSaver::getPwr(int inputPwr, double vel) {
     avgSpeed /= speedsLen;
     avgPwr /= speedsLen;
     if (speeds.size() == speedsLen) {
-        if (pros::competition::is_autonomous() || getDrfb() < drfb18Max + 80) {
+        if (getDrfb() < drfb18Max + 80) {
             if (avgSpeed < spd1 && avgPwr > pwr1 || avgSpeed > -spd1 && avgPwr < -pwr1) { inputPwr = clamp(inputPwr, -pwr1, pwr1); }
             if (avgSpeed < spd2 && avgPwr > pwr2 || avgSpeed > -spd2 && avgPwr < -pwr2) { inputPwr = clamp(inputPwr, -pwr2, pwr2); }
         }
