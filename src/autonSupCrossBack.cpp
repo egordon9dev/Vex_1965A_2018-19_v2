@@ -37,7 +37,7 @@ void autonSupCrossBack(bool leftSide) {
     setDrfbParams(true);
 
     // tuning setpoints
-    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot, sweepShoot;
+    Point ptBeforeC1, ptC1, ptBeforeShoot, ptBeforeShoot2, ptShoot, sweepShoot;
     /*************************************************
     ***********     Left (Red) Side     ************
     **************************************************/
@@ -45,8 +45,9 @@ void autonSupCrossBack(bool leftSide) {
         ptBeforeC1 = Point(0, 33);
         ptC1 = Point(0, 35.5);
         ptBeforeShoot = Point(1, 31);
-        ptShoot = ptBeforeShoot + polarToRect(1, PI - 0.35);  // far post
-        sweepShoot = Point(-4, -4);
+        ptBeforeShoot2 = ptBeforeShoot + polarToRect(-8, PI - 0.55 + 0.1);  // far post
+        ptShoot = ptBeforeShoot2 + polarToRect(8, PI - 0.55 + 0.08);        // far post
+        sweepShoot = Point(0, 0);
     }
 
     /*************************************************
@@ -56,8 +57,9 @@ void autonSupCrossBack(bool leftSide) {
         ptBeforeC1 = Point(0, 32);
         ptC1 = Point(0, 34.3);
         ptBeforeShoot = Point(-1, 31);
-        ptShoot = ptBeforeShoot + polarToRect(1, 0.366);  // far post
-        sweepShoot = Point(-4, -4);
+        ptBeforeShoot2 = ptBeforeShoot + polarToRect(-8, 0.55);  // far post
+        ptShoot = ptBeforeShoot2 + polarToRect(8, 0.55);         // far post
+        sweepShoot = Point(0, 0);
     }
     Point pt0(0, 0);
     odometry.reset();
@@ -106,12 +108,6 @@ void autonSupCrossBack(bool leftSide) {
             }
         } else if (i == j++) {  // drive to ptBeforeShoot
             printf("drive to ptBeforeShoot ");
-            if (odometry.getY() < 10) {
-                drfbPidRunning = false;
-                if (getDrfb() > drfbPos0) t02 = millis();
-                setDrfb(millis() - t02 < 500 ? -12000 : -1500);
-                is = IntakeState::FRONT_HOLD;
-            }
             if (pidDriveLine()) {
                 pidFaceInit(ptShoot, true, 100);
                 k = 0;
@@ -127,11 +123,19 @@ void autonSupCrossBack(bool leftSide) {
                 is = IntakeState::FRONT_HOLD;
                 if (pidFace()) {
                     k++;
+                    pidDriveLineInit(ptBeforeShoot, ptBeforeShoot2, false, 0.1, 100);
                     t0 = millis();
-                    pidSweepInit(sweepShoot.x, sweepShoot.y, 1.0, 0);
                 }
             } else if (k == 1) {
-                if (pidSweep() && millis() - t0 > 50) {
+                pidDriveLine();
+                if (millis() - t0 > 1000) {
+                    pidDriveLineInit(ptBeforeShoot2, ptShoot, true, 0.1, 100);
+                    t0 = millis();
+                    k++;
+                }
+            } else if (k == 2) {
+                pidDriveLine();
+                if (millis() - t0 > 5000) {
                     is = IntakeState::FRONT;
                     t03 = millis();
                     k++;
@@ -143,10 +147,6 @@ void autonSupCrossBack(bool leftSide) {
                     i++;
                 }
             }
-        } else if (i == j++) {
-            setDL(12000);
-            setDR(12000);
-            if (millis() - t0 > 300) i++;
         } else {
             if (i == 12345) printf("\n\nAUTON TIMEOUT\n");
             stopMotors();

@@ -37,7 +37,7 @@ void autonSupportBack(bool leftSide) {
     setDrfbParams(true);
 
     // tuning setpoints
-    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot, sweepShoot, ptBeforeC2, ptC2, ptAfterC2, pivotBeforePost, ptPost;
+    Point ptBeforeC1, ptC1, ptBeforeShoot, ptShoot, sweepShoot, ptBeforeC2, ptC2, ptAfterC2, pivotBeforePost, ptPost, pivotBeforeC2;
     /*************************************************
     ***********     Left (Red) Side     ************
     **************************************************/
@@ -62,14 +62,15 @@ void autonSupportBack(bool leftSide) {
     else {
         ptBeforeC1 = Point(0, 34);
         ptC1 = Point(0, 37.5);
-        ptBeforeShoot = Point(0, 3);
-        ptShoot = ptBeforeShoot + polarToRect(1, 0.320);  // center post
         sweepShoot = Point(-15, -15);
-        ptBeforeC2 = Point(-13, 33);
+        pivotBeforeC2 = Point(-13, 20);
         ptC2 = Point(-19, 42);
         pivotBeforePost = Point(-10, 10);
         ptPost = Point(-5, -10);
         ptAfterC2 = Point(-8, 20);
+
+        ptBeforeShoot = Point(0, 3);
+        ptShoot = ptBeforeShoot + polarToRect(1, 0.320);  // center post
     }
     Point pt0(0, 0);
     odometry.reset();
