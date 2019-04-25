@@ -373,8 +373,7 @@ void opcontrol() {
         }
         clawPid.target = clawFlipped ? claw180 : claw0;
         clawPid.sensVal = getClaw();
-        setClaw(clamp(clawPid.update(), -12000.0, 12000.0));
-
+        pidClaw();
         // -----------  Intake  ------------
         if (curClicks[ctlrIdxL1]) prevL1T = millis();
         // auto lift drfb

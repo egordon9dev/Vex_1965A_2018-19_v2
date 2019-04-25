@@ -3,5 +3,6 @@
 
 void autonMainBack(bool leftSide);
 void autonSupportBack(bool leftSide);
+void autonSupCrossBack(bool leftSide);
 void autonFlagSide(bool leftSide);
 #endif

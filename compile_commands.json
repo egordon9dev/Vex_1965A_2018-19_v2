@@ -903,6 +903,111 @@
             "-fdiagnostics-color",
             "--std=gnu++17",
             "-o",
+            "bin/auton.cpp.o",
+            "src\\auton.cpp"
+        ],
+        "directory": "C:\\Users\\Ethan\\Desktop\\6000",
+        "file": "src\\auton.cpp"
+    },
+    {
+        "arguments": [
+            "clang++",
+            "-c",
+            "-target",
+            "armv7ar-none-none-eabi",
+            "-fno-ms-extensions",
+            "-fno-ms-compatibility",
+            "-fno-delayed-template-parsing",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include/c++/6.3.1",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include/c++/6.3.1/arm-none-eabi/thumb/v7-ar/fpv3/softfp",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include/c++/6.3.1/backward",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/include",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/include-fixed",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include",
+            "-iquote./include",
+            "-iquote./include/./",
+            "-mcpu=cortex-a9",
+            "-mfpu=neon-fp16",
+            "-mfloat-abi=softfp",
+            "-D_POSIX_THREADS",
+            "-D_UNIX98_THREAD_MUTEX_ATTRIBUTES",
+            "-Os",
+            "-funwind-tables",
+            "-ffunction-sections",
+            "-fdata-sections",
+            "-fdiagnostics-color",
+            "--std=gnu++17",
+            "-o",
+            "bin/autonSupportBack.cpp.o",
+            "src\\autonSupportBack.cpp"
+        ],
+        "directory": "C:\\Users\\Ethan\\Desktop\\6000",
+        "file": "src\\autonSupportBack.cpp"
+    },
+    {
+        "arguments": [
+            "clang++",
+            "-c",
+            "-target",
+            "armv7ar-none-none-eabi",
+            "-fno-ms-extensions",
+            "-fno-ms-compatibility",
+            "-fno-delayed-template-parsing",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include/c++/6.3.1",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include/c++/6.3.1/arm-none-eabi/thumb/v7-ar/fpv3/softfp",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include/c++/6.3.1/backward",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/include",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/include-fixed",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include",
+            "-iquote./include",
+            "-iquote./include/./",
+            "-mcpu=cortex-a9",
+            "-mfpu=neon-fp16",
+            "-mfloat-abi=softfp",
+            "-D_POSIX_THREADS",
+            "-D_UNIX98_THREAD_MUTEX_ATTRIBUTES",
+            "-Os",
+            "-funwind-tables",
+            "-ffunction-sections",
+            "-fdata-sections",
+            "-fdiagnostics-color",
+            "--std=gnu++17",
+            "-o",
+            "bin/autonSupCrossBack.cpp.o",
+            "src\\autonSupCrossBack.cpp"
+        ],
+        "directory": "C:\\Users\\Ethan\\Desktop\\6000",
+        "file": "src\\autonSupCrossBack.cpp"
+    },
+    {
+        "arguments": [
+            "clang++",
+            "-c",
+            "-target",
+            "armv7ar-none-none-eabi",
+            "-fno-ms-extensions",
+            "-fno-ms-compatibility",
+            "-fno-delayed-template-parsing",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include/c++/6.3.1",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include/c++/6.3.1/arm-none-eabi/thumb/v7-ar/fpv3/softfp",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include/c++/6.3.1/backward",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/include",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/include-fixed",
+            "-isystemc:\\program files\\pros\\toolchain\\usr\\bin\\../lib/gcc/arm-none-eabi/6.3.1/../../../../arm-none-eabi/include",
+            "-iquote./include",
+            "-iquote./include/./",
+            "-mcpu=cortex-a9",
+            "-mfpu=neon-fp16",
+            "-mfloat-abi=softfp",
+            "-D_POSIX_THREADS",
+            "-D_UNIX98_THREAD_MUTEX_ATTRIBUTES",
+            "-Os",
+            "-funwind-tables",
+            "-ffunction-sections",
+            "-fdata-sections",
+            "-fdiagnostics-color",
+            "--std=gnu++17",
+            "-o",
             "bin/opcontrol.cpp.o",
             "src\\opcontrol.cpp"
         ],
@@ -938,11 +1043,11 @@
             "-fdiagnostics-color",
             "--std=gnu++17",
             "-o",
-            "bin/setup.cpp.o",
-            "src\\setup.cpp"
+            "bin/autonMainBack.cpp.o",
+            "src\\autonMainBack.cpp"
         ],
         "directory": "C:\\Users\\Ethan\\Desktop\\6000",
-        "file": "src\\setup.cpp"
+        "file": "src\\autonMainBack.cpp"
     },
     {
         "arguments": [
@@ -973,10 +1078,10 @@
             "-fdiagnostics-color",
             "--std=gnu++17",
             "-o",
-            "bin/auton.cpp.o",
-            "src\\auton.cpp"
+            "bin/setup.cpp.o",
+            "src\\setup.cpp"
         ],
         "directory": "C:\\Users\\Ethan\\Desktop\\6000",
-        "file": "src\\auton.cpp"
+        "file": "src\\setup.cpp"
     }
 ]
