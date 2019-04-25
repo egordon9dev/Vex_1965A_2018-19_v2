@@ -53,10 +53,10 @@ void autonSupCrossBack(bool leftSide) {
     ***********     Right (Blue) Side     ************
     **************************************************/
     else {  // 6 / 10
-        ptBeforeC1 = Point(0, 33);
-        ptC1 = Point(0, 35.5);
+        ptBeforeC1 = Point(0, 32);
+        ptC1 = Point(0, 34.3);
         ptBeforeShoot = Point(-1, 31);
-        ptShoot = ptBeforeShoot + polarToRect(1, 0.350);  // far post
+        ptShoot = ptBeforeShoot + polarToRect(1, 0.366);  // far post
         sweepShoot = Point(-4, -4);
     }
     Point pt0(0, 0);
@@ -67,7 +67,7 @@ void autonSupCrossBack(bool leftSide) {
 
     // initialize
     t0 = millis();
-    pidFlywheelInit(3.13, 0.1, 500);
+    pidFlywheelInit(3.04, 0.1, 500);
     pidDriveLineInit(pt0, ptBeforeC1, true, 0.15, 0);
     setDriveSlew(true);
     while (!ctlr.get_digital(DIGITAL_B)) {
