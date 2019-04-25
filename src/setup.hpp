@@ -103,7 +103,7 @@ void setClaw(int n);
 double getClaw();
 double getClawVel();
 int getClawVoltage();
-// bool pidClaw(double a, int wait);
+bool pidClaw(double a, int wait);
 void pidClaw();
 //--------- Flywheel functions --------
 void setFlywheel(int n);

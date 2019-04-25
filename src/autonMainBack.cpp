@@ -60,15 +60,15 @@ void autonMainBack(bool leftSide) {
     ***********     Right (Blue) Side     ************
     **************************************************/
     else {  //  2 / 10
-        ptBeforeC1 = Point(0, 34);
-        ptC1 = Point(0, 37.5);
+        ptBeforeC1 = Point(0, 33);
+        ptC1 = Point(0, 35);
         ptBeforeShoot = Point(0, -2);
-        ptShoot = ptBeforeShoot + polarToRect(8, -0.006);  // near post
+        ptShoot = ptBeforeShoot + polarToRect(8, -0.013);  // near post
         sweepShoot = Point(-7, -7);
         ptBeforeC2 = Point(-13, 33);
-        ptC2 = Point(-18, 40);
+        ptC2 = Point(-18.2, 42);
         pivotBeforePost = Point(-10, 10);
-        ptPost = Point(-18, -10);
+        ptPost = Point(-7.5, -10);
         ptAfterC2 = Point(-8, 20);
     }
     Point pt0(0, 0);
@@ -198,12 +198,15 @@ void autonMainBack(bool leftSide) {
                 }
             }
         } else if (i == j++) {
-            drfbPid.target = drfbPos0;
+            drfbPidRunning = false;
+            if (getDrfb() > drfbPos0) t02 = millis();
+            setDrfb(millis() - t02 < 500 ? -12000 : -1500);
             setClaw(0);
             pidDriveLine();
-            if (odometry.getY() < 0 && fabs(getDriveVel()) < 0.3) { i++; }
+            if (odometry.getY() < 3 && fabs(getDriveVel()) < 0.3) { i++; }
         } else if (i == j++) {
             setClaw(0);
+            drfbPidRunning = true;
             drfbPid.target = drfbPos1Plus;
             setDL(-9000);
             setDR(-9000);

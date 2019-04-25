@@ -198,30 +198,12 @@ double getClawVel() { return mtr8.get_actual_velocity() * (3.1 / 200.0); }
 int getClawVoltage() { return claw_requested_voltage; }
 int getClawMeasuredVoltage() { return mtr8.get_voltage(); }
 bool pidClaw(double a, int wait) {
-    static int t = 0;
-    if (a > claw0 + 0.5 * (claw180 - claw0)) {
-        setClaw(12000);
-        t
-    } else {
-    }
     clawPid.sensVal = getClaw();
     clawPid.target = a;
     setClaw(clawPid.update());
     return clawPid.doneTime + wait < millis();
-    return false;
 }
 void pidClaw() { pidClaw(clawPid.target, 999999); }
-// void pidClaw() {
-//     static double prevTgt = claw0;
-//     static int t0 = -9999;
-//     if (fabs(clawPid.target - prevTgt) > 0.001) { t0 = millis(); }
-//     if (millis() - t0 < 430) {
-//         setClaw(clawPid.target > claw0 + 0.5 * (claw180 - claw0) ? 12000 : -12000);
-//     } else {
-//         setClaw(clawPid.target > claw0 + 0.5 * (claw180 - claw0) ? 2000 : -2000);
-//     }
-//     prevTgt = clawPid.target;
-// }
 /*
  ######## ##       ##    ## ##      ## ##     ## ######## ######## ##
  ##       ##        ##  ##  ##  ##  ## ##     ## ##       ##       ##
