@@ -107,6 +107,7 @@ void setIntake(int n) {  // +: front, -: back
     intake::requestedVoltage = n;
 }
 int getIntakeVoltage() { return intake::requestedVoltage; }
+int getIntakeMeasuredVoltage() { return mtr3.get_voltage(); }
 void setIntake(IntakeState is) {
     static IntakeState prev = IntakeState::NONE;
     if (is == IntakeState::NONE) {
@@ -115,6 +116,8 @@ void setIntake(IntakeState is) {
         setIntake(12000);
     } else if (is == IntakeState::FRONT_HOLD) {
         setIntake(100);
+    } else if (is == IntakeState::BACK_HOLD) {
+        setIntake(-100);
     } else if (is == IntakeState::BACK) {
         setIntake(-6000);
     } else if (is == IntakeState::BACK_SLOW) {
@@ -427,7 +430,14 @@ void stopMotorsBlock() {
 }
 extern Point g_target;
 void printPidValues() {
-    printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f clw%2d|%5dv %4d|%4d/%4d intk%2d %4d/%4d ball b %d %d t %d %d  vel %+1.1f drv %+3.2f/%+3.1f DL%+5d %+2.1f/%+2.1f DR%+5d %+2.1f/%+2.1f trn %+2.2f/%+2.1f x %+3.2f/%+3.1f y %+3.2f/%+3.1f a %+1.2f\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)getDrfb(), (int)drfbPid.target, getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target), (int)(getClawVoltage() / 1000 + 0.5), getClawMeasuredVoltage(), lround(clawPid.sensVal), lround(getClaw()), lround(clawPid.target), (int)(getIntakeVoltage() / 1000 + 0.5), (int)intakePid.sensVal, (int)intakePid.target, isBtmBallIn() ? 1 : 0, getBallSensBtm(), isTopBallIn() ? 1 : 0, getBallSensTop(), getDriveVel(), drivePid.sensVal, drivePid.target, getDLVoltage(), DLPid.sensVal, DLPid.target, getDRVoltage(), DRPid.sensVal, DRPid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
+    printf("drfb%2d %4d/%4d fly%d %1.3f/%1.3f e%1.3f clw%2d|%5dv %4d|%4d/%4d intk%+5d|%+5d %4d/%4d ball b %d %d %d %d vel %+1.1f drv %+3.2f/%+3.1f DL%+5d %+2.1f/%+2.1f DR%+5d %+2.1f/%+2.1f trn %+2.2f/%+2.1f x %+3.2f/%+3.1f y %+3.2f/%+3.1f a %+1.2f\n", (int)(getDrfbVoltage() / 1000 + 0.5), (int)getDrfb(), (int)drfbPid.target,  //
+           getFlywheelVoltage(), flywheelPid.sensVal, flywheelPid.target, fabs(flywheelPid.sensVal - flywheelPid.target),                                                                                                                                                                                                               //
+           (int)(getClawVoltage() / 1000 + 0.5), getClawMeasuredVoltage(), lround(clawPid.sensVal), lround(getClaw()), lround(clawPid.target),                                                                                                                                                                                          //
+           (int)getIntakeVoltage(), (int)getIntakeMeasuredVoltage(), (int)intakePid.sensVal, (int)intakePid.target,                                                                                                                                                                                                                     //
+           isBtmBallIn() ? 1 : 0, getBallSensBtm(), isTopBallIn() ? 1 : 0, getBallSensTop(),                                                                                                                                                                                                                                            //
+           getDriveVel(), drivePid.sensVal, drivePid.target, getDLVoltage(), DLPid.sensVal, DLPid.target, getDRVoltage(), DRPid.sensVal, DRPid.target,                                                                                                                                                                                  //
+           turnPid.sensVal, turnPid.target,                                                                                                                                                                                                                                                                                             //
+           odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
 }
 void printDrivePidValues() { printf("DL%+5d DR%+5d (%+5d %+5d %+5d) vel %+1.3f drive %+3.2f/%+3.2f DL %+2.1f/%+2.1f DR %+2.1f/%+2.1f turn %+2.2f/%+2.2f curve %+2.2f/%+2.2f x %+3.2f/%+3.2f y %+3.2f/%+3.2f a %+1.2f\n", getDLVoltage(), getDRVoltage(), (int)getDL(), (int)getDR(), (int)getDS(), getDriveVel(), drivePid.sensVal, drivePid.target, DLPid.sensVal, DLPid.target, DRPid.sensVal, DRPid.target, turnPid.sensVal, turnPid.target, curvePid.sensVal, curvePid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA()); }
 void printPidSweep() { printf("DL%d %.1f/%.1f DR%d %.1f/%.1f\n", getDLVoltage, DLPid.sensVal, DLPid.target, getDRVoltage, DRPid.sensVal, DRPid.target); }
@@ -605,7 +615,7 @@ void setup() {
     intakePid.iActiveZone = 300;
     intakePid.unwind = 0;
     intakePid.DONE_ZONE = 50;
-    intakeSaver.setConstants(6000, 3500, 0.5, 0.2);
+    intakeSaver.setConstants(12000, 5000, 0.5, 0.2);
 
     clawPid.kp = 70.0;
     clawPid.ki = 0.03;

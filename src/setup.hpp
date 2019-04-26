@@ -29,7 +29,7 @@ extern const double PI; /*
 extern const double ticksPerInchADI;
 extern int driveLim;
 extern int drfbFullRangePowerLimit;
-enum class IntakeState { FRONT, FRONT_HOLD, BACK, BACK_SLOW, ALTERNATE, NONE };
+enum class IntakeState { FRONT, FRONT_HOLD, BACK, BACK_HOLD, BACK_SLOW, ALTERNATE, NONE };
 
 extern bool g_isAuton;
 int clamp(int n, int min, int max);

@@ -84,11 +84,11 @@ void autonSupCrossBack(bool leftSide) {
     */
     //
     else {  // 6 / 10
-        ptBeforeC1 = Point(0, 32);
-        ptC1 = Point(0, 34.3);
+        ptBeforeC1 = Point(0, 32.5);
+        ptC1 = Point(0, 35);
         ptBeforeShoot = Point(-1, 31);
-        ptBeforeShoot2 = ptBeforeShoot + polarToRect(-8, 0.55);  // far post
-        ptShoot = ptBeforeShoot2 + polarToRect(8, 0.55);         // far post
+        ptBeforeShoot2 = ptBeforeShoot + polarToRect(-8, 0.5625);  // far post
+        ptShoot = ptBeforeShoot2 + polarToRect(8, 0.562);          // far post
         sweepShoot = Point(0, 0);
     }
     //
@@ -147,7 +147,7 @@ void autonSupCrossBack(bool leftSide) {
                 if (odometry.getY() > ptC1.y - 0.5 || isBtmBallIn()) { driveDone = true; }
             }
             if (driveDone) {
-                pidDriveLineInit(ptC1, ptBeforeShoot, false, 0.15, 100);
+                pidDriveLineInit(ptC1, ptBeforeShoot, false, 0.15, 500);
                 t0 = BIL;
                 t02 = BIL;
                 is = IntakeState::FRONT;
@@ -156,18 +156,18 @@ void autonSupCrossBack(bool leftSide) {
         } else if (i == j++) {  // drive to ptBeforeShoot
             printf("drive to ptBeforeShoot ");
             if (isBtmBallIn() && isTopBallIn() && t02 > millis()) t02 = millis();
-            if (millis() - t02 > 500) is = IntakeState::FRONT_HOLD;
+            if (millis() - t02 > 900) is = IntakeState::FRONT_HOLD;
             if (pidDriveLine()) {
                 pidFaceInit(ptShoot, true, 100);
                 k = 0;
-                t02 = millis();
+                t03 = millis();
                 i++;
             }
         } else if (i == j++) {  // drive to ptShoot, shoot side post flags
             printf("drive to ptShoot ");
             drfbPidRunning = false;
-            if (getDrfb() > drfbPos0) t02 = millis();
-            setDrfb(millis() - t02 < 500 ? -12000 : -1500);
+            if (getDrfb() > drfbPos0) t03 = millis();
+            setDrfb(millis() - t03 < 500 ? -12000 : -1500);
             if (k == 0) {
                 is = IntakeState::FRONT_HOLD;
                 if (pidFace()) {
@@ -178,34 +178,45 @@ void autonSupCrossBack(bool leftSide) {
             } else if (k == 1) {
                 pidDriveLine();
                 if (millis() - t0 > 1000) {
-                    pidDriveLineInit(ptBeforeShoot2, ptShoot, true, 0.1, 100);
+                    pidDriveLineInit(ptBeforeShoot2, ptShoot, true, 0.1, 500);
                     t0 = millis();
+                    g = 0;
                     k++;
                 }
             } else if (k == 2) {
-                pidDriveLine();
-                if (millis() - t0 > 8000) {
-                    intakeRunning = false;
-                    pidIntakeInit(intakeOneShotTicksTop, 0);
+                if (g == 0) {
+                    if (pidDriveLine()) g++;
+                } else {
+                    setDL(0);
+                    setDR(0);
+                }
+                if (millis() - t0 > 7000) {
+                    // intakeRunning = false;
+                    // pidIntakeInit(420, 0);
+                    is = IntakeState::FRONT;
+                    t0 = millis();
                     k++;
                 }
-            } else if (k == 3) {
-                if (pidIntake()) {  // 300 minimum
-                    pidFlywheelInit(2.7, 0.1, 500);
+            } else if (k == 3) {  // 140ms min
+                printf("11111111111 ");
+                if (millis() - t0 > 200) {  // 300 minimum
+                    is = IntakeState::BACK_HOLD;
+                    pidFlywheelInit(2.72, 0.1, 500);
                     t0 = BIL;
                     k++;
                 }
             } else if (k == 4) {
                 pidIntake();
                 if (fabs(flywheelPid.target - flywheelPid.sensVal) < 0.1 && t0 > millis()) t0 = millis();
-                if (millis() - t0 > 800) {
+                if (millis() - t0 > 1000) {
                     intakeRunning = true;
                     t0 = millis();
                     is = IntakeState::FRONT;
                     k++;
                 }
             } else if (k == 5) {
-                if (millis() - t0 > 1000) { i++; }
+                printf("22222222222 ");
+                if (millis() - t0 > 1000 && !isTopBallIn()) { i++; }
             }
         } else {
             if (i == 12345) printf("\n\nAUTON TIMEOUT\n");
