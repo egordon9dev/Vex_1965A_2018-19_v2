@@ -54,6 +54,12 @@ void opcontrol() {
         return;
     }
     if (0) {
+        pidFlywheelInit(2.73, 0.1, 999);
+        while (1) {
+            pidFlywheel();
+            printPidValues();
+            delay(10);
+        }
         // while (1) {
         // printf("top %d    btm %d\n", getBallSensTop(), getBallSensBtm());
         // delay(10);

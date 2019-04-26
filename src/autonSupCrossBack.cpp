@@ -38,21 +38,51 @@ void autonSupCrossBack(bool leftSide) {
 
     // tuning setpoints
     Point ptBeforeC1, ptC1, ptBeforeShoot, ptBeforeShoot2, ptShoot, sweepShoot;
-    /*************************************************
-    ***********     Left (Red) Side     ************
-    **************************************************/
+
+    /*
+     ##       ######## ######## ########
+     ##       ##       ##          ##
+     ##       ##       ##          ##
+     ##       ######   ######      ##
+     ##       ##       ##          ##
+     ##       ##       ##          ##
+     ######## ######## ##          ##
+    */
+    //
     if (leftSide) {  // 0 / 10
         ptBeforeC1 = Point(0, 33);
         ptC1 = Point(0, 35.5);
         ptBeforeShoot = Point(1, 31);
-        ptBeforeShoot2 = ptBeforeShoot + polarToRect(-8, PI - 0.55 + 0.1);  // far post
-        ptShoot = ptBeforeShoot2 + polarToRect(8, PI - 0.55 + 0.08);        // far post
+        ptBeforeShoot2 = ptBeforeShoot + polarToRect(-8, PI - 0.55 + 0.05);  // far post
+        ptShoot = ptBeforeShoot2 + polarToRect(8, PI - 0.55 + 0.05);         // far post
         sweepShoot = Point(0, 0);
     }
 
-    /*************************************************
-    ***********     Right (Blue) Side     ************
-    **************************************************/
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    /*
+     ########  ####  ######   ##     ## ########
+     ##     ##  ##  ##    ##  ##     ##    ##
+     ##     ##  ##  ##        ##     ##    ##
+     ########   ##  ##   #### #########    ##
+     ##   ##    ##  ##    ##  ##     ##    ##
+     ##    ##   ##  ##    ##  ##     ##    ##
+     ##     ## ####  ######   ##     ##    ##
+    */
+    //
     else {  // 6 / 10
         ptBeforeC1 = Point(0, 32);
         ptC1 = Point(0, 34.3);
@@ -61,6 +91,22 @@ void autonSupCrossBack(bool leftSide) {
         ptShoot = ptBeforeShoot2 + polarToRect(8, 0.55);         // far post
         sweepShoot = Point(0, 0);
     }
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
     Point pt0(0, 0);
     odometry.reset();
     odometry.setA(targetAngle);
@@ -103,11 +149,14 @@ void autonSupCrossBack(bool leftSide) {
             if (driveDone) {
                 pidDriveLineInit(ptC1, ptBeforeShoot, false, 0.15, 100);
                 t0 = BIL;
+                t02 = BIL;
                 is = IntakeState::FRONT;
                 i++;
             }
         } else if (i == j++) {  // drive to ptBeforeShoot
             printf("drive to ptBeforeShoot ");
+            if (isBtmBallIn() && isTopBallIn() && t02 > millis()) t02 = millis();
+            if (millis() - t02 > 500) is = IntakeState::FRONT_HOLD;
             if (pidDriveLine()) {
                 pidFaceInit(ptShoot, true, 100);
                 k = 0;
@@ -135,17 +184,28 @@ void autonSupCrossBack(bool leftSide) {
                 }
             } else if (k == 2) {
                 pidDriveLine();
-                if (millis() - t0 > 5000) {
-                    is = IntakeState::FRONT;
-                    t03 = millis();
+                if (millis() - t0 > 8000) {
+                    intakeRunning = false;
+                    pidIntakeInit(intakeOneShotTicksTop, 0);
                     k++;
                 }
-            } else {
-                if (millis() - t03 > 1000) {  // 300 minimum
-                    pidFlywheelInit(0.0, 0.1, 500);
-                    t0 = millis();
-                    i++;
+            } else if (k == 3) {
+                if (pidIntake()) {  // 300 minimum
+                    pidFlywheelInit(2.7, 0.1, 500);
+                    t0 = BIL;
+                    k++;
                 }
+            } else if (k == 4) {
+                pidIntake();
+                if (fabs(flywheelPid.target - flywheelPid.sensVal) < 0.1 && t0 > millis()) t0 = millis();
+                if (millis() - t0 > 800) {
+                    intakeRunning = true;
+                    t0 = millis();
+                    is = IntakeState::FRONT;
+                    k++;
+                }
+            } else if (k == 5) {
+                if (millis() - t0 > 1000) { i++; }
             }
         } else {
             if (i == 12345) printf("\n\nAUTON TIMEOUT\n");
@@ -157,7 +217,7 @@ void autonSupCrossBack(bool leftSide) {
         if (clawPidRunning) setClaw(clawPid.update());
         pidFlywheel();
         if (drfbPidRunning) pidDrfb();
-        setIntake(is);
+        if (intakeRunning) setIntake(is);
         delay(10);
     }
     stopMotorsBlock();
