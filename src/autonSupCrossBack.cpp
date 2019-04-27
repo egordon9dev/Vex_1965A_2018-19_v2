@@ -199,7 +199,7 @@ void autonSupCrossBack(bool leftSide) {
                 }
             } else if (k == 3) {  // 140ms min
                 printf("11111111111 ");
-                if (millis() - t0 > 200) {  // 300 minimum
+                if (millis() - t0 > 180) {  // 300 minimum
                     is = IntakeState::BACK_HOLD;
                     pidFlywheelInit(2.72, 0.1, 500);
                     t0 = BIL;

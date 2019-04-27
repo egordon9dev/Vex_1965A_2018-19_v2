@@ -149,7 +149,7 @@ void opcontrol() {
 
     bool oneShotReq = false, prevOneShotReq = false, intakeRunning = true;
     int prevL1T = -9999;
-    int oneShotT = BIL;
+    int oneShotT = -9999;
     // int iti = 0;    // iti = Intake Tracker Index
     // int itt = BIL;  // itt = Intake Tracker Time
     while (true) {
@@ -414,24 +414,19 @@ void opcontrol() {
         }
         if (!curClicks[ctlrIdxLeft] && prevClicks[ctlrIdxLeft]) { intakeState = isBeforeBack; }
         // one shot
-        if (curClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight]) oneShotReq = true;
-        // intakeRunning = !oneShotReq;
-        if (oneShotReq && !prevOneShotReq && oneShotT > millis()) { oneShotT = millis(); }
-        prevOneShotReq = oneShotReq;
+        if (curClicks[ctlrIdxRight] && !prevClicks[ctlrIdxRight]) {
+            oneShotReq = true;
+            oneShotT = millis();
+        }
         if (oneShotReq) {
-            if (millis() - oneShotT < 200 && oneShotT < millis()) {
+            if (millis() - oneShotT < 170) {
                 intakeState = IntakeState::FRONT;
             } else {
                 oneShotReq = false;
-                oneShotT = BIL;
                 intakeState = IntakeState::BACK_HOLD;
             }
         }
-        // if (intakeRunning) {
         setIntake(intakeState);
-        // } else {
-        //     if (pidIntake()) oneShotReq = false;
-        // }
         if (millis() - prevCtlrUpdateT > 150) {
             bool curIsBallIn = isBtmBallIn();
             if (curIsBallIn && !prevIsBallIn) {
