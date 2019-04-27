@@ -150,6 +150,9 @@ void opcontrol() {
     bool oneShotReq = false, prevOneShotReq = false, intakeRunning = true;
     int prevL1T = -9999;
     int oneShotT = -9999;
+
+    bool prevClawFlipped;
+    int prevClawT = -99999;
     // int iti = 0;    // iti = Intake Tracker Index
     // int itt = BIL;  // itt = Intake Tracker Time
     while (true) {
@@ -347,6 +350,12 @@ void opcontrol() {
         }
         if (!isDrfbHolding) prevNotHoldingT = millis();
         // CLAW
+        if (clawFlipped != prevClawFlipped) { prevClawT = millis(); }
+        int clawEllapsedT = millis() - prevClawT;
+        bool clawHolding = clawEllapsedT > 420;
+        int clawPwr = (clawFlipped ? 1 : -1) * (clawHolding ? 1000 : 12000);
+        prevClawFlipped = clawFlipped;
+        setClaw(clawPwr);
         if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX]) {
             if (autoFlipI == -1) {
                 if (drfbPidRunning && atDrfbSetp && (fabs(drfbPid.target - drfbPos1) < 0.001 && fabs(curDrfb - drfbPos1) < 100) ||  // autoFlipH = 2
@@ -374,13 +383,12 @@ void opcontrol() {
             }
             // fullfill the request if the drfb is within an acceptable range
             if (curDrfb > drfbMinClaw0 && curDrfb < drfbMaxClaw0 || curDrfb > drfbMinClaw1) {
-                clawFlipped = !clawFlipped;
-                clawFlipRequest = false;
+                if (clawHolding) {
+                    clawFlipped = !clawFlipped;
+                    clawFlipRequest = false;
+                }
             }
         }
-        clawPid.target = clawFlipped ? claw180 : claw0;
-        clawPid.sensVal = getClaw();
-        setClaw(clamp(clawPid.update(), -12000.0, 12000.0));
 
         // -----------  Intake  ------------
         if (curClicks[ctlrIdxL1]) prevL1T = millis();

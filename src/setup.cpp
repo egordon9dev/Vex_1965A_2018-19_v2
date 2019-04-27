@@ -698,7 +698,7 @@ void morningRoutine() {
     int t0 = millis();
     while (millis() - t0 < 600) {
         setDrfbDumb(-6000);
-        setClawDumb(-2500);
+        setClawDumb(-1500);
         delay(10);
     }
     drfbIMEBias = -getDrfb() - 98;

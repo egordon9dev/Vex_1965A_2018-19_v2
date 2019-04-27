@@ -92,11 +92,11 @@ void autonMainBack(bool leftSide) {
     else {  //  5 / 10
         ptBeforeC1 = Point(0, 32);
         ptC1 = Point(0, 35.5);
-        ptBeforeShoot = Point(0, -2);
-        ptShoot = ptBeforeShoot + polarToRect(8, 0.07);  // near post
+        ptBeforeShoot = Point(0, -4);
+        ptShoot = ptBeforeShoot + polarToRect(12, 0.02);  // near post
         sweepShoot = Point(-7, -7);
         ptBeforeC2 = Point(-13, 33);
-        ptC2 = Point(-17.5, 43);
+        ptC2 = Point(-19, 43);
         pivotBeforePost = Point(-10, 10);
         ptPost = Point(-4, -18);
         ptBump = Point(-17, -18);
