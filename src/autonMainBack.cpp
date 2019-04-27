@@ -53,13 +53,13 @@ void autonMainBack(bool leftSide) {
     if (leftSide) {  //  6 / 10
         ptBeforeC1 = Point(0, 34);
         ptC1 = Point(0, 36.5);
-        ptBeforeShoot = Point(0, -2);
-        ptShoot = ptBeforeShoot + polarToRect(8, PI + 0.0505);  // near post .005 too much .003 to little
+        ptBeforeShoot = Point(0, -4);
+        ptShoot = ptBeforeShoot + polarToRect(12, PI + 0.06);  // near post .005 too much .003 to little
         sweepShoot = Point(-7, -7);
         ptBeforeC2 = Point(13, 33);
-        ptC2 = Point(19, 43.5);
+        ptC2 = Point(20.5, 43.5);
         pivotBeforePost = Point(10, 10);
-        ptPost = Point(11.5, -18);
+        ptPost = Point(12, -21);
         ptBump = Point(22, -18);
         ptAfterC2 = Point(8, 20);
     }
@@ -224,7 +224,7 @@ void autonMainBack(bool leftSide) {
             } else if (k == 1) {
                 setClaw(12000);
                 if (millis() - t0 > 500) {
-                    setClaw(0);
+                    setClaw(1000);
                     t0 = millis();
                     t02 = millis();
                     pidDriveLineInit(pivotBeforePost, ptBump, false, 0.1, 0);
@@ -237,14 +237,14 @@ void autonMainBack(bool leftSide) {
             if (getDrfb() > drfbPos0) t02 = millis();
             setDrfb(millis() - t02 < 500 ? -12000 : -1500);
             if (millis() - t0 > 1000) driveLim = 12000;
-            setClaw(0);
+            setClaw(1000);
             pidDriveLine();
             if (odometry.getY() < 3 && fabs(getDriveVel()) < 0.3) {
                 i++;
                 pidDriveLineInit(odometry.getPos(), ptPost + Point(0, 20), true, 0.15, 0);
             }
         } else if (i == j++) {
-            setClaw(0);
+            setClaw(1000);
             drfbPidRunning = true;
             driveLim = 8000;
             drfbPid.target = drfbPos1Plus;
@@ -255,18 +255,18 @@ void autonMainBack(bool leftSide) {
                 i++;
             }
         } else if (i == j++) {
-            setClaw(0);
+            setClaw(1000);
             pidDriveLine();
             if (millis() - t0 > 1300 && fabs(getDriveVel()) < 0.3) { i++; }
         } else if (i == j++) {
-            setClaw(0);
+            setClaw(1000);
             setDL(0);
             setDR(0);
             setDrfb(-12000);
             drfbPidRunning = false;
             if (getDrfb() < drfbPos1 + 70) i++;
         } else if (i == j++) {
-            setClaw(0);
+            setClaw(1000);
             drfbPidRunning = true;
             drfbPid.target = drfbPos1;
             setDL(-9000);
@@ -276,6 +276,7 @@ void autonMainBack(bool leftSide) {
                 i++;
             }
         } else if (i == j++) {
+            setClaw(0);
             setDL(1000);
             setDR(1000);
             if (millis() - t0 > 200) i++;
