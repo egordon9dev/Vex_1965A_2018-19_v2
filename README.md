@@ -1,0 +1,2 @@
+# Vex_1965A_2018-19_v2
+Vex Robotics Competition code for the 2018-19 Turning Point competition. It uses several PID Controllers to control each mechanism of the robot. The flywheel uses PID for velocity. Normal PID for velocity is very unstable, so a Feedforward Controller is also used. This was PID Feedback is only used when necessary. Feedforward provides a good estimate of the motor power (but it's open loop, so we still need some PID Feedback to correct disturbances).
